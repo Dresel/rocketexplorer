@@ -1,0 +1,217 @@
+@page "/contracts"
+@using MessagePack
+@using RocketExplorer.Shared
+@inject HttpClient Http
+
+<PageTitle>Rocket Explorer - Contracts</PageTitle>
+<MudStack>
+	<MudText Typo="Typo.h6">Contract Addresses</MudText>
+
+	<MudTable ServerData="LoadContracts" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true"
+		GroupBy="@groupContractsDefinition"
+		GroupHeaderStyle="background-color: var(--mud-palette-primary-lighten);"
+		GroupFooterClass="mb-4">
+
+		<ToolBarContent>
+			<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+				AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+			</MudTextField>
+		</ToolBarContent>
+		<GroupHeaderTemplate>
+			<MudTh Style="font-weight: 500;" colspan="4">
+				<MudHighlighter Text="@context.Key?.ToString()" HighlightedText="@searchString" />
+			</MudTh>
+		</GroupHeaderTemplate>
+		<HeaderContent>
+			<MudTh>
+				<MudTableSortLabel T="VersionedRocketpoolContractViewModel" SortLabel="Name" InitialDirection="SortDirection.Ascending">Name</MudTableSortLabel>
+			</MudTh>
+			<MudTh>Address</MudTh>
+			<MudTh>Activation Method</MudTh>
+			<MudTh>Activation Height</MudTh>
+		</HeaderContent>
+		<RowTemplate>
+			<MudTd></MudTd>
+			<MudTd Style="font-family: monospace;">
+				<MudHighlighter Text="@context.Address" HighlightedText="@searchString" />
+				<a href="@($"https://holesky.etherscan.io/address/{context.Address}#code")" target="_blank">
+					<MudIcon Icon="@Icons.Material.Filled.Search" Style="vertical-align: text-bottom" Size="Size.Small" Color="Color.Primary" />
+				</a>
+			</MudTd>
+			<MudTd>
+				<MudHighlighter Text="@context.ActivationMethod" HighlightedText="@searchString" />
+			</MudTd>
+			<MudTd>@context.ActivationHeight</MudTd>
+		</RowTemplate>
+		<NoRecordsContent>
+			<MudText>No matching records found</MudText>
+		</NoRecordsContent>
+		<LoadingContent>
+			<MudText>Loading...</MudText>
+		</LoadingContent>
+		<PagerContent>
+			<MudTablePager />
+		</PagerContent>
+	</MudTable>
+
+	<MudText Typo="Typo.h6">Upgrade contract addresses</MudText>
+
+	<MudTable ServerData="LoadUpgradeContracts" Dense="true" Hover="true" Elevation="0" Outlined="true">
+		<HeaderContent>
+			<MudTh>Name</MudTh>
+			<MudTh>Address</MudTh>
+			<MudTh>Activation Method</MudTh>
+			<MudTh>Execution Height</MudTh>
+		</HeaderContent>
+		<RowTemplate>
+			<MudTd>@context.ContractName</MudTd>
+			<MudTd Style="font-family: monospace;">
+				@context.Address
+				<a href="@($"https://holesky.etherscan.io/address/{context.Address}#code")" target="_blank">
+					<MudIcon Icon="@Icons.Material.Filled.Search" Style="vertical-align: text-bottom" Size="Size.Small" Color="Color.Primary" />
+				</a>
+			</MudTd>
+			<MudTd>@context.ActivationMethod</MudTd>
+			<MudTd>
+				@context.ExecutionHeight
+				@if (!context.Executed)
+				{
+					<MudIcon Icon="@Icons.Material.Filled.Cancel" Style="vertical-align: text-bottom" Size="Size.Small" Color="Color.Default" />
+				}
+			</MudTd>
+		</RowTemplate>
+		<LoadingContent>
+			<MudText>Loading...</MudText>
+		</LoadingContent>
+	</MudTable>
+</MudStack>
+
+@code
+{
+	private MudTable<VersionedRocketpoolContractViewModel> table = null!;
+	private ContractsSnapshot snapshot = null!;
+	private string? searchString;
+
+	private readonly TableGroupDefinition<VersionedRocketpoolContractViewModel> groupContractsDefinition = new()
+	{
+		GroupName = "Contract",
+		Indentation = false,
+		Expandable = false,
+		IsInitiallyExpanded = true,
+		Selector = e => e.ContractName
+	};
+
+	// private readonly TableGroupDefinition<VersionedRocketpoolUpgradeContractViewModel> groupUpgradeContractsDefinition = new()
+	// {
+	// 	GroupName = "UpgradeContract",
+	// 	Indentation = false,
+	// 	Expandable = false,
+	// 	IsInitiallyExpanded = true,
+	// 	Selector = e => e.ContractName
+	// };
+
+	protected override async Task OnInitializedAsync()
+	{
+		var tcs = new TaskCompletionSource<bool>();
+		loaded = tcs.Task;
+
+		var streamAsync = await Http.GetStreamAsync("https://rocketexplorer.nbg1.your-objectstorage.com/devnet/contracts-snapshot.msgpack");
+		snapshot = MessagePackSerializer.Deserialize<ContractsSnapshot>(streamAsync, MessagePackSerializerOptions.Standard);
+
+		tcs.TrySetResult(true);
+
+		await base.OnInitializedAsync();
+	}
+
+	Task<bool>? loaded;
+
+	private void OnSearch(string text)
+	{
+		searchString = text;
+		table.ReloadServerData();
+	}
+
+	private async Task<TableData<VersionedRocketpoolContractViewModel>> LoadContracts(TableState state, CancellationToken token)
+	{
+		await (loaded ?? throw new InvalidOperationException());
+		List<RocketpoolContract> items = snapshot.Contracts.ToList();
+
+		if (state.SortLabel is "Name")
+		{
+			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.Name).ToList() : items.OrderByDescending(x => x.Name).ToList();
+		}
+
+		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
+		{
+			items = items.Where(
+				x => x.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+					x.Versions.Any(version => version.Address.Contains(searchString, StringComparison.OrdinalIgnoreCase)) ||
+					x.Versions.Any(version => version.ActivationMethod.Contains(searchString, StringComparison.OrdinalIgnoreCase))).ToList();
+		}
+
+		var count = items.Count;
+		items = items.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList();
+
+		return new TableData<VersionedRocketpoolContractViewModel>
+		{
+			TotalItems = count,
+			Items = items.SelectMany(
+				contract => contract.Versions,
+				(contract, version) => new VersionedRocketpoolContractViewModel
+				{
+					Address = version.Address,
+					ActivationHeight = version.ActivationHeight,
+					ActivationMethod = version.ActivationMethod,
+					ContractName = contract.Name
+				}).ToList()
+		};
+	}
+
+	private async Task<TableData<VersionedRocketpoolUpgradeContractViewModel>> LoadUpgradeContracts(TableState state, CancellationToken token)
+	{
+		await (loaded ?? throw new InvalidOperationException());
+		List<RocketpoolUpgradeContract> items = snapshot.UpgradeContracts.ToList();
+
+		return new TableData<VersionedRocketpoolUpgradeContractViewModel>
+		{
+			TotalItems = items.Count,
+			Items = items.SelectMany(
+				contract => contract.Versions,
+				(contract, version) => new VersionedRocketpoolUpgradeContractViewModel
+				{
+					Address = version.Address,
+					ActivationHeight = version.ActivationHeight,
+					ExecutionHeight = version.ExecutionHeight,
+					ActivationMethod = version.ActivationMethod,
+					ContractName = contract.Name,
+					Executed = version.IsExecuted
+				}).OrderBy(x => x.ActivationHeight).ToList()
+		};
+	}
+
+	public class VersionedRocketpoolContractViewModel
+	{
+		public required string ContractName { get; set; }
+
+		public required ulong ActivationHeight { get; set; }
+
+		public required string ActivationMethod { get; set; }
+
+		public required string Address { get; init; }
+	}
+
+	public class VersionedRocketpoolUpgradeContractViewModel
+	{
+		public required string ContractName { get; set; }
+
+		public required ulong? ExecutionHeight { get; set; }
+
+		public required string ActivationMethod { get; set; }
+
+		public required ulong ActivationHeight { get; set; }
+
+		public required string Address { get; init; }
+
+		public required bool Executed { get; set; }
+	}
+}

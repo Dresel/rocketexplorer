@@ -1,0 +1,13 @@
+{
+	"version": 1,
+	"isRoot": true,
+	"tools": {
+		"nethereum.generator.console": {
+			"version": "4.28.0",
+			"commands": [
+				"Nethereum.Generator.Console"
+			],
+			"rollForward": false
+		}
+	}
+}

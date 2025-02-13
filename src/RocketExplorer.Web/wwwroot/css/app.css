@@ -1,0 +1,32 @@
+html, body { font-family: 'Roboto', 'Helvetica', 'Arial', 'sans-serif'; }
+
+.loading-progress {
+	display: block;
+	height: 8rem;
+	margin: 20vh auto 1rem auto;
+	position: relative;
+	width: 8rem;
+}
+
+.loading-progress circle {
+	fill: none;
+	stroke: #e0e0e0;
+	stroke-width: 0.6rem;
+	transform: rotate(-90deg);
+	transform-origin: 50% 50%;
+}
+
+.loading-progress circle:last-child {
+	stroke: rgba(255, 87, 34, 1);
+	stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+	transition: stroke-dasharray 0.05s ease-in-out;
+}
+
+.loading-progress-text {
+	font-weight: bold;
+	inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+	position: absolute;
+	text-align: center;
+}
+
+.loading-progress-text:after { content: var(--blazor-load-percentage-text, "Loading Rocket Explorer"); }

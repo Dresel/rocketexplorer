@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<ItemGroup>
+		<PackageReference Include="AWSSDK.S3" Version="3.7.415.6" />
+		<PackageReference Include="MessagePack" Version="3.1.3" />
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.2" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.2" />
+		<PackageReference Include="Polly" Version="8.5.2" />
+		<PackageReference Include="Polly.Contrib.WaitAndRetry" Version="1.1.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\RocketExplorer.Ethereum\RocketExplorer.Ethereum.csproj" />
+		<ProjectReference Include="..\RocketExplorer.Shared\RocketExplorer.Shared.csproj" />
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,611 @@
+[
+	{
+		"inputs": [
+			{
+				"internalType": "contract RocketStorageInterface",
+				"name": "_rocketStorageAddress",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "megapool",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "validatorId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
+		"name": "MegapoolValidatorAssigned",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "megapool",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "validatorId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
+		"name": "MegapoolValidatorDequeued",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "megapool",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "validatorId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
+		"name": "MegapoolValidatorEnqueued",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
+		"name": "RewardsClaimed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "nodeAmount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "voterAmount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "rethAmount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
+		"name": "RewardsDistributed",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "_validatorId",
+				"type": "uint32"
+			}
+		],
+		"name": "assignFunds",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "calculatePendingRewards",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "nodeRewards",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "voterRewards",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "rethRewards",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_amount",
+				"type": "uint256"
+			}
+		],
+		"name": "calculateRewards",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "nodeRewards",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "voterRewards",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "rethRewards",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "claim",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "deprecate",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "_validatorId",
+				"type": "uint32"
+			}
+		],
+		"name": "dequeue",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "_validatorId",
+				"type": "uint32"
+			}
+		],
+		"name": "dissolveValidator",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "distribute",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getActiveValidatorCount",
+		"outputs": [
+			{
+				"internalType": "uint32",
+				"name": "",
+				"type": "uint32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getAssignedValue",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getDebt",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getExpirationBlock",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getLastDistributionBlock",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getNodeAddress",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getNodeBond",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getNodeCapital",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getPendingRewards",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getRefundValue",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getUserCapital",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getValidatorCount",
+		"outputs": [
+			{
+				"internalType": "uint32",
+				"name": "",
+				"type": "uint32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "_validatorId",
+				"type": "uint32"
+			}
+		],
+		"name": "getValidatorInfo",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "bytes",
+						"name": "pubKey",
+						"type": "bytes"
+					},
+					{
+						"internalType": "uint32",
+						"name": "lastAssignmentTime",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "lastRequestedValue",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "lastRequestedBond",
+						"type": "uint32"
+					},
+					{
+						"internalType": "bool",
+						"name": "staked",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "exited",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "inQueue",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "inPrestake",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "expressUsed",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "dissolved",
+						"type": "bool"
+					}
+				],
+				"internalType": "struct RocketMegapoolStorageLayout.ValidatorInfo",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getWithdrawalCredentials",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_bondAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "_useExpressTicket",
+				"type": "bool"
+			},
+			{
+				"internalType": "bytes",
+				"name": "_validatorPubkey",
+				"type": "bytes"
+			},
+			{
+				"internalType": "bytes",
+				"name": "_validatorSignature",
+				"type": "bytes"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_depositDataRoot",
+				"type": "bytes32"
+			}
+		],
+		"name": "newValidator",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "repayDebt",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_debt",
+				"type": "uint256"
+			}
+		],
+		"name": "setDebt",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "_validatorId",
+				"type": "uint32"
+			},
+			{
+				"internalType": "bytes",
+				"name": "_signature",
+				"type": "bytes"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_depositDataRoot",
+				"type": "bytes32"
+			},
+			{
+				"components": [
+					{
+						"internalType": "uint64",
+						"name": "slot",
+						"type": "uint64"
+					},
+					{
+						"internalType": "uint256",
+						"name": "validatorIndex",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bytes",
+						"name": "pubkey",
+						"type": "bytes"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "withdrawalCredentials",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "bytes32[]",
+						"name": "witnesses",
+						"type": "bytes32[]"
+					}
+				],
+				"internalType": "struct ValidatorProof",
+				"name": "_proof",
+				"type": "tuple"
+			}
+		],
+		"name": "stake",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "version",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]

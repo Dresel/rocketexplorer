@@ -31,7 +31,7 @@ public class Configuration
 
 	public Environment Environment { get; }
 
-	public string EtherscanPrefix => Environment == Environment.Holesky ? "holesky." : string.Empty;
+	public string EtherscanPrefix => Network == Network.Holesky ? "holesky." : string.Empty;
 
 	public Network Network { get; }
 }

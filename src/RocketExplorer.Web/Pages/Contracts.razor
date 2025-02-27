@@ -2,6 +2,7 @@
 @using MessagePack
 @using RocketExplorer.Shared
 @inject HttpClient Http
+@inject Configuration Configuration
 
 <PageTitle>Rocket Explorer - Contracts</PageTitle>
 <MudStack>
@@ -34,7 +35,7 @@
 			<MudTd></MudTd>
 			<MudTd Style="font-family: monospace;">
 				<MudHighlighter Text="@context.Address" HighlightedText="@searchString" />
-				<a href="@($"https://holesky.etherscan.io/address/{context.Address}#code")" target="_blank">
+				<a href="@($"https://{Configuration.EtherscanPrefix}.etherscan.io/address/{context.Address}#code")" target="_blank">
 					<MudIcon Icon="@Icons.Material.Filled.Search" Style="vertical-align: text-bottom" Size="Size.Small" Color="Color.Primary" />
 				</a>
 			</MudTd>
@@ -67,7 +68,7 @@
 			<MudTd>@context.ContractName</MudTd>
 			<MudTd Style="font-family: monospace;">
 				@context.Address
-				<a href="@($"https://holesky.etherscan.io/address/{context.Address}#code")" target="_blank">
+				<a href="@($"https://{Configuration.EtherscanPrefix}etherscan.io/address/{context.Address}#code")" target="_blank">
 					<MudIcon Icon="@Icons.Material.Filled.Search" Style="vertical-align: text-bottom" Size="Size.Small" Color="Color.Primary" />
 				</a>
 			</MudTd>
@@ -101,21 +102,13 @@
 		Selector = e => e.ContractName
 	};
 
-	// private readonly TableGroupDefinition<VersionedRocketPoolUpgradeContractViewModel> groupUpgradeContractsDefinition = new()
-	// {
-	// 	GroupName = "UpgradeContract",
-	// 	Indentation = false,
-	// 	Expandable = false,
-	// 	IsInitiallyExpanded = true,
-	// 	Selector = e => e.ContractName
-	// };
-
 	protected override async Task OnInitializedAsync()
 	{
 		var tcs = new TaskCompletionSource<bool>();
 		loaded = tcs.Task;
 
-		var streamAsync = await Http.GetStreamAsync("https://rocketexplorer.nbg1.your-objectstorage.com/devnet/contracts-snapshot.msgpack");
+		// TODO: Polly
+		var streamAsync = await Http.GetStreamAsync($"https://rocketexplorer.nbg1.your-objectstorage.com/{Configuration.Environment}/contracts-snapshot.msgpack");
 		snapshot = MessagePackSerializer.Deserialize<ContractsSnapshot>(streamAsync, MessagePackSerializerOptions.Standard);
 
 		tcs.TrySetResult(true);

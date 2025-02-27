@@ -10,16 +10,18 @@ public class Configuration
 
 		string subdomain = uri.Host.Split('.').First();
 
-		if (new[] { "devnet", "holesky", "mainnet", }.Contains(subdomain))
+		Environment = subdomain switch
 		{
-			Environment = subdomain;
-		}
+			"devnet" => Environment.Devnet,
+			"holesky" => Environment.Holesky,
+			_ => Environment.Mainnet,
+		};
 
 		Network = Environment switch
 		{
-			"devnet" => "holesky",
-			"holesky" => "holesky",
-			"mainnet" => "mainnet",
+			Environment.Devnet => Network.Holesky,
+			Environment.Holesky => Network.Holesky,
+			Environment.Mainnet => Network.Mainnet,
 			_ => throw new InvalidOperationException("Network is null"),
 		};
 
@@ -27,9 +29,9 @@ public class Configuration
 			"Using Network {Network} and Rocket Pool Environment {Environment}", Network, Environment);
 	}
 
-	public string Environment { get; } = "mainnet";
+	public Environment Environment { get; }
 
-	public string EtherscanPrefix => Environment == "holesky" ? "holesky." : string.Empty;
+	public string EtherscanPrefix => Environment == Environment.Holesky ? "holesky." : string.Empty;
 
-	public string Network { get; }
+	public Network Network { get; }
 }

@@ -108,7 +108,7 @@
 		loaded = tcs.Task;
 
 		// TODO: Polly
-		var streamAsync = await Http.GetStreamAsync($"https://rocketexplorer.nbg1.your-objectstorage.com/{Configuration.Environment}/contracts-snapshot.msgpack");
+		var streamAsync = await Http.GetStreamAsync($"https://rocketexplorer.nbg1.your-objectstorage.com/{Configuration.Environment.ToString().ToLower()}/contracts-snapshot.msgpack");
 		snapshot = MessagePackSerializer.Deserialize<ContractsSnapshot>(streamAsync, MessagePackSerializerOptions.Standard);
 
 		tcs.TrySetResult(true);

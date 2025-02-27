@@ -82,24 +82,24 @@ public class ContractsSync
 	}
 
 	private async Task<ulong> ProcessBootstrapContractsAsync(
-		Dictionary<string, RocketpoolContract> contracts,
-		Dictionary<string, RocketpoolUpgradeContract> upgradeContracts, RocketStorageService rocketStorage,
+		Dictionary<string, RocketPoolContract> contracts,
+		Dictionary<string, RocketPoolUpgradeContract> upgradeContracts, RocketStorageService rocketStorage,
 		string rocketStorageContractAddress, ulong latestBlock)
 	{
-		ulong rocketpoolDeployedBlock =
+		ulong rocketPoolDeployedBlock =
 			(ulong)await this.policy.ExecuteAsync(() => rocketStorage.GetUintQueryAsync("deploy.block".Sha3()));
-		this.logger.LogInformation("Rocketpool Deployment Block: {Block}", rocketpoolDeployedBlock);
+		this.logger.LogInformation("RocketPool Deployment Block: {Block}", rocketPoolDeployedBlock);
 
-		VersionedRocketpoolUpgradeContract upgradeContract = new()
+		VersionedRocketPoolUpgradeContract upgradeContract = new()
 		{
-			ActivationHeight = rocketpoolDeployedBlock,
+			ActivationHeight = rocketPoolDeployedBlock,
 			ActivationMethod = "bootstrap",
 			Address = rocketStorageContractAddress,
 			IsExecuted = false,
 		};
 
 		upgradeContracts["rocketStorage"] =
-			new RocketpoolUpgradeContract
+			new RocketPoolUpgradeContract
 			{
 				Name = "rocketStorage",
 				Versions =
@@ -110,14 +110,14 @@ public class ContractsSync
 
 		await ProcessUpgradeContractAsync(
 			contracts, upgradeContract, rocketStorage, rocketStorage.GetDeployedStatusQueryAsync,
-			"bootstrap", rocketpoolDeployedBlock, latestBlock);
+			"bootstrap", rocketPoolDeployedBlock, latestBlock);
 
-		return rocketpoolDeployedBlock;
+		return rocketPoolDeployedBlock;
 	}
 
 	private async Task ProcessContractAddedEventAsync(
-		Dictionary<string, RocketpoolContract> contracts,
-		Dictionary<string, RocketpoolUpgradeContract> upgradeContracts, Web3 web3, RocketStorageService rocketStorage,
+		Dictionary<string, RocketPoolContract> contracts,
+		Dictionary<string, RocketPoolUpgradeContract> upgradeContracts, Web3 web3, RocketStorageService rocketStorage,
 		byte[] contractNameHash, string contractAddress, ulong currentBlock, ulong latestBlock)
 	{
 		if (this.upgradeContractAddresses.TryGetValue(contractNameHash, out string? upgradeContractName))
@@ -127,10 +127,10 @@ public class ContractsSync
 			if (!upgradeContracts.ContainsKey(upgradeContractName))
 			{
 				upgradeContracts[upgradeContractName] =
-					new RocketpoolUpgradeContract { Name = upgradeContractName, Versions = [], };
+					new RocketPoolUpgradeContract { Name = upgradeContractName, Versions = [], };
 			}
 
-			VersionedRocketpoolUpgradeContract upgradeContract = new()
+			VersionedRocketPoolUpgradeContract upgradeContract = new()
 			{
 				ActivationHeight = (uint)currentBlock,
 				ActivationMethod = "rocketDAONodeTrustedUpgrade",
@@ -169,7 +169,7 @@ public class ContractsSync
 	}
 
 	private async Task ProcessUpgradeContractAsync(
-		Dictionary<string, RocketpoolContract> contracts, VersionedRocketpoolUpgradeContract upgradeContract,
+		Dictionary<string, RocketPoolContract> contracts, VersionedRocketPoolUpgradeContract upgradeContract,
 		RocketStorageService rocketStorage,
 		Func<BlockParameter, Task<bool>> executionFunc, string activationMethod, ulong activationHeight,
 		ulong latestBlock)
@@ -200,7 +200,7 @@ public class ContractsSync
 
 
 	private async Task TryUpdateContractAddressForBlockAsync(
-		Dictionary<string, RocketpoolContract> contracts,
+		Dictionary<string, RocketPoolContract> contracts,
 		RocketStorageService rocketStorage, string contractName, string activationMethod, ulong currentBlock)
 	{
 		string address = await this.policy.ExecuteAsync(
@@ -211,7 +211,7 @@ public class ContractsSync
 			return;
 		}
 
-		if (contracts.TryGetValue(contractName, out RocketpoolContract? contract) &&
+		if (contracts.TryGetValue(contractName, out RocketPoolContract? contract) &&
 			contract.Versions.LastOrDefault()?.Address == address)
 		{
 			return;
@@ -221,12 +221,12 @@ public class ContractsSync
 	}
 
 	private void UpdateContractAddressForBlock(
-		Dictionary<string, RocketpoolContract> contracts, string address, string contractName, string activationMethod,
+		Dictionary<string, RocketPoolContract> contracts, string address, string contractName, string activationMethod,
 		ulong currentBlock)
 	{
 		if (!contracts.ContainsKey(contractName))
 		{
-			contracts[contractName] = new RocketpoolContract { Name = contractName, Versions = [], };
+			contracts[contractName] = new RocketPoolContract { Name = contractName, Versions = [], };
 		}
 
 		this.logger.LogInformation("New Address for {ContractName} found: {Address}", contractName, address);
@@ -236,7 +236,7 @@ public class ContractsSync
 			Versions =
 			[
 				..contracts[contractName].Versions,
-				new VersionedRocketpoolContract
+				new VersionedRocketPoolContract
 				{
 					ActivationHeight = currentBlock, ActivationMethod = activationMethod, Address = address,
 				},
@@ -273,8 +273,8 @@ public class ContractsSync
 
 		RocketStorageService rocketStorage = new(web3, rocketStorageContractAddress);
 
-		Dictionary<string, RocketpoolContract> contracts = snapshot.Contracts.ToDictionary(x => x.Name, x => x);
-		Dictionary<string, RocketpoolUpgradeContract> upgradeContracts =
+		Dictionary<string, RocketPoolContract> contracts = snapshot.Contracts.ToDictionary(x => x.Name, x => x);
+		Dictionary<string, RocketPoolUpgradeContract> upgradeContracts =
 			snapshot.UpgradeContracts.ToDictionary(x => x.Name, x => x);
 
 		ulong currentBlock = snapshot.BlockHeight;

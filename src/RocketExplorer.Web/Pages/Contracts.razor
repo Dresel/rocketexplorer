@@ -24,7 +24,7 @@
 		</GroupHeaderTemplate>
 		<HeaderContent>
 			<MudTh>
-				<MudTableSortLabel T="VersionedRocketpoolContractViewModel" SortLabel="Name" InitialDirection="SortDirection.Ascending">Name</MudTableSortLabel>
+				<MudTableSortLabel T="VersionedRocketPoolContractViewModel" SortLabel="Name" InitialDirection="SortDirection.Ascending">Name</MudTableSortLabel>
 			</MudTh>
 			<MudTh>Address</MudTh>
 			<MudTh>Activation Method</MudTh>
@@ -88,11 +88,11 @@
 
 @code
 {
-	private MudTable<VersionedRocketpoolContractViewModel> table = null!;
+	private MudTable<VersionedRocketPoolContractViewModel> table = null!;
 	private ContractsSnapshot snapshot = null!;
 	private string? searchString;
 
-	private readonly TableGroupDefinition<VersionedRocketpoolContractViewModel> groupContractsDefinition = new()
+	private readonly TableGroupDefinition<VersionedRocketPoolContractViewModel> groupContractsDefinition = new()
 	{
 		GroupName = "Contract",
 		Indentation = false,
@@ -101,7 +101,7 @@
 		Selector = e => e.ContractName
 	};
 
-	// private readonly TableGroupDefinition<VersionedRocketpoolUpgradeContractViewModel> groupUpgradeContractsDefinition = new()
+	// private readonly TableGroupDefinition<VersionedRocketPoolUpgradeContractViewModel> groupUpgradeContractsDefinition = new()
 	// {
 	// 	GroupName = "UpgradeContract",
 	// 	Indentation = false,
@@ -131,10 +131,10 @@
 		table.ReloadServerData();
 	}
 
-	private async Task<TableData<VersionedRocketpoolContractViewModel>> LoadContracts(TableState state, CancellationToken token)
+	private async Task<TableData<VersionedRocketPoolContractViewModel>> LoadContracts(TableState state, CancellationToken token)
 	{
 		await (loaded ?? throw new InvalidOperationException());
-		List<RocketpoolContract> items = snapshot.Contracts.ToList();
+		List<RocketPoolContract> items = snapshot.Contracts.ToList();
 
 		if (state.SortLabel is "Name")
 		{
@@ -152,12 +152,12 @@
 		var count = items.Count;
 		items = items.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList();
 
-		return new TableData<VersionedRocketpoolContractViewModel>
+		return new TableData<VersionedRocketPoolContractViewModel>
 		{
 			TotalItems = count,
 			Items = items.SelectMany(
 				contract => contract.Versions,
-				(contract, version) => new VersionedRocketpoolContractViewModel
+				(contract, version) => new VersionedRocketPoolContractViewModel
 				{
 					Address = version.Address,
 					ActivationHeight = version.ActivationHeight,
@@ -167,17 +167,17 @@
 		};
 	}
 
-	private async Task<TableData<VersionedRocketpoolUpgradeContractViewModel>> LoadUpgradeContracts(TableState state, CancellationToken token)
+	private async Task<TableData<VersionedRocketPoolUpgradeContractViewModel>> LoadUpgradeContracts(TableState state, CancellationToken token)
 	{
 		await (loaded ?? throw new InvalidOperationException());
-		List<RocketpoolUpgradeContract> items = snapshot.UpgradeContracts.ToList();
+		List<RocketPoolUpgradeContract> items = snapshot.UpgradeContracts.ToList();
 
-		return new TableData<VersionedRocketpoolUpgradeContractViewModel>
+		return new TableData<VersionedRocketPoolUpgradeContractViewModel>
 		{
 			TotalItems = items.Count,
 			Items = items.SelectMany(
 				contract => contract.Versions,
-				(contract, version) => new VersionedRocketpoolUpgradeContractViewModel
+				(contract, version) => new VersionedRocketPoolUpgradeContractViewModel
 				{
 					Address = version.Address,
 					ActivationHeight = version.ActivationHeight,
@@ -189,7 +189,7 @@
 		};
 	}
 
-	public class VersionedRocketpoolContractViewModel
+	public class VersionedRocketPoolContractViewModel
 	{
 		public required string ContractName { get; set; }
 
@@ -200,7 +200,7 @@
 		public required string Address { get; init; }
 	}
 
-	public class VersionedRocketpoolUpgradeContractViewModel
+	public class VersionedRocketPoolUpgradeContractViewModel
 	{
 		public required string ContractName { get; set; }
 

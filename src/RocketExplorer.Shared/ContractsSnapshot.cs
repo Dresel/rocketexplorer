@@ -9,8 +9,8 @@ public record class ContractsSnapshot
 	public ulong BlockHeight { get; init; }
 
 	[Key(1)]
-	public RocketpoolContract[] Contracts { get; init; } = [];
+	public RocketPoolContract[] Contracts { get; init; } = [];
 
 	[Key(2)]
-	public RocketpoolUpgradeContract[] UpgradeContracts { get; init; } = [];
+	public RocketPoolUpgradeContract[] UpgradeContracts { get; init; } = [];
 }

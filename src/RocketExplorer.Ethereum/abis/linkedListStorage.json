@@ -1,0 +1,490 @@
+[
+	{
+		"inputs": [
+			{
+				"internalType": "contract RocketStorageInterface",
+				"name": "_rocketStorageAddress",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "_namespace",
+				"type": "bytes32"
+			}
+		],
+		"name": "dequeueItem",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "receiver",
+						"type": "address"
+					},
+					{
+						"internalType": "uint32",
+						"name": "validatorId",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "suppliedValue",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "requestedValue",
+						"type": "uint32"
+					}
+				],
+				"internalType": "struct DepositQueueValue",
+				"name": "item",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "_namespace",
+				"type": "bytes32"
+			},
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "receiver",
+						"type": "address"
+					},
+					{
+						"internalType": "uint32",
+						"name": "validatorId",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "suppliedValue",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "requestedValue",
+						"type": "uint32"
+					}
+				],
+				"internalType": "struct DepositQueueValue",
+				"name": "_item",
+				"type": "tuple"
+			}
+		],
+		"name": "enqueueItem",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "_namespace",
+				"type": "bytes32"
+			}
+		],
+		"name": "getHeadIndex",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "_namespace",
+				"type": "bytes32"
+			},
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "receiver",
+						"type": "address"
+					},
+					{
+						"internalType": "uint32",
+						"name": "validatorId",
+						"type": "uint32"
+					}
+				],
+				"internalType": "struct DepositQueueKey",
+				"name": "_key",
+				"type": "tuple"
+			}
+		],
+		"name": "getIndexOf",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "_namespace",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_index",
+				"type": "uint256"
+			}
+		],
+		"name": "getItem",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "receiver",
+						"type": "address"
+					},
+					{
+						"internalType": "uint32",
+						"name": "validatorId",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "suppliedValue",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "requestedValue",
+						"type": "uint32"
+					}
+				],
+				"internalType": "struct DepositQueueValue",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "_namespace",
+				"type": "bytes32"
+			}
+		],
+		"name": "getLength",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "_namespace",
+				"type": "bytes32"
+			},
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "receiver",
+						"type": "address"
+					},
+					{
+						"internalType": "uint32",
+						"name": "validatorId",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "suppliedValue",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "requestedValue",
+						"type": "uint32"
+					}
+				],
+				"internalType": "struct DepositQueueValue",
+				"name": "_value",
+				"type": "tuple"
+			}
+		],
+		"name": "getNextItem",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "receiver",
+						"type": "address"
+					},
+					{
+						"internalType": "uint32",
+						"name": "validatorId",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "suppliedValue",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "requestedValue",
+						"type": "uint32"
+					}
+				],
+				"internalType": "struct DepositQueueValue",
+				"name": "nextItem",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "_namespace",
+				"type": "bytes32"
+			},
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "receiver",
+						"type": "address"
+					},
+					{
+						"internalType": "uint32",
+						"name": "validatorId",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "suppliedValue",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "requestedValue",
+						"type": "uint32"
+					}
+				],
+				"internalType": "struct DepositQueueValue",
+				"name": "_value",
+				"type": "tuple"
+			}
+		],
+		"name": "getPreviousItem",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "receiver",
+						"type": "address"
+					},
+					{
+						"internalType": "uint32",
+						"name": "validatorId",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "suppliedValue",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "requestedValue",
+						"type": "uint32"
+					}
+				],
+				"internalType": "struct DepositQueueValue",
+				"name": "previousItem",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "_namespace",
+				"type": "bytes32"
+			}
+		],
+		"name": "peekItem",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "receiver",
+						"type": "address"
+					},
+					{
+						"internalType": "uint32",
+						"name": "validatorId",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "suppliedValue",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "requestedValue",
+						"type": "uint32"
+					}
+				],
+				"internalType": "struct DepositQueueValue",
+				"name": "item",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "_namespace",
+				"type": "bytes32"
+			},
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "receiver",
+						"type": "address"
+					},
+					{
+						"internalType": "uint32",
+						"name": "validatorId",
+						"type": "uint32"
+					}
+				],
+				"internalType": "struct DepositQueueKey",
+				"name": "_key",
+				"type": "tuple"
+			}
+		],
+		"name": "removeItem",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "_namespace",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_start",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_count",
+				"type": "uint256"
+			}
+		],
+		"name": "scan",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "receiver",
+						"type": "address"
+					},
+					{
+						"internalType": "uint32",
+						"name": "validatorId",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "suppliedValue",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "requestedValue",
+						"type": "uint32"
+					}
+				],
+				"internalType": "struct DepositQueueValue[]",
+				"name": "entries",
+				"type": "tuple[]"
+			},
+			{
+				"internalType": "uint256",
+				"name": "nextIndex",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "version",
+		"outputs": [
+			{
+				"internalType": "uint8",
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]

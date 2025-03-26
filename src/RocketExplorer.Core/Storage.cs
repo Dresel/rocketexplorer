@@ -3,16 +3,15 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using MessagePack;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace RocketExplorer.Core;
 
-public class Storage(AmazonS3Client s3Client, IConfiguration configuration)
+public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client)
 {
-	private readonly string basePath = configuration.GetValue<string>("Network")?.ToLowerInvariant() ??
-		throw new InvalidOperationException("Network is null");
-
 	private readonly string bucketName = "rocketexplorer";
 
+	private readonly SyncOptions options = options.Value;
 	private readonly AmazonS3Client s3Client = s3Client;
 
 	////await this.s3Client.PutCORSConfigurationAsync(
@@ -27,22 +26,21 @@ public class Storage(AmazonS3Client s3Client, IConfiguration configuration)
 	////				{
 	////					AllowedHeaders = ["*",],
 	////					AllowedMethods = ["HEAD", "GET",],
-	////					AllowedOrigins = ["https://localhost:5001", "https://rocketexplorer.net",],
+	////					AllowedOrigins = ["https://localhost:5001", "https://*.localhost:5001", "https://rocketexplorer.net", "https://*.rocketexplorer.net",],
 	////					MaxAgeSeconds = 86400,
 	////				},
 	////			],
 	////		},
 	////	}, cancellationToken);
 
-	public async Task<T> ReadAsync<T>(string key, CancellationToken cancellationToken = default)
-		where T : new()
+	public async Task<T?> ReadAsync<T>(string key, CancellationToken cancellationToken = default) where T : class
 	{
 		try
 		{
 			using GetObjectResponse response = await this.s3Client.GetObjectAsync(
 				new GetObjectRequest
 				{
-					BucketName = this.bucketName, Key = $"{this.basePath}/{key}",
+					BucketName = this.bucketName, Key = $"{this.options.Environment.ToLower()}/{key}",
 				},
 				cancellationToken);
 
@@ -54,7 +52,7 @@ public class Storage(AmazonS3Client s3Client, IConfiguration configuration)
 		}
 		catch (AmazonS3Exception e) when (e.StatusCode == HttpStatusCode.NotFound)
 		{
-			return new T();
+			return null;
 		}
 	}
 
@@ -67,7 +65,7 @@ public class Storage(AmazonS3Client s3Client, IConfiguration configuration)
 			new PutObjectRequest
 			{
 				BucketName = this.bucketName,
-				Key = $"{this.basePath}/{key}",
+				Key = $"{this.options.Environment.ToLower()}/{key}",
 				InputStream = contractsMemoryStream,
 				Headers = { ["Cache-Control"] = "public, max-age=60, must-revalidate", },
 			},

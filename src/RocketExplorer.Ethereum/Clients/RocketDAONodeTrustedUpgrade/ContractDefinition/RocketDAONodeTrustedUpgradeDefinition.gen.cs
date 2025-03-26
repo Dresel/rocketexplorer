@@ -23,7 +23,6 @@ namespace RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade.ContractDefinition
     public class RocketDAONodeTrustedUpgradeDeploymentBase : ContractDeploymentMessage
     {
         public static string BYTECODE = """
-			
 [
 	{
 		"inputs": [

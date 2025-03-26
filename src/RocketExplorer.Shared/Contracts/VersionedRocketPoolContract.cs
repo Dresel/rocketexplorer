@@ -1,12 +1,12 @@
 using MessagePack;
 
-namespace RocketExplorer.Shared;
+namespace RocketExplorer.Shared.Contracts;
 
 [MessagePackObject]
 public record class VersionedRocketPoolContract
 {
 	[Key(0)]
-	public required ulong ActivationHeight { get; set; }
+	public required long ActivationHeight { get; set; }
 
 	[Key(1)]
 	public required string ActivationMethod { get; set; }

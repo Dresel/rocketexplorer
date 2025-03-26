@@ -1,6 +1,6 @@
 using MessagePack;
 
-namespace RocketExplorer.Shared;
+namespace RocketExplorer.Shared.Contracts;
 
 [MessagePackObject]
 public record class RocketPoolContract

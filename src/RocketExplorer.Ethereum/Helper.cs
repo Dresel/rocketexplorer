@@ -4,17 +4,17 @@ namespace RocketExplorer.Ethereum;
 
 public class Helper
 {
-	public static async Task<ulong?> FindFirstBlock(
-		Func<BlockParameter, Task<bool>> smartContractCall, ulong initialBlock, ulong latestBlock,
+	public static async Task<long?> FindFirstBlock(
+		Func<BlockParameter, Task<bool>> smartContractCall, long initialBlock, long latestBlock,
 		uint blockIncrement = 150)
 	{
-		ulong currentBlock = initialBlock;
-		ulong lastFalse = initialBlock;
-		ulong firstTrue = 0;
+		long currentBlock = initialBlock;
+		long lastFalse = initialBlock;
+		long firstTrue = 0;
 
 		while (currentBlock < latestBlock)
 		{
-			if (await smartContractCall(new BlockParameter(currentBlock)))
+			if (await smartContractCall(new BlockParameter((ulong)currentBlock)))
 			{
 				firstTrue = currentBlock;
 				break;
@@ -31,9 +31,9 @@ public class Helper
 
 		while (lastFalse + 1 < firstTrue)
 		{
-			ulong middleBlock = (lastFalse + firstTrue) / 2;
+			long middleBlock = (lastFalse + firstTrue) / 2;
 
-			if (await smartContractCall(new BlockParameter(middleBlock)))
+			if (await smartContractCall(new BlockParameter((ulong)middleBlock)))
 			{
 				firstTrue = middleBlock;
 			}

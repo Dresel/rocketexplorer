@@ -7,16 +7,9 @@ charset = utf-8
 end_of_line = crlf
 insert_final_newline = false
 
-# ReSharper properties
-resharper_allow_far_alignment = false
-resharper_align_multiline_binary_expressions_chain = false
-resharper_html_allow_far_alignment = false
-resharper_html_alignment_tab_fill_style = use_tabs_only
-resharper_html_attribute_indent = single_indent
-resharper_html_space_before_self_closing = true
 
 # C# files
-[*.cs]
+[*.{cs,razor}]
 
 #### Core EditorConfig Options ####
 
@@ -227,7 +220,7 @@ dotnet_naming_symbols.types.applicable_kinds = class, struct, interface, enum
 dotnet_naming_symbols.types.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
 dotnet_naming_symbols.types.required_modifiers = 
 
-dotnet_naming_symbols.non_field_members.applicable_kinds = property, event, method
+dotnet_naming_symbols.non_field_members.applicable_kinds = event, property, method
 dotnet_naming_symbols.non_field_members.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
 dotnet_naming_symbols.non_field_members.required_modifiers = 
 
@@ -256,12 +249,19 @@ dotnet_diagnostic.sa1117.severity = none
 dotnet_diagnostic.sa1128.severity = none
 
 # ReSharper properties
+resharper_allow_far_alignment = false
+resharper_align_multiline_binary_expressions_chain = false
 resharper_csharp_alignment_tab_fill_style = use_tabs_only
-resharper_csharp_keep_blank_lines_in_declarations = 1
 resharper_csharp_keep_blank_lines_in_code = 1
-resharper_space_within_single_line_array_initializer_braces = true
-resharper_trailing_comma_in_singleline_lists = true
-resharper_trailing_comma_in_multiline_lists = true
-resharper_place_field_attribute_on_same_line = false
-resharper_place_accessorholder_attribute_on_same_line = false
+resharper_csharp_keep_blank_lines_in_declarations = 1
+resharper_html_allow_far_alignment = false
+resharper_html_alignment_tab_fill_style = use_tabs_only
+resharper_html_attribute_indent = single_indent
+resharper_html_space_before_self_closing = true
 resharper_new_line_before_while = true
+resharper_place_accessorholder_attribute_on_same_line = false
+resharper_place_field_attribute_on_same_line = false
+resharper_space_within_single_line_array_initializer_braces = true
+resharper_trailing_comma_in_multiline_lists = true
+resharper_trailing_comma_in_singleline_lists = true
+resharper_wrap_object_and_collection_initializer_style = chop_always

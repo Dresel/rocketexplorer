@@ -11,17 +11,12 @@ public static class SortedListExtensions
 		}
 	}
 
-	public static TValue? GetValueOrLastOrDefault<TKey, TValue>(this SortedList<TKey, TValue> sortedList, TKey key)
+	public static TValue? GetLatestOrDefault<TKey, TValue>(this SortedList<TKey, TValue> sortedList)
 		where TKey : notnull
 	{
 		if (sortedList.Count == 0)
 		{
 			return default;
-		}
-
-		if (sortedList.TryGetValue(key, out TValue? latest))
-		{
-			return latest;
 		}
 
 		return sortedList.Values[^1];

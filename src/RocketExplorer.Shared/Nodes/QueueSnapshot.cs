@@ -12,10 +12,10 @@ public record class QueueSnapshot
 	public long BlockHeight { get; init; }
 
 	[Key(1)]
-	public required QueueIndexEntry[] StandardIndex { get; init; }
+	public required MinipoolIndexEntry[] StandardIndex { get; init; }
 
 	[Key(2)]
-	public required QueueIndexEntry[] ExpressIndex { get; init; }
+	public required MinipoolIndexEntry[] ExpressIndex { get; init; }
 
 	[Key(4)]
 	public required SortedList<DateOnly, int> TotalQueueCount { get; init; }

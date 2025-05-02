@@ -6,8 +6,11 @@ namespace RocketExplorer.Shared.Nodes;
 public record class NodeIndexEntry
 {
 	[Key(0)]
-	public required ulong RegistrationTimestamp { get; init; }
+	public required long RegistrationTimestamp { get; init; }
 
 	[Key(1)]
 	public required byte[] ContractAddress { get; init; }
+
+	[Key(2)]
+	public byte[]? MegapoolAddress { get; init; }
 }

@@ -13,7 +13,7 @@ public class NodesSyncContext : ContextBase
 
 	public Dictionary<DateOnly, int> DailyEnqueued { get; set; } = [];
 
-	public Dictionary<DateOnly, int> DailyRegistrations { get; init; } = [];
+	public SortedList<DateOnly, int> DailyRegistrations { get; init; } = [];
 
 	public Dictionary<DateOnly, int> DailyVoluntaryExits { get; set; } = [];
 
@@ -33,7 +33,7 @@ public class NodesSyncContext : ContextBase
 
 	public List<MinipoolIndexEntry> StandardQueue { get; init; } = [];
 
-	public Dictionary<DateOnly, int> TotalNodesCount { get; init; } = [];
+	public SortedList<DateOnly, int> TotalNodesCount { get; init; } = [];
 
 	public SortedList<DateOnly, int> TotalQueueCount { get; set; } = [];
 }

@@ -74,7 +74,10 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		NodesSnapshot nodesSnapshot =
 			await Storage.ReadAsync<NodesSnapshot>(Keys.NodesSnapshot, cancellationToken) ?? new NodesSnapshot
 			{
-				BlockHeight = activationHeight, Index = [], DailyRegistrations = [],
+				BlockHeight = activationHeight,
+				Index = [],
+				DailyRegistrations = [],
+				TotalNodeCount = [],
 			};
 
 		Logger.LogInformation("Loading {snapshot}", Keys.QueueSnapshot);
@@ -104,6 +107,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				nodesSnapshot.Index.ToDictionary(
 					x => x.ContractAddress.ToHex(true), x => x, StringComparer.OrdinalIgnoreCase),
 			DailyRegistrations = nodesSnapshot.DailyRegistrations,
+			TotalNodesCount = nodesSnapshot.TotalNodeCount,
 			StandardQueue = queueSnapshot.StandardIndex.ToList(),
 			ExpressQueue = queueSnapshot.ExpressIndex.ToList(),
 			TotalQueueCount = new SortedList<DateOnly, int>(queueSnapshot.TotalQueueCount),
@@ -123,7 +127,8 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 			{
 				BlockHeight = context.CurrentBlockHeight,
 				Index = context.NodeIndex.Values.ToArray(),
-				DailyRegistrations = context.DailyRegistrations.ToDictionary(),
+				DailyRegistrations = context.DailyRegistrations,
+				TotalNodeCount = context.TotalNodesCount,
 			}, cancellationToken);
 
 		Logger.LogInformation("Writing {snapshot}", Keys.QueueSnapshot);
@@ -176,6 +181,11 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 
 			context.MegapoolNodeOperatorMap[megapoolAddress] = nodeOperatorAddress;
 
+			context.NodeIndex[nodeOperatorAddress] = context.NodeIndex[nodeOperatorAddress] with
+			{
+				MegapoolAddress = megapoolAddress.HexToByteArray(),
+			};
+
 			context.Nodes[nodeOperatorAddress] = context.Nodes[nodeOperatorAddress] with
 			{
 				MegapoolAddress = megapoolAddress.HexToByteArray(),
@@ -202,44 +212,32 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		context.MegaMinipools[megapoolAddress][minipool.MegapoolIndex.Value] = minipool;
 
 		// TODO: Use list
+		MinipoolIndexEntry entry = new()
+		{
+			CreationTimestamp = (long)minipool.CreationTimestamp,
+			NodeAddress = minipool.NodeOperatorAddress,
+			PubKey = minipool.PubKey,
+			MegapoolAddress = megapoolAddress.HexToByteArray(),
+			MegapoolIndex = minipool.MegapoolIndex,
+		};
+
 		context.Nodes[nodeOperatorAddress].MegaMinipools =
 		[
-			..context.Nodes[nodeOperatorAddress].MegaMinipools,
-			new MinipoolIndexEntry
-			{
-				CreationTimestamp = minipool.CreationTimestamp,
-				PubKey = minipool.PubKey,
-				MegapoolAddress = megapoolAddress.HexToByteArray(),
-				MegapoolIndex = minipool.MegapoolIndex,
-			},
+			..context.Nodes[nodeOperatorAddress].MegaMinipools, entry,
 		];
 
 		if (!validatorInfo.ReturnValue1.ExpressUsed)
 		{
-			context.StandardQueue.Add(
-				new MinipoolIndexEntry
-				{
-					CreationTimestamp = minipool.CreationTimestamp,
-					PubKey = minipool.PubKey,
-					MegapoolAddress = megapoolAddress.HexToByteArray(),
-					MegapoolIndex = minipool.MegapoolIndex,
-				});
+			context.StandardQueue.Add(entry);
 		}
 		else
 		{
-			context.ExpressQueue.Add(
-				new MinipoolIndexEntry
-				{
-					CreationTimestamp = minipool.CreationTimestamp,
-					PubKey = minipool.PubKey,
-					MegapoolAddress = megapoolAddress.HexToByteArray(),
-					MegapoolIndex = minipool.MegapoolIndex,
-				});
+			context.ExpressQueue.Add(entry);
 		}
 
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)@event.Time).DateTime);
 
-		context.TotalQueueCount[key] = context.TotalQueueCount.GetValueOrLastOrDefault(key) + 1;
+		context.TotalQueueCount[key] = context.TotalQueueCount.GetLatestOrDefault() + 1;
 		context.DailyEnqueued[key] = context.DailyEnqueued.GetValueOrDefault(key) + 1;
 	}
 
@@ -252,25 +250,36 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 
 		context.NodeIndex[@event.Node] = new NodeIndexEntry
 		{
-			ContractAddress = @event.Node.HexToByteArray(), RegistrationTimestamp = (ulong)@event.Time,
+			ContractAddress = @event.Node.HexToByteArray(),
+			RegistrationTimestamp = (long)@event.Time,
 		};
 
 		// Fetch latest node details (otherwise we would have to use the current latestRocketNodeManager of log.BlockNumber via contractsSnapshot)
+		GetNodeDetailsOutputDTO? nodeDetails = null;
 
-		// TODO: Reactivate on hoodie, fails with RPC error
-		////GetNodeDetailsOutputDTO nodeDetails = await Policy.ExecuteAsync(
-		////	() => latestRocketNodeManager.GetNodeDetailsQueryAsync(@event.Node));
+		try
+		{
+			// TODO: Obsolete, replace
+			// See https://discord.com/channels/405159462932971535/704214664829075506/1365495113383677973
+			nodeDetails = await Policy.ExecuteAsync(
+				() => latestRocketNodeManager.GetNodeDetailsQueryAsync(@event.Node));
+		}
+		catch
+		{
+			Logger.LogWarning("Failed to fetch node details for {Node}", @event.Node);
+		}
 
 		// TODO: Add more details
 		context.Nodes[@event.Node] = new Node
 		{
 			ContractAddress = @event.Node.HexToByteArray(),
 			RegistrationTimestamp = (long)@event.Time,
-			Timezone = "Unknown", //// nodeDetails.NodeDetails.TimezoneLocation,
+			Timezone = nodeDetails?.NodeDetails.TimezoneLocation ?? "Unknown",
 		};
 
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)@event.Time).DateTime);
 		context.DailyRegistrations[key] = context.DailyRegistrations.GetValueOrDefault(key) + 1;
+		context.TotalNodesCount[key] = context.TotalNodesCount.GetLatestOrDefault() + 1;
 	}
 
 	private async Task EventUpdateMegapoolAsync(
@@ -322,7 +331,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 			DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventTime).DateTime);
 			dictionary[key] = dictionary.GetValueOrDefault(key) + 1;
 
-			context.TotalQueueCount[key] = context.TotalQueueCount.GetValueOrLastOrDefault(key) - 1;
+			context.TotalQueueCount[key] = context.TotalQueueCount.GetLatestOrDefault() - 1;
 		}
 	}
 

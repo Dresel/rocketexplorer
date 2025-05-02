@@ -39,7 +39,7 @@ public abstract class SyncBase<TContext>(IOptions<SyncOptions> options, Storage 
 
 		do
 		{
-			long toBlock = Math.Min(currentBlock + BlockRange, latestBlock);
+			long toBlock = Math.Min(currentBlock + BlockRange - 1, latestBlock);
 
 			Logger.LogDebug("Processing block {FromBlock} to {ToBlock}", currentBlock, toBlock);
 			await HandleBlocksAsync(context, currentBlock, toBlock, latestBlock, cancellationToken);

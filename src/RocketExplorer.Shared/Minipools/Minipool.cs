@@ -5,6 +5,7 @@ namespace RocketExplorer.Shared.Minipools;
 [MessagePackObject]
 public class Minipool
 {
+	// TODO: More timestamps
 	[Key(0)]
 	public ulong CreationTimestamp { get; set; }
 

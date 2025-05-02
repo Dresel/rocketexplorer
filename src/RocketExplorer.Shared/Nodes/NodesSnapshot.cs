@@ -13,5 +13,8 @@ public record class NodesSnapshot
 
 	// TODO: Separate file?
 	[Key(2)]
-	public required Dictionary<DateOnly, int> DailyRegistrations { get; init; }
+	public required SortedList<DateOnly, int> DailyRegistrations { get; init; }
+
+	[Key(3)]
+	public required SortedList<DateOnly, int> TotalNodeCount { get; init; }
 }

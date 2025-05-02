@@ -7,18 +7,21 @@ namespace RocketExplorer.Shared.Minipools;
 public record class MinipoolIndexEntry
 {
 	[Key(0)]
-	public required ulong CreationTimestamp { get; init; }
+	public required long CreationTimestamp { get; init; }
 
 	[Key(1)]
-	public byte[]? MegapoolAddress { get; set; }
+	public required byte[] NodeAddress { get; init; }
 
 	[Key(2)]
-	public int? MegapoolIndex { get; set; }
+	public byte[]? MegapoolAddress { get; init; }
+
+	[Key(3)]
+	public int? MegapoolIndex { get; init; }
 
 	// Legacy contract address of RocketMinipoolBase
-	[Key(3)]
+	[Key(4)]
 	public byte[]? ContractAddress { get; init; }
 
-	[Key(4)]
+	[Key(5)]
 	public required byte[] PubKey { get; init; }
 }

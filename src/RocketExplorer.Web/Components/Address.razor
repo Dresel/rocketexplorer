@@ -1,0 +1,196 @@
+@inject Configuration Configuration
+@inject IBrowserViewportService BrowserViewportService
+@inject IJSRuntime JS
+
+@implements IBrowserViewportObserver
+@using Nethereum.Util
+@implements IAsyncDisposable
+
+<div>
+	@if (string.IsNullOrWhiteSpace(HrefPlaceholder))
+	{
+		<MudText Typo="Typo.body2" Color="Color.Primary" Class="d-inline" Style="font-family: monospace;">
+			<MudHighlighter Text="@DisplayContractAddress" HighlightedTexts="@DisplayHighlightedTexts" />
+		</MudText>
+	}
+	else
+	{
+		<MudLink Typo="Typo.body2" Style="font-family: monospace;" Href="@string.Format(HrefPlaceholder, ContractChecksumAddress)">
+			<MudHighlighter Text="@DisplayContractAddress" HighlightedTexts="@DisplayHighlightedTexts" />
+		</MudLink>
+	}
+	<MudIconButton Icon="@Icons.Material.Filled.CopyAll" Style="padding-right: 0; vertical-align: sub;" Size="Size.Small" Color="Color.Primary" OnClick="@(() => module?.InvokeVoidAsync("copyToClipboard", ContractChecksumAddress))" />
+	@* TODO: Make #code configurable *@
+	<a href="@($"https://{Configuration.EtherscanPrefix}etherscan.io/address/{ContractChecksumAddress}#code")" target="_blank">
+		<MudIconButton Icon="@Icons.Material.Filled.ArrowOutward" Style="padding: 0; vertical-align: sub;" Size="Size.Small" Color="Color.Primary" />
+	</a>
+</div>
+
+@code
+{
+	private IJSObjectReference? module;
+
+	[Parameter]
+	public string HrefPlaceholder { get; set; } = string.Empty;
+
+	[Parameter]
+	public string ContractAddress { get; set; } = string.Empty;
+
+	[Parameter]
+	public string HighlightedText { get; set; } = string.Empty;
+
+	[Parameter]
+	public int PrefixLength { get; set; } = 6;
+
+	[Parameter]
+	public int SuffixLength { get; set; } = 4;
+
+	Guid IBrowserViewportObserver.Id { get; } = Guid.NewGuid();
+
+	public string DisplayContractAddress { get; set; } = string.Empty;
+
+	public IEnumerable<string> DisplayHighlightedTexts { get; set; } = [];
+
+	public string ContractChecksumAddress { get; set; } = string.Empty;
+
+	async ValueTask IAsyncDisposable.DisposeAsync()
+	{
+		if (module is not null)
+		{
+			try
+			{
+				await module.DisposeAsync();
+			}
+			catch (JSDisconnectedException)
+			{
+			}
+		}
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await BrowserViewportService.SubscribeAsync(this);
+
+			module = await JS.InvokeAsync<IJSObjectReference>("import", "./Components/Address.razor.js");
+		}
+
+		await base.OnAfterRenderAsync(firstRender);
+	}
+
+	protected override void OnParametersSet()
+	{
+		base.OnParametersSet();
+
+		ContractChecksumAddress = AddressUtil.Current.ConvertToChecksumAddress(ContractAddress);
+
+		DisplayContractAddress = PrefixLength + SuffixLength < ContractChecksumAddress.Length ? $"{ContractChecksumAddress[..PrefixLength]}...{ContractChecksumAddress[^SuffixLength..]}" : ContractChecksumAddress;
+		DisplayHighlightedTexts = ExtractHighlightTexts().OrderByDescending(x => x.Length);
+	}
+
+	private IEnumerable<string> ExtractHighlightTexts()
+	{
+		if (string.IsNullOrWhiteSpace(HighlightedText))
+		{
+			yield break;
+		}
+
+		foreach (int start in AllIndexesOf(ContractChecksumAddress, HighlightedText))
+		{
+			int end = start + HighlightedText.Length;
+
+			if (start < ContractChecksumAddress.Length - SuffixLength && PrefixLength < end)
+			{
+				bool overlapsPrefix = start < PrefixLength;
+				bool overlapsSuffix = end > ContractChecksumAddress.Length - SuffixLength;
+
+				if (overlapsPrefix && overlapsSuffix)
+				{
+					yield return $"{ContractChecksumAddress[start..Math.Min(end, PrefixLength)]}...{ContractChecksumAddress[^SuffixLength..end]}";
+				}
+				else if (overlapsPrefix)
+				{
+					yield return $"{ContractChecksumAddress[start..Math.Min(end, PrefixLength)]}...";
+				}
+				else if (overlapsSuffix)
+				{
+					yield return $"...{ContractChecksumAddress[^SuffixLength..end]}";
+				}
+				else
+				{
+					yield return "...";
+				}
+			}
+			else
+			{
+				yield return HighlightedText;
+			}
+		}
+	}
+
+	Task IBrowserViewportObserver.NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs browserViewportEventArgs)
+	{
+		Console.WriteLine(browserViewportEventArgs.Breakpoint);
+
+		switch (browserViewportEventArgs.Breakpoint)
+		{
+			case Breakpoint.Xs:
+				PrefixLength = 12;
+				SuffixLength = 10;
+				break;
+
+			case Breakpoint.Sm:
+				PrefixLength = 8;
+				SuffixLength = 6;
+				break;
+
+			case Breakpoint.Md:
+			case Breakpoint.Lg:
+				PrefixLength = 12;
+				SuffixLength = 10;
+				break;
+
+			case Breakpoint.Xl:
+			case Breakpoint.Xxl:
+				PrefixLength = 42;
+				SuffixLength = 42;
+				break;
+		}
+
+		DisplayContractAddress = PrefixLength + SuffixLength < ContractChecksumAddress.Length ? $"{ContractChecksumAddress[..PrefixLength]}...{ContractChecksumAddress[^SuffixLength..]}" : ContractChecksumAddress;
+		DisplayHighlightedTexts = ExtractHighlightTexts().OrderByDescending(x => x.Length);
+
+		return InvokeAsync(StateHasChanged);
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		await BrowserViewportService.UnsubscribeAsync(this);
+
+		if (module is not null)
+		{
+			try
+			{
+				await module.DisposeAsync();
+			}
+			catch (JSDisconnectedException)
+			{
+			}
+		}
+	}
+
+	private IEnumerable<int> AllIndexesOf(string @string, string value)
+	{
+		for (int index = 0;; index += value.Length)
+		{
+			index = @string.IndexOf(value, index, StringComparison.OrdinalIgnoreCase);
+			if (index == -1)
+			{
+				break;
+			}
+
+			yield return index;
+		}
+	}
+}

@@ -1,0 +1,48 @@
+@page "/node/{address}"
+@using MessagePack
+@using Nethereum.Util
+@inject HttpClient Http
+@inject Configuration Configuration
+
+<PageTitle>Rocket Explorer - Node @Address</PageTitle>
+@if (node == null)
+{
+	<div>Node not found</div>
+}
+else
+{
+	<div>@AddressUtil.Current.ConvertToChecksumAddress(node.ContractAddress)</div>
+	<div>@DateTimeOffset.FromUnixTimeSeconds(node.RegistrationTimestamp).ToString("G")</div>
+	<div>Timezone: @node.Timezone</div>
+	<div>@node.MegaMinipools.Count() minipools</div>
+}
+
+@code {
+
+	[Parameter] public string? Address { get; set; }
+
+	private Shared.Nodes.Node? node;
+
+	protected override async Task OnParametersSetAsync()
+	{
+		await base.OnParametersSetAsync();
+
+		node = null;
+
+		if (string.IsNullOrWhiteSpace(Address))
+		{
+			return;
+		}
+
+		try
+		{
+			var streamAsync = await Http.GetStreamAsync($"https://rocketexplorer.nbg1.your-objectstorage.com/{Configuration.Environment.ToString().ToLowerInvariant()}/nodes/{Address.ToLowerInvariant()}.msgpack");
+			node = MessagePackSerializer.Deserialize<Shared.Nodes.Node>(streamAsync);
+		}
+		catch (Exception e)
+		{
+			// TODO: Show 404 or similar
+		}
+	}
+
+}

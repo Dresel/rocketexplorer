@@ -13,14 +13,14 @@ public class Configuration
 		Environment = subdomain switch
 		{
 			"devnet" => Environment.Devnet,
-			"holesky" => Environment.Holesky,
+			"testnet" => Environment.Testnet,
 			_ => Environment.Mainnet,
 		};
 
 		Network = Environment switch
 		{
-			Environment.Devnet => Network.Holesky,
-			Environment.Holesky => Network.Holesky,
+			Environment.Devnet => Network.Hoodi,
+			Environment.Testnet => Network.Hoodi,
 			Environment.Mainnet => Network.Mainnet,
 			_ => throw new InvalidOperationException("Network is null"),
 		};
@@ -31,7 +31,7 @@ public class Configuration
 
 	public Environment Environment { get; }
 
-	public string EtherscanPrefix => Network == Network.Holesky ? "holesky." : string.Empty;
+	public string EtherscanPrefix => Network == Network.Hoodi ? "hoodi." : string.Empty;
 
 	public Network Network { get; }
 }

@@ -2,7 +2,7 @@ namespace RocketExplorer.Web;
 
 public enum Network
 {
-	Holesky,
+	Hoodi,
 
 	Mainnet,
 }

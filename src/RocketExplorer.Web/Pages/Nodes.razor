@@ -1,0 +1,138 @@
+@page "/nodes"
+@using MessagePack
+@using RocketExplorer.Shared.Nodes
+
+@inject HttpClient Http
+@inject Configuration Configuration
+
+<PageTitle>Rocket Explorer - Contracts</PageTitle>
+<MudStack>
+	<MudText Typo="Typo.h4" Align="Align.Center">Node operators over time</MudText>
+	<MudGrid Justify="Justify.Center" Class="mb-4">
+		<MudItem>
+			<ChartTotal Title="Total operators" YAxesName="Nodes" Data="@snapshot?.TotalNodeCount"></ChartTotal>
+		</MudItem>
+		<MudItem>
+			<ChartDelta Title="New operators" YAxesName="Nodes" Data="@snapshot?.DailyRegistrations"></ChartDelta>
+		</MudItem>
+	</MudGrid>
+	<MudText Typo="Typo.h4" Align="Align.Center">Node list</MudText>
+	<MudTable Class="mt-0" ServerData="LoadNodes" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
+		<ToolBarContent>
+			<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+				AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+			</MudTextField>
+		</ToolBarContent>
+		<HeaderContent>
+			<MudTh>
+				<MudTableSortLabel T="NodeIndexViewModel" SortLabel="ContractAddress">Contract Address</MudTableSortLabel>
+			</MudTh>
+			<MudTh>
+				<MudTableSortLabel T="NodeIndexViewModel" SortLabel="MegapoolAddress">Megapool Address</MudTableSortLabel>
+			</MudTh>
+			<MudTh>
+				<MudTableSortLabel T="NodeIndexViewModel" SortLabel="RegistrationDate" InitialDirection="SortDirection.Ascending">Registration Date</MudTableSortLabel>
+			</MudTh>
+		</HeaderContent>
+		<RowTemplate>
+			<MudTd>
+				<Address ContractAddress="@context.ContractAddress" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
+			</MudTd>
+			<MudTd>
+				@if (context.MegapoolAddress != null)
+				{
+					<Address ContractAddress="@context.ContractAddress" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
+				}
+			</MudTd>
+			<MudTd>@context.RegistrationDate.ToString("G")</MudTd>
+		</RowTemplate>
+		<NoRecordsContent>
+			<MudText>No matching records found</MudText>
+		</NoRecordsContent>
+		<LoadingContent>
+			<MudText>Loading...</MudText>
+		</LoadingContent>
+		<PagerContent>
+			<MudTablePager />
+		</PagerContent>
+	</MudTable>
+</MudStack>
+
+@code {
+
+	private MudTable<NodeIndexViewModel> table = null!;
+
+	private NodesSnapshot snapshot = null!;
+	private NodeIndexViewModel[] nodes = null!;
+
+	private Task<bool>? loaded;
+	private string? searchString;
+
+	protected override async Task OnInitializedAsync()
+	{
+		TaskCompletionSource<bool> taskCompletionSource = new();
+		loaded = taskCompletionSource.Task;
+
+		// TODO: Polly
+		Stream streamAsync = await Http.GetStreamAsync($"https://rocketexplorer.nbg1.your-objectstorage.com/{Configuration.Environment.ToString().ToLower()}/nodes-snapshot.msgpack");
+		snapshot = MessagePackSerializer.Deserialize<NodesSnapshot>(streamAsync, MessagePackSerializerOptions.Standard);
+
+		nodes = snapshot.Index.Select(
+			x => new NodeIndexViewModel
+			{
+				ContractAddress = "0x" + Convert.ToHexString(x.ContractAddress),
+				MegapoolAddress = x.MegapoolAddress == null ? null : "0x" + Convert.ToHexString(x.MegapoolAddress),
+				RegistrationDate = DateTimeOffset.FromUnixTimeSeconds(x.RegistrationTimestamp),
+			}).ToArray();
+
+		taskCompletionSource.TrySetResult(true);
+
+		await base.OnInitializedAsync();
+	}
+
+	private void OnSearch(string text)
+	{
+		searchString = text;
+		table.ReloadServerData();
+	}
+
+	private async Task<TableData<NodeIndexViewModel>> LoadNodes(TableState state, CancellationToken token)
+	{
+		await (loaded ?? throw new InvalidOperationException());
+		IEnumerable<NodeIndexViewModel> items = nodes;
+
+		if (state.SortLabel is nameof(NodeIndexViewModel.ContractAddress))
+		{
+			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.ContractAddress).ToList() : items.OrderByDescending(x => x.ContractAddress).ToList();
+		}
+
+		if (state.SortLabel is nameof(NodeIndexViewModel.RegistrationDate))
+		{
+			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.RegistrationDate).ToList() : items.OrderByDescending(x => x.RegistrationDate).ToList();
+		}
+
+		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
+		{
+			items = items.Where(x => x.ContractAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToArray();
+		}
+
+		int count = items.Count();
+		items = items.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList();
+
+		return new TableData<NodeIndexViewModel>
+		{
+			TotalItems = count,
+			Items = items,
+		};
+	}
+
+	public class NodeIndexViewModel
+	{
+		public required string ContractAddress { get; init; }
+
+		public required string? MegapoolAddress { get; init; }
+
+		public required DateTimeOffset RegistrationDate { get; init; }
+	}
+
+}

@@ -1,16 +1,16 @@
 @page "/contracts"
 @using MessagePack
-@using RocketExplorer.Shared
+@using RocketExplorer.Shared.Contracts
 @inject HttpClient Http
 @inject Configuration Configuration
 
 <PageTitle>Rocket Explorer - Contracts</PageTitle>
 <MudStack>
-	<MudText Typo="Typo.h6">Contract Addresses</MudText>
+	<MudText Typo="Typo.h6">Contracts</MudText>
 
-	<MudTable ServerData="LoadContracts" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true"
+	<MudTable ServerData="LoadContracts" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary"
 		GroupBy="@groupContractsDefinition"
-		GroupHeaderStyle="background-color: var(--mud-palette-primary-lighten);"
+		GroupHeaderClass="table-group-header"
 		GroupFooterClass="mb-4">
 
 		<ToolBarContent>
@@ -33,11 +33,12 @@
 		</HeaderContent>
 		<RowTemplate>
 			<MudTd></MudTd>
-			<MudTd Style="font-family: monospace;">
-				<MudHighlighter Text="@context.Address" HighlightedText="@searchString" />
+			<MudTd>
+				<Address ContractAddress="@context.Address" HighlightedText="@searchString"></Address>
+				@*<MudHighlighter Text="@context.Address" HighlightedText="@searchString" />
 				<a href="@($"https://{Configuration.EtherscanPrefix}etherscan.io/address/{context.Address}#code")" target="_blank">
 					<MudIcon Icon="@Icons.Material.Filled.Search" Style="vertical-align: text-bottom" Size="Size.Small" Color="Color.Primary" />
-				</a>
+				</a>*@
 			</MudTd>
 			<MudTd>
 				<MudHighlighter Text="@context.ActivationMethod" HighlightedText="@searchString" />
@@ -57,7 +58,7 @@
 
 	<MudText Typo="Typo.h6">Upgrade contract addresses</MudText>
 
-	<MudTable ServerData="LoadUpgradeContracts" Dense="true" Hover="true" Elevation="0" Outlined="true">
+	<MudTable ServerData="LoadUpgradeContracts" Dense="true" Hover="true" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
 		<HeaderContent>
 			<MudTh>Name</MudTh>
 			<MudTh>Address</MudTh>
@@ -99,16 +100,16 @@
 		Indentation = false,
 		Expandable = false,
 		IsInitiallyExpanded = true,
-		Selector = e => e.ContractName
+		Selector = e => e.ContractName,
 	};
 
 	protected override async Task OnInitializedAsync()
 	{
-		var tcs = new TaskCompletionSource<bool>();
+		TaskCompletionSource<bool> tcs = new();
 		loaded = tcs.Task;
 
 		// TODO: Polly
-		var streamAsync = await Http.GetStreamAsync($"https://rocketexplorer.nbg1.your-objectstorage.com/{Configuration.Environment.ToString().ToLower()}/contracts-snapshot.msgpack");
+		Stream streamAsync = await Http.GetStreamAsync($"https://rocketexplorer.nbg1.your-objectstorage.com/{Configuration.Environment.ToString().ToLower()}/contracts-snapshot.msgpack");
 		snapshot = MessagePackSerializer.Deserialize<ContractsSnapshot>(streamAsync, MessagePackSerializerOptions.Standard);
 
 		tcs.TrySetResult(true);
@@ -142,7 +143,7 @@
 					x.Versions.Any(version => version.ActivationMethod.Contains(searchString, StringComparison.OrdinalIgnoreCase))).ToList();
 		}
 
-		var count = items.Count;
+		int count = items.Count;
 		items = items.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList();
 
 		return new TableData<VersionedRocketPoolContractViewModel>
@@ -155,8 +156,8 @@
 					Address = version.Address,
 					ActivationHeight = version.ActivationHeight,
 					ActivationMethod = version.ActivationMethod,
-					ContractName = contract.Name
-				}).ToList()
+					ContractName = contract.Name,
+				}).ToList(),
 		};
 	}
 
@@ -177,8 +178,8 @@
 					ExecutionHeight = version.ExecutionHeight,
 					ActivationMethod = version.ActivationMethod,
 					ContractName = contract.Name,
-					Executed = version.IsExecuted
-				}).OrderBy(x => x.ActivationHeight).ToList()
+					Executed = version.IsExecuted,
+				}).OrderBy(x => x.ActivationHeight).ToList(),
 		};
 	}
 
@@ -186,7 +187,7 @@
 	{
 		public required string ContractName { get; set; }
 
-		public required ulong ActivationHeight { get; set; }
+		public required long ActivationHeight { get; set; }
 
 		public required string ActivationMethod { get; set; }
 
@@ -197,11 +198,11 @@
 	{
 		public required string ContractName { get; set; }
 
-		public required ulong? ExecutionHeight { get; set; }
+		public required long? ExecutionHeight { get; set; }
 
 		public required string ActivationMethod { get; set; }
 
-		public required ulong ActivationHeight { get; set; }
+		public required long ActivationHeight { get; set; }
 
 		public required string Address { get; init; }
 

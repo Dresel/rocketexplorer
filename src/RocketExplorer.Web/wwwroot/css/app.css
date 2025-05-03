@@ -30,3 +30,40 @@ html, body { font-family: 'Roboto', 'Helvetica', 'Arial', 'sans-serif'; }
 }
 
 .loading-progress-text:after { content: var(--blazor-load-percentage-text, "Loading Rocket Explorer"); }
+
+.chart-single { width: 400px; }
+
+.chart-double { width: 400px; }
+
+@media (min-width: 650px) {
+	.chart-double { width: 600px; }
+}
+
+@media (min-width: 960px) {
+	.mud-main-content .chart-single,
+	.mud-main-content .chart-double { width: 600px; }
+}
+
+@media (min-width: 1248px) {
+	.mud-drawer-close-responsive-md-left .mud-main-content .chart-double { width: 1200px; }
+}
+
+@media (min-width: 1440px) {
+	.mud-drawer-open-responsive-md-left .mud-main-content .chart-double { width: 1200px; }
+}
+
+mark {
+	background-color: var(--mark-background-color);
+	color: var(--mark-color);
+}
+
+.mud-toggle-group * { text-transform: none; }
+
+.mud-toggle-group-selected {
+	background-color: var(--mud-palette-primary-hover) !important;
+	color: var(--mud-palette-primary) !important;
+}
+
+.table-group-header { background-color: var(--mud-palette-primary-container); }
+
+.table-group-header .mud-table-cell { color: var(--mud-palette-on-primary-container) !important; }

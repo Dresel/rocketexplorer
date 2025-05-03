@@ -4,7 +4,7 @@ public enum Environment
 {
 	Devnet,
 
-	Holesky,
+	Testnet,
 
 	Mainnet,
 }

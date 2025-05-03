@@ -1,0 +1,8 @@
+.expandable {
+	transition-duration: 0.66s;
+	transition-property: transform;
+}
+
+.expanded { transform: rotate(180deg); }
+
+.collapsed { transform: rotate(0); }

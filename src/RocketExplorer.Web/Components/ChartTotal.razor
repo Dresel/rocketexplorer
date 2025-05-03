@@ -1,146 +1,24 @@
 @using LiveChartsCore.Defaults
-@using LiveChartsCore.Kernel.Sketches
-@inject ThemeService ThemeService
+@inherits ChartBase
 
-<MudText Typo="Typo.h6" Align="Align.Center">
-	@Title <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowLeft" Class="@ExpandableButtonClass" Size="Size.Medium" Color="Color.Primary" OnClick="@(() => Expanded = !Expanded)" />
-</MudText>
-<MudText Typo="Typo.subtitle2" Align="Align.Center" Class=".typing">@TimeRange</MudText>
-
-<div class="@(Expanded ? "chart-double" : "chart-single")">
-	<CartesianChart @key="Key" Series="series" XAxes="XAxes" YAxes="YAxes" TooltipTextSize="13">
+<ChartTemplate Aggregation="Aggregation" AggregationChanged="SetAggregation" Expanded="Expanded" ExpandedChanged="SetExpanded">
+	<CartesianChart @key="Key" Series="Series" XAxes="XAxes" YAxes="YAxes" TooltipTextSize="13">
 	</CartesianChart>
-</div>
-<div class="d-flex justify-center">
-	<MudToggleGroup Size="Size.Small" T="ChartAggregation" Style="text-transform: none;" SelectedClass="mud-toggle-group-selected" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" @bind-Value="Aggregation" CheckMark FixedContent="true">
-		<MudToggleItem Value="ChartAggregation.Daily" Text="Daily" />
-		<MudToggleItem Value="ChartAggregation.Monthly" Text="Monthly" />
-		<MudToggleItem Value="ChartAggregation.Yearly" Text="Yearly" />
-	</MudToggleGroup>
-</div>
+</ChartTemplate>
 
 @code {
 
-	private Guid Key { get; set; } = Guid.NewGuid();
-
-	private ChartAggregation aggregation = ChartAggregation.Monthly;
-
-	private ChartAggregation Aggregation
-	{
-		get => aggregation;
-		set
-		{
-			aggregation = value;
-			CreateSeries();
-		}
-	}
-
-	private readonly ISeries[] series =
-	[
-		new LineSeries<DateTimePoint>
-		{
-			LineSmoothness = 0,
-			DataLabelsSize = 14,
-		},
-	];
-
-	private ICartesianAxis[] YAxes =>
-	[
-		new Axis
-		{
-			Name = YAxesName ?? string.Empty,
-			MinStep = 1,
-			TextSize = 13,
-			NameTextSize = 14,
-		},
-	];
-
-	private ICartesianAxis[] XAxes
-	{
-		get
-		{
-			TimeSpan unit = Aggregation switch
+	protected override void OnInitialized() =>
+		Series =
+		[
+			new LineSeries<DateTimePoint>
 			{
-				ChartAggregation.Daily => TimeSpan.FromDays(1),
-				ChartAggregation.Monthly => TimeSpan.FromDays(30),
-				ChartAggregation.Yearly => TimeSpan.FromDays(365),
-				_ => throw new ArgumentOutOfRangeException(nameof(Aggregation)),
-			};
+				LineSmoothness = 0,
+				DataLabelsSize = 14,
+			},
+		];
 
-			string dateTimeFormat = Aggregation switch
-			{
-				ChartAggregation.Daily => "dd.MM.yyyy",
-				ChartAggregation.Monthly => "MM.yyyy",
-				ChartAggregation.Yearly => "yyyy",
-				_ => throw new ArgumentOutOfRangeException(nameof(Aggregation)),
-			};
-
-			return
-			[
-				new DateTimeAxis(unit, date => date.ToString(dateTimeFormat))
-				{
-					TextSize = 13,
-					NameTextSize = 14,
-				},
-			];
-		}
-	}
-
-	private string TimeRange =>
-		Aggregation switch
-		{
-			ChartAggregation.Daily when !Expanded => "Past 2 weeks",
-			ChartAggregation.Daily when Expanded => "Past 6 weeks",
-			ChartAggregation.Monthly when !Expanded => "Past 12 months",
-			ChartAggregation.Monthly when Expanded => "Past 3 years",
-			_ => "All time",
-		};
-
-	private bool expanded;
-
-	private bool Expanded
-	{
-		get => expanded;
-		set
-		{
-			expanded = value;
-			CreateSeries();
-		}
-	}
-
-	public string ExpandableButtonClass => $"button-expandable {(Expanded ? "button-expanded" : "button-collapsed")}";
-
-	[Parameter]
-	public SortedList<DateOnly, int>? Data { get; set; } = [];
-
-	[Parameter]
-	public string? Title { get; set; }
-
-	[Parameter]
-	public string? YAxesName { get; set; }
-
-	protected override async Task OnParametersSetAsync()
-	{
-		// TODO: Check if parameters really changed
-		await base.OnParametersSetAsync();
-		CreateSeries();
-	}
-
-	protected override async Task OnAfterRenderAsync(bool firstRender)
-	{
-		await base.OnAfterRenderAsync(firstRender);
-
-		if (firstRender)
-		{
-			ThemeService.DarkModeChanged += (_, darkMode) =>
-			{
-				Key = Guid.NewGuid();
-				StateHasChanged();
-			};
-		}
-	}
-
-	private void CreateSeries()
+	protected override void SetSeries()
 	{
 		DateOnly target;
 
@@ -172,7 +50,7 @@
 				throw new ArgumentOutOfRangeException(nameof(Aggregation));
 		}
 
-		series[0].Values = Data?.PrepareTotal(Aggregation, target).ToList() ?? [];
+		Series[0].Values = Data?.PrepareTotal(Aggregation, target).ToList() ?? [];
 	}
 
 }

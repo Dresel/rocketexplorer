@@ -108,7 +108,7 @@
 		}
 	}
 
-	public string ExpandableButtonClass => $"expandable {(Expanded ? "expanded" : "collapsed")}";
+	public string ExpandableButtonClass => $"button-expandable {(Expanded ? "button-expanded" : "button-collapsed")}";
 
 	[Parameter]
 	public SortedList<DateOnly, int>? Data { get; set; } = [];

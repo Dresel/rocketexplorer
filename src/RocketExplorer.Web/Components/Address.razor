@@ -10,18 +10,17 @@
 	@if (string.IsNullOrWhiteSpace(HrefPlaceholder))
 	{
 		<MudText Typo="Typo.body2" Color="Color.Primary" Class="d-inline" Style="font-family: monospace;">
-			<MudHighlighter Text="@DisplayContractAddress" HighlightedTexts="@DisplayHighlightedTexts" />
+			<MudHighlighter Text="@displayContractAddress" HighlightedTexts="@displayHighlightedTexts" />
 		</MudText>
 	}
 	else
 	{
-		<MudLink Typo="Typo.body2" Style="font-family: monospace;" Href="@string.Format(HrefPlaceholder, ContractChecksumAddress)">
-			<MudHighlighter Text="@DisplayContractAddress" HighlightedTexts="@DisplayHighlightedTexts" />
+		<MudLink Typo="Typo.body2" Style="font-family: monospace;" Href="@string.Format(HrefPlaceholder, contractChecksumAddress)">
+			<MudHighlighter Text="@displayContractAddress" HighlightedTexts="@displayHighlightedTexts" />
 		</MudLink>
 	}
-	<MudIconButton Icon="@Icons.Material.Filled.CopyAll" Style="padding-right: 0; vertical-align: sub;" Size="Size.Small" Color="Color.Primary" OnClick="@(() => module?.InvokeVoidAsync("copyToClipboard", ContractChecksumAddress))" />
-	@* TODO: Make #code configurable *@
-	<a href="@($"https://{Configuration.EtherscanPrefix}etherscan.io/address/{ContractChecksumAddress}#code")" target="_blank">
+	<MudIconButton Icon="@Icons.Material.Filled.CopyAll" Style="padding-right: 0; vertical-align: sub;" Size="Size.Small" Color="Color.Primary" OnClick="@(() => module?.InvokeVoidAsync("copyToClipboard", contractChecksumAddress))" />
+	<a href="@($"https://{Configuration.EtherscanPrefix}etherscan.io/address/{contractChecksumAddress}{(AppendEtherscanCodeAnchor ? "#code" : "")}")" target="_blank">
 		<MudIconButton Icon="@Icons.Material.Filled.ArrowOutward" Style="padding: 0; vertical-align: sub;" Size="Size.Small" Color="Color.Primary" />
 	</a>
 </div>
@@ -40,6 +39,9 @@
 	public string HighlightedText { get; set; } = string.Empty;
 
 	[Parameter]
+	public bool AppendEtherscanCodeAnchor { get; set; }
+
+	[Parameter]
 	public int PrefixLength { get; set; } = 6;
 
 	[Parameter]
@@ -47,11 +49,11 @@
 
 	Guid IBrowserViewportObserver.Id { get; } = Guid.NewGuid();
 
-	public string DisplayContractAddress { get; set; } = string.Empty;
+	private string displayContractAddress = string.Empty;
 
-	public IEnumerable<string> DisplayHighlightedTexts { get; set; } = [];
+	private IEnumerable<string> displayHighlightedTexts = [];
 
-	public string ContractChecksumAddress { get; set; } = string.Empty;
+	private string contractChecksumAddress = string.Empty;
 
 	async ValueTask IAsyncDisposable.DisposeAsync()
 	{
@@ -83,10 +85,10 @@
 	{
 		base.OnParametersSet();
 
-		ContractChecksumAddress = AddressUtil.Current.ConvertToChecksumAddress(ContractAddress);
+		contractChecksumAddress = AddressUtil.Current.ConvertToChecksumAddress(ContractAddress);
 
-		DisplayContractAddress = PrefixLength + SuffixLength < ContractChecksumAddress.Length ? $"{ContractChecksumAddress[..PrefixLength]}...{ContractChecksumAddress[^SuffixLength..]}" : ContractChecksumAddress;
-		DisplayHighlightedTexts = ExtractHighlightTexts().OrderByDescending(x => x.Length);
+		displayContractAddress = PrefixLength + SuffixLength < contractChecksumAddress.Length ? $"{contractChecksumAddress[..PrefixLength]}...{contractChecksumAddress[^SuffixLength..]}" : contractChecksumAddress;
+		displayHighlightedTexts = ExtractHighlightTexts().OrderByDescending(x => x.Length);
 	}
 
 	private IEnumerable<string> ExtractHighlightTexts()
@@ -96,26 +98,26 @@
 			yield break;
 		}
 
-		foreach (int start in AllIndexesOf(ContractChecksumAddress, HighlightedText))
+		foreach (int start in AllIndexesOf(contractChecksumAddress, HighlightedText))
 		{
 			int end = start + HighlightedText.Length;
 
-			if (start < ContractChecksumAddress.Length - SuffixLength && PrefixLength < end)
+			if (start < contractChecksumAddress.Length - SuffixLength && PrefixLength < end)
 			{
 				bool overlapsPrefix = start < PrefixLength;
-				bool overlapsSuffix = end > ContractChecksumAddress.Length - SuffixLength;
+				bool overlapsSuffix = end > contractChecksumAddress.Length - SuffixLength;
 
 				if (overlapsPrefix && overlapsSuffix)
 				{
-					yield return $"{ContractChecksumAddress[start..Math.Min(end, PrefixLength)]}...{ContractChecksumAddress[^SuffixLength..end]}";
+					yield return $"{contractChecksumAddress[start..Math.Min(end, PrefixLength)]}...{contractChecksumAddress[^SuffixLength..end]}";
 				}
 				else if (overlapsPrefix)
 				{
-					yield return $"{ContractChecksumAddress[start..Math.Min(end, PrefixLength)]}...";
+					yield return $"{contractChecksumAddress[start..Math.Min(end, PrefixLength)]}...";
 				}
 				else if (overlapsSuffix)
 				{
-					yield return $"...{ContractChecksumAddress[^SuffixLength..end]}";
+					yield return $"...{contractChecksumAddress[^SuffixLength..end]}";
 				}
 				else
 				{
@@ -131,8 +133,6 @@
 
 	Task IBrowserViewportObserver.NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs browserViewportEventArgs)
 	{
-		Console.WriteLine(browserViewportEventArgs.Breakpoint);
-
 		switch (browserViewportEventArgs.Breakpoint)
 		{
 			case Breakpoint.Xs:
@@ -158,8 +158,8 @@
 				break;
 		}
 
-		DisplayContractAddress = PrefixLength + SuffixLength < ContractChecksumAddress.Length ? $"{ContractChecksumAddress[..PrefixLength]}...{ContractChecksumAddress[^SuffixLength..]}" : ContractChecksumAddress;
-		DisplayHighlightedTexts = ExtractHighlightTexts().OrderByDescending(x => x.Length);
+		displayContractAddress = PrefixLength + SuffixLength < contractChecksumAddress.Length ? $"{contractChecksumAddress[..PrefixLength]}...{contractChecksumAddress[^SuffixLength..]}" : contractChecksumAddress;
+		displayHighlightedTexts = ExtractHighlightTexts().OrderByDescending(x => x.Length);
 
 		return InvokeAsync(StateHasChanged);
 	}

@@ -35,10 +35,6 @@
 			<MudTd></MudTd>
 			<MudTd>
 				<Address ContractAddress="@context.Address" HighlightedText="@searchString"></Address>
-				@*<MudHighlighter Text="@context.Address" HighlightedText="@searchString" />
-				<a href="@($"https://{Configuration.EtherscanPrefix}etherscan.io/address/{context.Address}#code")" target="_blank">
-					<MudIcon Icon="@Icons.Material.Filled.Search" Style="vertical-align: text-bottom" Size="Size.Small" Color="Color.Primary" />
-				</a>*@
 			</MudTd>
 			<MudTd>
 				<MudHighlighter Text="@context.ActivationMethod" HighlightedText="@searchString" />
@@ -67,11 +63,8 @@
 		</HeaderContent>
 		<RowTemplate>
 			<MudTd>@context.ContractName</MudTd>
-			<MudTd Style="font-family: monospace;">
-				@context.Address
-				<a href="@($"https://{Configuration.EtherscanPrefix}etherscan.io/address/{context.Address}#code")" target="_blank">
-					<MudIcon Icon="@Icons.Material.Filled.Search" Style="vertical-align: text-bottom" Size="Size.Small" Color="Color.Primary" />
-				</a>
+			<MudTd>
+				<Address ContractAddress="@context.Address"></Address>
 			</MudTd>
 			<MudTd>@context.ActivationMethod</MudTd>
 			<MudTd>

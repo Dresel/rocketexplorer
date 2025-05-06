@@ -1,7 +1,7 @@
 <MudText Typo="Typo.h6" Align="Align.Center">
 	@Title <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowLeft" Class="@ExpandableButtonClass" Size="Size.Medium" Color="Color.Primary" OnClick="ToggleExpanded" />
 </MudText>
-<MudText Typo="Typo.subtitle2" Align="Align.Center" Class=".typing">@TimeRange</MudText>
+<MudText Typo="Typo.subtitle2" Align="Align.Center">@TimeRange</MudText>
 
 <div class="@(Expanded ? "chart-double" : "chart-single")">
 	@ChildContent

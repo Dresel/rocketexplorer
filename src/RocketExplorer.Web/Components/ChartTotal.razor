@@ -1,7 +1,7 @@
 @using LiveChartsCore.Defaults
 @inherits ChartBase
 
-<ChartTemplate Aggregation="Aggregation" AggregationChanged="SetAggregation" Expanded="Expanded" ExpandedChanged="SetExpanded">
+<ChartTemplate Title="@Title" Aggregation="Aggregation" AggregationChanged="SetAggregation" Expanded="Expanded" ExpandedChanged="SetExpanded">
 	<CartesianChart @key="Key" Series="Series" XAxes="XAxes" YAxes="YAxes" TooltipTextSize="13">
 	</CartesianChart>
 </ChartTemplate>

@@ -141,7 +141,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 					DailyRegistrations = context.DailyRegistrations,
 					TotalNodeCount = context.TotalNodesCount,
 				},
-			}, cancellationToken);
+			}, cancellationToken: cancellationToken);
 
 		Logger.LogInformation("Writing {snapshot}", Keys.QueueSnapshot);
 		await Storage.WriteAsync(
@@ -159,7 +159,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 					StandardIndex = context.StandardQueue.ToArray(),
 					ExpressIndex = context.ExpressQueue.ToArray(),
 				},
-			}, cancellationToken);
+			}, cancellationToken: cancellationToken);
 
 		foreach (Node node in context.Nodes.Values)
 		{
@@ -169,7 +169,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				{
 					ProcessedBlockNumber = context.CurrentBlockHeight,
 					Data = node,
-				}, cancellationToken);
+				}, cancellationToken: cancellationToken);
 		}
 
 		foreach ((string? megapoolAddress, int megapoolIndex, Minipool? minipool) in
@@ -183,7 +183,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				{
 					ProcessedBlockNumber = context.CurrentBlockHeight,
 					Data = minipool,
-				}, cancellationToken);
+				}, cancellationToken: cancellationToken);
 		}
 	}
 

@@ -101,4 +101,4 @@ await storage.WriteAsync(
 			BlockNumber = (long)latestBlock.Number.Value,
 			Timestamp = (long)latestBlock.Timestamp.Value,
 		},
-	});
+	}, 10);

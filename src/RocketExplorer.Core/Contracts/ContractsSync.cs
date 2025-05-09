@@ -105,7 +105,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 								: Array.IndexOf(Ethereum.Contracts.Names, x.Name)).ToArray(),
 					UpgradeContracts = context.ContextUpgradeContracts.Values.ToArray(),
 				},
-			}, cancellationToken);
+			}, cancellationToken: cancellationToken);
 	}
 
 	private static Function GetExecutedFunction(Web3 web3, string address)

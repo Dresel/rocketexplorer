@@ -62,8 +62,7 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 			await response.ResponseStream.CopyToAsync(memoryStream, cancellationToken);
 			memoryStream.Seek(0, SeekOrigin.Begin);
 
-			this.logger.LogDebug(
-				$"GetObject took {stopwatch.ElapsedMilliseconds}ms for {memoryStream.Length} bytes");
+			this.logger.LogDebug($"GetObject took {stopwatch.ElapsedMilliseconds}ms for {memoryStream.Length} bytes");
 
 			T data = MessagePackSerializer.Deserialize<T>(
 				memoryStream.ToArray(), MessagePackSerializerOptions.Standard);
@@ -80,7 +79,8 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 		}
 	}
 
-	public async Task WriteAsync<T>(string key, BlobObject<T> snapshot, CancellationToken cancellationToken = default)
+	public async Task WriteAsync<T>(
+		string key, BlobObject<T> snapshot, int maxAge = 60, CancellationToken cancellationToken = default)
 	{
 		byte[] data = MessagePackSerializer.Serialize(snapshot.Data, MessagePackSerializerOptions.Standard);
 		using MemoryStream memoryStream = new(data);
@@ -95,7 +95,7 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 				InputStream = memoryStream,
 				Headers =
 				{
-					["Cache-Control"] = "public, max-age=60, must-revalidate",
+					["Cache-Control"] = $"public, max-age={maxAge}, must-revalidate",
 				},
 				Metadata =
 				{

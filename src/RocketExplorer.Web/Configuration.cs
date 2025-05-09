@@ -4,7 +4,7 @@ namespace RocketExplorer.Web;
 
 public class Configuration
 {
-	public Configuration(NavigationManager navigation, ILogger<Configuration> configuration)
+	public Configuration(NavigationManager navigation, ILogger<Configuration> logger)
 	{
 		Uri uri = new(navigation.Uri);
 
@@ -25,13 +25,25 @@ public class Configuration
 			_ => throw new InvalidOperationException("Network is null"),
 		};
 
-		configuration.LogInformation(
+		logger.LogInformation(
 			"Using Network {Network} and Rocket Pool Environment {Environment}", Network, Environment);
 	}
 
 	public Environment Environment { get; }
 
+	// TODO: Load from configuration?
+	public string EthereumRPCEndpoint => Network switch
+	{
+		Network.Hoodi => "https://ethereum-hoodi-rpc.publicnode.com",
+		Network.Mainnet => "https://ethereum-rpc.publicnode.com",
+		_ => throw new InvalidOperationException("RPCUrl is null"),
+	};
+
 	public string EtherscanPrefix => Network == Network.Hoodi ? "hoodi." : string.Empty;
 
 	public Network Network { get; }
+
+	// TODO: Load from configuration?
+	public string ObjectStoreBaseUrl =>
+		$"https://rocketexplorer.nbg1.your-objectstorage.com/{Environment.ToString().ToLower()}";
 }

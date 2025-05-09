@@ -6,6 +6,8 @@ public static class Keys
 
 	public const string QueueSnapshot = "queue-snapshot.msgpack";
 
+	public const string SnapshotMetadata = "snapshot-metadata.msgpack";
+
 	public static string MegapoolMinipool(string megapoolAddress, int megapoolIndex) =>
 		$"minipools/{megapoolAddress}/{megapoolIndex}.msgpack";
 

@@ -5,11 +5,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Web3;
 using RocketExplorer.Core;
 using RocketExplorer.Core.Contracts;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Ethereum.RocketStorage;
+using RocketExplorer.Shared;
 using RocketExplorer.Shared.Contracts;
 using Serilog;
 using Serilog.Core;
@@ -62,20 +64,41 @@ IHost host = Host.CreateDefaultBuilder(args)
 ILogger<Program> logger = host.Services.GetRequiredService<ILogger<Program>>();
 SyncOptions options = host.Services.GetRequiredService<IOptions<SyncOptions>>().Value;
 
-logger.LogInformation("Using Rocket Pool environment {Environment} with rpc endpoint {RPCUrl}", options.Environment, options.RPCUrl);
+logger.LogInformation(
+	"Using Rocket Pool environment {Environment} with rpc endpoint {RPCUrl}", options.Environment, options.RPCUrl);
 
 Web3 web3 = new(options.RPCUrl);
-long latestBlock = (long)(await web3.Eth.Blocks.GetBlockNumber.SendRequestAsync()).Value;
 
-logger.LogInformation("Latest block: {Block}", latestBlock);
+BlockWithTransactions latestBlock =
+	await web3.Eth.Blocks.GetBlockWithTransactionsByNumber.SendRequestAsync(BlockParameter.CreateLatest());
+logger.LogInformation("Latest block: {Block}", latestBlock.Number);
 
 RocketStorageService rocketStorage = new(web3, options.RocketStorageContractAddress);
 Storage storage = host.Services.GetRequiredService<Storage>();
 
-ContractsSync contracts = host.Services.GetRequiredService<ContractsSync>();
-await contracts.HandleBlocksAsync(web3, rocketStorage, new Dictionary<string, RocketPoolContract>().AsReadOnly(), latestBlock, CancellationToken.None);
+////await storage.WriteCorsConfigurationAsync();
 
-ContractsSnapshot snapshot = await storage.ReadAsync<ContractsSnapshot>(ContractsSync.ContractsSnapshotKey) ?? throw new InvalidOperationException("Cannot read contracts snapshot from storage.");
+ContractsSync contracts = host.Services.GetRequiredService<ContractsSync>();
+await contracts.HandleBlocksAsync(
+	web3, rocketStorage, new Dictionary<string, RocketPoolContract>().AsReadOnly(), (long)latestBlock.Number.Value);
+
+BlobObject<ContractsSnapshot> snapshot =
+	await storage.ReadAsync<ContractsSnapshot>(ContractsSync.ContractsSnapshotKey) ??
+	throw new InvalidOperationException("Cannot read contracts snapshot from storage.");
 
 NodesSync nodes = host.Services.GetRequiredService<NodesSync>();
-await nodes.HandleBlocksAsync(web3, rocketStorage, snapshot.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(), latestBlock, CancellationToken.None);
+await nodes.HandleBlocksAsync(
+	web3, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
+	(long)latestBlock.Number.Value);
+
+logger.LogInformation("Writing {snapshot}", Keys.SnapshotMetadata);
+await storage.WriteAsync(
+	Keys.SnapshotMetadata, new BlobObject<SnapshotMetadata>
+	{
+		ProcessedBlockNumber = (long)latestBlock.Number.Value,
+		Data = new SnapshotMetadata
+		{
+			BlockNumber = (long)latestBlock.Number.Value,
+			Timestamp = (long)latestBlock.Timestamp.Value,
+		},
+	});

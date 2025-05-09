@@ -71,32 +71,41 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		long activationHeight = contracts["rocketStorage"].Versions.Single().ActivationHeight;
 
 		Logger.LogInformation("Loading {snapshot}", Keys.NodesSnapshot);
-		NodesSnapshot nodesSnapshot =
-			await Storage.ReadAsync<NodesSnapshot>(Keys.NodesSnapshot, cancellationToken) ?? new NodesSnapshot
+		BlobObject<NodesSnapshot> nodesSnapshot =
+			await Storage.ReadAsync<NodesSnapshot>(Keys.NodesSnapshot, cancellationToken) ??
+			new BlobObject<NodesSnapshot>
 			{
-				BlockHeight = activationHeight,
-				Index = [],
-				DailyRegistrations = [],
-				TotalNodeCount = [],
+				ProcessedBlockNumber = activationHeight,
+				Data = new NodesSnapshot
+				{
+					Index = [],
+					DailyRegistrations = [],
+					TotalNodeCount = [],
+				},
 			};
 
 		Logger.LogInformation("Loading {snapshot}", Keys.QueueSnapshot);
-		QueueSnapshot queueSnapshot =
-			await Storage.ReadAsync<QueueSnapshot>(Keys.QueueSnapshot, cancellationToken) ?? new QueueSnapshot
+		BlobObject<QueueSnapshot> queueSnapshot =
+			await Storage.ReadAsync<QueueSnapshot>(Keys.QueueSnapshot, cancellationToken) ??
+			new BlobObject<QueueSnapshot>
 			{
-				BlockHeight = activationHeight,
-				StandardIndex = [],
-				ExpressIndex = [],
-				TotalQueueCount = [],
-				DailyEnqueued = [],
-				DailyDequeued = [],
-				DailyVoluntaryExits = [],
+				ProcessedBlockNumber = activationHeight,
+				Data = new QueueSnapshot
+				{
+					BlockHeight = activationHeight,
+					StandardIndex = [],
+					ExpressIndex = [],
+					TotalQueueCount = [],
+					DailyEnqueued = [],
+					DailyDequeued = [],
+					DailyVoluntaryExits = [],
+				},
 			};
 
 		return new NodesSyncContext
 		{
 			Web3 = web3,
-			CurrentBlockHeight = nodesSnapshot.BlockHeight,
+			CurrentBlockHeight = nodesSnapshot.ProcessedBlockNumber,
 			RocketStorage = rocketStorage,
 			Contracts = contracts,
 			RocketNodeManager =
@@ -104,16 +113,16 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 					web3, await Policy.ExecuteAsync(() => rocketStorage.GetAddressQueryAsync("rocketNodeManager"))),
 			RocketNodeManagerAddresses = contracts["rocketNodeManager"].Versions.Select(x => x.Address).ToArray(),
 			NodeIndex =
-				nodesSnapshot.Index.ToDictionary(
+				nodesSnapshot.Data.Index.ToDictionary(
 					x => x.ContractAddress.ToHex(true), x => x, StringComparer.OrdinalIgnoreCase),
-			DailyRegistrations = nodesSnapshot.DailyRegistrations,
-			TotalNodesCount = nodesSnapshot.TotalNodeCount,
-			StandardQueue = queueSnapshot.StandardIndex.ToList(),
-			ExpressQueue = queueSnapshot.ExpressIndex.ToList(),
-			TotalQueueCount = new SortedList<DateOnly, int>(queueSnapshot.TotalQueueCount),
-			DailyEnqueued = queueSnapshot.DailyEnqueued,
-			DailyDequeued = queueSnapshot.DailyDequeued,
-			DailyVoluntaryExits = queueSnapshot.DailyVoluntaryExits,
+			DailyRegistrations = nodesSnapshot.Data.DailyRegistrations,
+			TotalNodesCount = nodesSnapshot.Data.TotalNodeCount,
+			StandardQueue = queueSnapshot.Data.StandardIndex.ToList(),
+			ExpressQueue = queueSnapshot.Data.ExpressIndex.ToList(),
+			TotalQueueCount = new SortedList<DateOnly, int>(queueSnapshot.Data.TotalQueueCount),
+			DailyEnqueued = queueSnapshot.Data.DailyEnqueued,
+			DailyDequeued = queueSnapshot.Data.DailyDequeued,
+			DailyVoluntaryExits = queueSnapshot.Data.DailyVoluntaryExits,
 		};
 	}
 
@@ -123,40 +132,58 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		Logger.LogInformation("Writing {snapshot}", Keys.NodesSnapshot);
 		await Storage.WriteAsync(
 			Keys.NodesSnapshot,
-			new NodesSnapshot
+			new BlobObject<NodesSnapshot>
 			{
-				BlockHeight = context.CurrentBlockHeight,
-				Index = context.NodeIndex.Values.ToArray(),
-				DailyRegistrations = context.DailyRegistrations,
-				TotalNodeCount = context.TotalNodesCount,
+				ProcessedBlockNumber = context.CurrentBlockHeight,
+				Data = new NodesSnapshot
+				{
+					Index = context.NodeIndex.Values.ToArray(),
+					DailyRegistrations = context.DailyRegistrations,
+					TotalNodeCount = context.TotalNodesCount,
+				},
 			}, cancellationToken);
 
 		Logger.LogInformation("Writing {snapshot}", Keys.QueueSnapshot);
 		await Storage.WriteAsync(
 			Keys.QueueSnapshot,
-			new QueueSnapshot
+			new BlobObject<QueueSnapshot>
 			{
-				BlockHeight = context.CurrentBlockHeight,
-				TotalQueueCount = context.TotalQueueCount,
-				DailyEnqueued = context.DailyEnqueued,
-				DailyDequeued = context.DailyDequeued,
-				DailyVoluntaryExits = context.DailyVoluntaryExits,
-				StandardIndex = context.StandardQueue.ToArray(),
-				ExpressIndex = context.ExpressQueue.ToArray(),
+				ProcessedBlockNumber = context.CurrentBlockHeight,
+				Data = new QueueSnapshot
+				{
+					BlockHeight = context.CurrentBlockHeight,
+					TotalQueueCount = context.TotalQueueCount,
+					DailyEnqueued = context.DailyEnqueued,
+					DailyDequeued = context.DailyDequeued,
+					DailyVoluntaryExits = context.DailyVoluntaryExits,
+					StandardIndex = context.StandardQueue.ToArray(),
+					ExpressIndex = context.ExpressQueue.ToArray(),
+				},
 			}, cancellationToken);
 
 		foreach (Node node in context.Nodes.Values)
 		{
 			Logger.LogInformation("Writing {snapshot}", Keys.Node(node.ContractAddress.ToHex(true)));
-			await Storage.WriteAsync(Keys.Node(node.ContractAddress.ToHex(true)), node, cancellationToken);
+			await Storage.WriteAsync(
+				Keys.Node(node.ContractAddress.ToHex(true)), new BlobObject<Node>
+				{
+					ProcessedBlockNumber = context.CurrentBlockHeight,
+					Data = node,
+				}, cancellationToken);
 		}
 
-		foreach ((string? megapoolAddress, int megapoolIndex, Minipool? minipool) in context.MegaMinipools.SelectMany(
-					megapool => megapool.Value.Select(index => (megapool.Key, index.Key, index.Value))))
+		foreach ((string? megapoolAddress, int megapoolIndex, Minipool? minipool) in
+				context.MegaMinipools.SelectMany(
+					megapool =>
+						megapool.Value.Select(index => (megapool.Key, index.Key, index.Value))))
 		{
 			Logger.LogInformation("Writing {snapshot}", Keys.MegapoolMinipool(megapoolAddress, megapoolIndex));
 			await Storage.WriteAsync(
-				Keys.MegapoolMinipool(megapoolAddress, megapoolIndex), minipool, cancellationToken);
+				Keys.MegapoolMinipool(megapoolAddress, megapoolIndex), new BlobObject<Minipool>
+				{
+					ProcessedBlockNumber = context.CurrentBlockHeight,
+					Data = minipool,
+				}, cancellationToken);
 		}
 	}
 
@@ -261,8 +288,8 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		{
 			// TODO: Obsolete, replace
 			// See https://discord.com/channels/405159462932971535/704214664829075506/1365495113383677973
-			nodeDetails = await Policy.ExecuteAsync(
-				() => latestRocketNodeManager.GetNodeDetailsQueryAsync(@event.Node));
+			nodeDetails =
+				await Policy.ExecuteAsync(() => latestRocketNodeManager.GetNodeDetailsQueryAsync(@event.Node));
 		}
 		catch
 		{
@@ -308,8 +335,8 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 
 		if (!context.MegaMinipools[megapoolAddress].ContainsKey(validatorId))
 		{
-			context.MegaMinipools[megapoolAddress][validatorId] = await Storage.ReadAsync<Minipool>(
-					Keys.MegapoolMinipool(megapoolAddress, validatorId), cancellationToken) ??
+			context.MegaMinipools[megapoolAddress][validatorId] = (await Storage.ReadAsync<Minipool>(
+					Keys.MegapoolMinipool(megapoolAddress, validatorId), cancellationToken))?.Data ??
 				throw new InvalidOperationException("Cannot read node operator from storage.");
 		}
 
@@ -320,9 +347,11 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 			int h = 0;
 
 			h += context.StandardQueue.RemoveAll(
-				x => x.PubKey == context.MegaMinipools[megapoolAddress][validatorId].PubKey);
+				x =>
+					x.PubKey == context.MegaMinipools[megapoolAddress][validatorId].PubKey);
 			h += context.ExpressQueue.RemoveAll(
-				x => x.PubKey == context.MegaMinipools[megapoolAddress][validatorId].PubKey);
+				x =>
+					x.PubKey == context.MegaMinipools[megapoolAddress][validatorId].PubKey);
 
 			Debug.Assert(h == 1, "Only one element should be removed");
 
@@ -363,7 +392,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		if (!context.Nodes.ContainsKey(nodeOperatorAddress))
 		{
 			context.Nodes[nodeOperatorAddress] =
-				await Storage.ReadAsync<Node>(Keys.Node(nodeOperatorAddress), cancellationToken) ??
+				(await Storage.ReadAsync<Node>(Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
 				throw new InvalidOperationException("Cannot read node operator from storage.");
 		}
 

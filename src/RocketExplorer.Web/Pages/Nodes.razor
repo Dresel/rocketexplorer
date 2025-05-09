@@ -1,22 +1,19 @@
 @page "/nodes"
-@using MessagePack
-@using RocketExplorer.Shared.Nodes
 
-@inject HttpClient Http
-@inject Configuration Configuration
+@inherits PageBase<RocketExplorer.Shared.Nodes.NodesSnapshot>
 
-<PageTitle>Rocket Explorer - Contracts</PageTitle>
+<PageTitle>Rocket Explorer - Nodes</PageTitle>
 <MudStack>
 	<MudText Typo="Typo.h4" Align="Align.Center">Node operators over time</MudText>
-	<MudGrid Justify="Justify.Center" Class="mb-4">
+	<MudGrid Justify="Justify.Center">
 		<MudItem>
-			<ChartTotal Title="Total operators" YAxesName="Nodes" Data="@snapshot?.TotalNodeCount"></ChartTotal>
+			<ChartTotal Title="Total operators" YAxesName="Nodes" Data="@Snapshot?.TotalNodeCount"></ChartTotal>
 		</MudItem>
 		<MudItem>
-			<ChartDelta Title="New operators" YAxesName="Nodes" Data="@snapshot?.DailyRegistrations"></ChartDelta>
+			<ChartDelta Title="New operators" YAxesName="Nodes" Data="@Snapshot?.DailyRegistrations"></ChartDelta>
 		</MudItem>
 	</MudGrid>
-	<MudText Typo="Typo.h4" Align="Align.Center">Node list</MudText>
+	<MudText Typo="Typo.h4" Align="Align.Center" Class="mt-8">Node list</MudText>
 	<MudTable Class="mt-0" ServerData="LoadNodes" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
 		<ToolBarContent>
 			<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
@@ -61,33 +58,15 @@
 @code {
 
 	private MudTable<NodeIndexViewModel> table = null!;
-
-	private NodesSnapshot snapshot = null!;
-	private NodeIndexViewModel[] nodes = null!;
-
-	private Task<bool>? loaded;
 	private string? searchString;
+
+	private NodeIndexViewModel[] nodes = null!;
 
 	protected override async Task OnInitializedAsync()
 	{
-		TaskCompletionSource<bool> taskCompletionSource = new();
-		loaded = taskCompletionSource.Task;
-
-		// TODO: Polly
-		Stream streamAsync = await Http.GetStreamAsync($"https://rocketexplorer.nbg1.your-objectstorage.com/{Configuration.Environment.ToString().ToLower()}/nodes-snapshot.msgpack");
-		snapshot = MessagePackSerializer.Deserialize<NodesSnapshot>(streamAsync, MessagePackSerializerOptions.Standard);
-
-		nodes = snapshot.Index.Select(
-			x => new NodeIndexViewModel
-			{
-				ContractAddress = "0x" + Convert.ToHexString(x.ContractAddress),
-				MegapoolAddress = x.MegapoolAddress == null ? null : "0x" + Convert.ToHexString(x.MegapoolAddress),
-				RegistrationDate = DateTimeOffset.FromUnixTimeSeconds(x.RegistrationTimestamp),
-			}).ToArray();
-
-		taskCompletionSource.TrySetResult(true);
-
 		await base.OnInitializedAsync();
+
+		ObjectStoreKey = "nodes-snapshot.msgpack";
 	}
 
 	private void OnSearch(string text)
@@ -98,7 +77,8 @@
 
 	private async Task<TableData<NodeIndexViewModel>> LoadNodes(TableState state, CancellationToken token)
 	{
-		await (loaded ?? throw new InvalidOperationException());
+		await LoadedTask;
+
 		IEnumerable<NodeIndexViewModel> items = nodes;
 
 		if (state.SortLabel is nameof(NodeIndexViewModel.ContractAddress))
@@ -124,6 +104,19 @@
 			TotalItems = count,
 			Items = items,
 		};
+	}
+
+	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
+	{
+		nodes = Snapshot!.Index.Select(
+			x => new NodeIndexViewModel
+			{
+				ContractAddress = "0x" + Convert.ToHexString(x.ContractAddress),
+				MegapoolAddress = x.MegapoolAddress == null ? null : "0x" + Convert.ToHexString(x.MegapoolAddress),
+				RegistrationDate = DateTimeOffset.FromUnixTimeSeconds(x.RegistrationTimestamp),
+			}).ToArray();
+
+		return Task.CompletedTask;
 	}
 
 	public class NodeIndexViewModel

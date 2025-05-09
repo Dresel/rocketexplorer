@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
+using Nethereum.Web3;
 using RocketExplorer.Web;
 using RocketExplorer.Web.Theming;
 
@@ -12,7 +13,20 @@ builder.Services.AddMudServices();
 
 builder.Services.AddSingleton<ThemeService>();
 
-builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress), });
+builder.Services.AddScoped(
+	_ => new HttpClient
+	{
+		BaseAddress = new Uri(builder.HostEnvironment.BaseAddress),
+	});
 builder.Services.AddScoped<Configuration>();
+
+builder.Services.AddSingleton<AppState>();
+
+builder.Services.AddScoped<Web3>(
+	provider =>
+	{
+		Configuration configuration = provider.GetRequiredService<Configuration>();
+		return new Web3(configuration.EthereumRPCEndpoint);
+	});
 
 await builder.Build().RunAsync();

@@ -3,13 +3,9 @@
 @using MaterialColorUtilities.Palettes
 @using MaterialColorUtilities.Schemes
 @using MaterialColorUtilities.Utils
-@using SkiaSharp
 @using Environment = Environment
-@inherits LayoutComponentBase
 
-@inject Configuration Configuration
-@inject ThemeService ThemeService
-@inject HttpClient HttpClient
+@inherits LayoutComponentBase
 
 <CustomThemeProvider @ref="themeProvider" Theme="theme" @bind-IsDarkMode="@ThemeService.IsDarkMode" />
 <MudPopoverProvider />
@@ -31,38 +27,39 @@
 	</MudDrawer>
 	<MudMainContent>
 		<CascadingValue Value="@themeProvider">
-			<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 mb-16">@Body</MudContainer>
+			<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 mb-8">@Body</MudContainer>
 		</CascadingValue>
 	</MudMainContent>
+	@if (AppState.CurrentBlock != null)
+	{
+		<div Class="footer">
+			<MudContainer MaxWidth="MaxWidth.Large">
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary)" Align="Align.Right">Last processed block: @AppState.ProcessedBlockNumber (@(AppState.BlockDifference == 0 ? "up to date" : $"{AppState.BlockDifference} blocks ago"))</MudText>
+			</MudContainer>
+		</div>
+	}
 </MudLayout>
 
-@code{
-	private MudThemeProvider themeProvider = null!;
-	private MudTheme theme = null!;
+@code {
 
-	private bool drawerOpen = true;
-	private byte[] roboto = [];
+	private string ObjectStoreMetadataUrl => $"{Configuration.ObjectStoreBaseUrl}/snapshot-metadata.msgpack";
 
-	public string DarkLightModeButtonText => ThemeService.CurrentDarkLightMode switch
+	private string DarkLightModeButtonText => ThemeService.CurrentDarkLightMode switch
 	{
 		DarkLightMode.Dark => "Use system mode",
 		DarkLightMode.Light => "Use dark mode",
 		_ => "Use light mode",
 	};
 
-	public string DarkLightModeButtonIcon => ThemeService.CurrentDarkLightMode switch
+	private string DarkLightModeButtonIcon => ThemeService.CurrentDarkLightMode switch
 	{
 		DarkLightMode.Dark => Icons.Material.Rounded.AutoMode,
 		DarkLightMode.Light => Icons.Material.Outlined.DarkMode,
 		_ => Icons.Material.Filled.LightMode,
 	};
 
-	public bool IsDarkMode { get; set; }
-
-	protected override async Task OnInitializedAsync()
+	private void SetMudTheme()
 	{
-		await base.OnInitializedAsync();
-
 		uint color = ColorUtils.ArgbFromRgb(255, 110, 48);
 		Scheme<uint> lightScheme = new LightSchemeMapper().Map(CorePalette.Of(color, Style.Vibrant));
 		Scheme<uint> darkScheme = new DarkSchemeMapper().Map(CorePalette.Of(color, Style.Vibrant));
@@ -100,35 +97,6 @@
 				TertiaryContrastText = StringUtils.HexFromArgb(markDarkScheme.PrimaryContainer),
 			},
 		};
-
-		ThemeService.CurrentTheme = theme;
-		ThemeService.DarkModeChanged += (_, _) => { SetLiveChartsTheme(); };
-
-		SetLiveChartsTheme();
-
-		LiveCharts.DefaultSettings.HasGlobalSKTypeface(SKTypeface.FromStream(new MemoryStream(await HttpClient.GetByteArrayAsync("fonts/roboto.ttf"))));
-	}
-
-	private void SetLiveChartsTheme()
-	{
-		if (ThemeService.IsDarkMode)
-		{
-			SetLiveChartsDarkTheme();
-		}
-		else
-		{
-			SetLiveChartsLightTheme();
-		}
-	}
-
-	protected override async Task OnAfterRenderAsync(bool firstRender)
-	{
-		await base.OnAfterRenderAsync(firstRender);
-
-		if (firstRender)
-		{
-			await themeProvider.WatchSystemPreference(ThemeService.OnSystemPreferenceChanged);
-		}
 	}
 
 	private void SetLiveChartsLightTheme()
@@ -159,17 +127,18 @@
 	}
 
 	private void SetLiveChartsDarkTheme() =>
-		LiveCharts.DefaultSettings.AddDarkTheme(chartsTheme =>
-		{
-			chartsTheme.Colors = [ThemeService.CurrentPalette.Primary.ToLvcColor(), ThemeService.CurrentPalette.Secondary.ToLvcColor(),];
-			chartsTheme.HasRuleForLineSeries(
-				rule =>
-				{
-					rule.Stroke!.StrokeThickness = 3.0f;
+		LiveCharts.DefaultSettings.AddDarkTheme(
+			chartsTheme =>
+			{
+				chartsTheme.Colors = [ThemeService.CurrentPalette.Primary.ToLvcColor(), ThemeService.CurrentPalette.Secondary.ToLvcColor(),];
+				chartsTheme.HasRuleForLineSeries(
+					rule =>
+					{
+						rule.Stroke!.StrokeThickness = 3.0f;
 
-					rule.GeometrySize = 10;
-					rule.GeometryStroke!.StrokeThickness = 3.0f;
-				});
-		});
+						rule.GeometrySize = 10;
+						rule.GeometryStroke!.StrokeThickness = 3.0f;
+					});
+			});
 
 }

@@ -55,7 +55,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 	{
 		Logger.LogInformation("Loading {snapshot}", ContractsSnapshotKey);
 
-		ContractsSnapshot? snapshot = await Storage.ReadAsync<ContractsSnapshot>(
+		BlobObject<ContractsSnapshot>? snapshot = await Storage.ReadAsync<ContractsSnapshot>(
 			ContractsSnapshotKey, cancellationToken);
 
 		if (snapshot == null)
@@ -76,13 +76,13 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 		return new ContractsSyncContext
 		{
 			Web3 = web3,
-			CurrentBlockHeight = snapshot.BlockHeight,
+			CurrentBlockHeight = snapshot.ProcessedBlockNumber,
 			RocketStorage = rocketStorage,
 			Contracts = contracts,
 			TrustedUpgradeContractAddress =
 				await Policy.ExecuteAsync(() => rocketStorage.GetAddressQueryAsync("rocketDAONodeTrustedUpgrade")),
-			ContextContracts = snapshot.Contracts.ToDictionary(x => x.Name, x => x),
-			ContextUpgradeContracts = snapshot.UpgradeContracts.ToDictionary(x => x.Name, x => x),
+			ContextContracts = snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x),
+			ContextUpgradeContracts = snapshot.Data.UpgradeContracts.ToDictionary(x => x.Name, x => x),
 		};
 	}
 
@@ -93,14 +93,18 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 
 		await Storage.WriteAsync(
 			ContractsSnapshotKey,
-			new ContractsSnapshot
+			new BlobObject<ContractsSnapshot>
 			{
-				BlockHeight = context.CurrentBlockHeight,
-				Contracts = context.ContextContracts.Values.OrderBy(
-					x => Array.IndexOf(Ethereum.Contracts.Names, x.Name) == -1
-						? int.MaxValue
-						: Array.IndexOf(Ethereum.Contracts.Names, x.Name)).ToArray(),
-				UpgradeContracts = context.ContextUpgradeContracts.Values.ToArray(),
+				ProcessedBlockNumber = context.CurrentBlockHeight,
+				Data = new ContractsSnapshot
+				{
+					Contracts = context.ContextContracts.Values.OrderBy(
+						x =>
+							Array.IndexOf(Ethereum.Contracts.Names, x.Name) == -1
+								? int.MaxValue
+								: Array.IndexOf(Ethereum.Contracts.Names, x.Name)).ToArray(),
+					UpgradeContracts = context.ContextUpgradeContracts.Values.ToArray(),
+				},
 			}, cancellationToken);
 	}
 
@@ -124,7 +128,11 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 	private async Task ContinueProcessingUpgradeContractsAsync(ContractsSyncContext context, long latestBlock)
 	{
 		foreach (var pair in context.ContextUpgradeContracts.SelectMany(
-						x => x.Value.Versions, (parent, contract) => new { Name = parent.Key, Contract = contract, })
+						x => x.Value.Versions, (parent, contract) => new
+						{
+							Name = parent.Key,
+							Contract = contract,
+						})
 					.Where(x => !x.Contract.IsExecuted))
 		{
 			Logger.LogInformation("Continue processing upgrade contract {ContractName}", pair.Name);
@@ -179,7 +187,11 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 			if (!context.ContextUpgradeContracts.ContainsKey(upgradeContractName))
 			{
 				context.ContextUpgradeContracts[upgradeContractName] =
-					new RocketPoolUpgradeContract { Name = upgradeContractName, Versions = [], };
+					new RocketPoolUpgradeContract
+					{
+						Name = upgradeContractName,
+						Versions = [],
+					};
 			}
 
 			VersionedRocketPoolUpgradeContract upgradeContract = new()
@@ -251,7 +263,8 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 		ContractsSyncContext context, string contractName, string activationMethod, long currentBlock)
 	{
 		string address = await Policy.ExecuteAsync(
-			() => context.RocketStorage.GetAddressQueryAsync(contractName, new BlockParameter((ulong)currentBlock)));
+			() =>
+				context.RocketStorage.GetAddressQueryAsync(contractName, new BlockParameter((ulong)currentBlock)));
 
 		if (address is null or "0x0000000000000000000000000000000000000000")
 		{
@@ -273,7 +286,11 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 	{
 		if (!context.ContextContracts.ContainsKey(contractName))
 		{
-			context.ContextContracts[contractName] = new RocketPoolContract { Name = contractName, Versions = [], };
+			context.ContextContracts[contractName] = new RocketPoolContract
+			{
+				Name = contractName,
+				Versions = [],
+			};
 		}
 
 		Logger.LogInformation("New Address for {ContractName} found: {Address}", contractName, address);
@@ -285,7 +302,9 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 				..context.ContextContracts[contractName].Versions,
 				new VersionedRocketPoolContract
 				{
-					ActivationHeight = currentBlock, ActivationMethod = activationMethod, Address = address,
+					ActivationHeight = currentBlock,
+					ActivationMethod = activationMethod,
+					Address = address,
 				},
 			],
 		};

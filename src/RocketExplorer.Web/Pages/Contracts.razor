@@ -1,8 +1,7 @@
 @page "/contracts"
-@using MessagePack
 @using RocketExplorer.Shared.Contracts
-@inject HttpClient Http
-@inject Configuration Configuration
+
+@inherits PageBase<RocketExplorer.Shared.Contracts.ContractsSnapshot>
 
 <PageTitle>Rocket Explorer - Contracts</PageTitle>
 <MudStack>
@@ -84,8 +83,14 @@
 @code
 {
 	private MudTable<VersionedRocketPoolContractViewModel> table = null!;
-	private ContractsSnapshot snapshot = null!;
 	private string? searchString;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
+
+		ObjectStoreKey = "contracts-snapshot.msgpack";
+	}
 
 	private readonly TableGroupDefinition<VersionedRocketPoolContractViewModel> groupContractsDefinition = new()
 	{
@@ -96,22 +101,6 @@
 		Selector = e => e.ContractName,
 	};
 
-	protected override async Task OnInitializedAsync()
-	{
-		TaskCompletionSource<bool> tcs = new();
-		loaded = tcs.Task;
-
-		// TODO: Polly
-		Stream streamAsync = await Http.GetStreamAsync($"https://rocketexplorer.nbg1.your-objectstorage.com/{Configuration.Environment.ToString().ToLower()}/contracts-snapshot.msgpack");
-		snapshot = MessagePackSerializer.Deserialize<ContractsSnapshot>(streamAsync, MessagePackSerializerOptions.Standard);
-
-		tcs.TrySetResult(true);
-
-		await base.OnInitializedAsync();
-	}
-
-	Task<bool>? loaded;
-
 	private void OnSearch(string text)
 	{
 		searchString = text;
@@ -120,8 +109,9 @@
 
 	private async Task<TableData<VersionedRocketPoolContractViewModel>> LoadContracts(TableState state, CancellationToken token)
 	{
-		await (loaded ?? throw new InvalidOperationException());
-		List<RocketPoolContract> items = snapshot.Contracts.ToList();
+		await LoadedTask;
+
+		List<RocketPoolContract> items = Snapshot.Contracts.ToList();
 
 		if (state.SortLabel is "Name")
 		{
@@ -156,8 +146,9 @@
 
 	private async Task<TableData<VersionedRocketPoolUpgradeContractViewModel>> LoadUpgradeContracts(TableState state, CancellationToken token)
 	{
-		await (loaded ?? throw new InvalidOperationException());
-		List<RocketPoolUpgradeContract> items = snapshot.UpgradeContracts.ToList();
+		await LoadedTask;
+
+		List<RocketPoolUpgradeContract> items = Snapshot.UpgradeContracts.ToList();
 
 		return new TableData<VersionedRocketPoolUpgradeContractViewModel>
 		{
@@ -175,6 +166,8 @@
 				}).OrderBy(x => x.ActivationHeight).ToList(),
 		};
 	}
+
+	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
 	public class VersionedRocketPoolContractViewModel
 	{

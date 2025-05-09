@@ -15,6 +15,7 @@
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.2" PrivateAssets="all" />
 		<PackageReference Include="MudBlazor" Version="8.2.0" />
 		<PackageReference Include="Nethereum.Util" Version="4.29.0" />
+		<PackageReference Include="Nethereum.Web3Lite" Version="4.29.0" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -17,7 +17,7 @@ html, body { font-family: 'Roboto', 'Helvetica', 'Arial', 'sans-serif'; }
 }
 
 .loading-progress circle:last-child {
-	stroke: rgba(255, 87, 34, 1);
+	stroke: rgba(168, 57, 0, 1);
 	stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
 	transition: stroke-dasharray 0.05s ease-in-out;
 }
@@ -68,10 +68,18 @@ mark {
 
 .table-group-header .mud-table-cell { color: var(--mud-palette-on-primary-container) !important; }
 
-.button-expandable {
-	transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 660ms ease !important;
-}
+.button-expandable { transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 660ms ease !important; }
 
 .button-expanded { transform: rotate(180deg); }
 
 .button-collapsed { transform: rotate(0); }
+
+.mud-layout {
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+}
+
+.footer { margin-bottom: 8px; }
+
+.mud-drawer-open-responsive-md-left .footer { margin-left: var(--mud-drawer-width-left); }

@@ -1,6 +1,6 @@
 @page "/contracts"
-@using RocketExplorer.Shared.Contracts
 
+@using RocketExplorer.Shared.Contracts
 @inherits PageBase<RocketExplorer.Shared.Contracts.ContractsSnapshot>
 
 <PageTitle>Rocket Explorer - Contracts</PageTitle>
@@ -33,7 +33,7 @@
 		<RowTemplate>
 			<MudTd></MudTd>
 			<MudTd>
-				<Address ContractAddress="@context.Address" HighlightedText="@searchString"></Address>
+				<Address ContractAddress="@context.Address" HighlightedText="@searchString" AppendEtherscanCodeAnchor="true"></Address>
 			</MudTd>
 			<MudTd>
 				<MudHighlighter Text="@context.ActivationMethod" HighlightedText="@searchString" />
@@ -63,7 +63,7 @@
 		<RowTemplate>
 			<MudTd>@context.ContractName</MudTd>
 			<MudTd>
-				<Address ContractAddress="@context.Address"></Address>
+				<Address ContractAddress="@context.Address" AppendEtherscanCodeAnchor="true"></Address>
 			</MudTd>
 			<MudTd>@context.ActivationMethod</MudTd>
 			<MudTd>

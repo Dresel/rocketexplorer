@@ -1,4 +1,7 @@
-html, body { font-family: 'Roboto', 'Helvetica', 'Arial', 'sans-serif'; }
+html, body {
+	font-family: 'Roboto', 'Helvetica', 'Arial', 'sans-serif';
+	-webkit-text-size-adjust: 100%;
+}
 
 .loading-progress {
 	display: block;

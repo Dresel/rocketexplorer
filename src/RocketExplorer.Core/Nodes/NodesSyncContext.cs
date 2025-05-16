@@ -9,23 +9,24 @@ public class NodesSyncContext : ContextBase
 	// TODO: What to persist?
 	// Total megapool minipools count
 
-	public Dictionary<DateOnly, int> DailyDequeued { get; set; } = [];
+	public SortedList<DateOnly, int> DailyDequeued { get; set; } = [];
 
-	public Dictionary<DateOnly, int> DailyEnqueued { get; set; } = [];
+	public SortedList<DateOnly, int> DailyEnqueued { get; set; } = [];
 
 	public SortedList<DateOnly, int> DailyRegistrations { get; init; } = [];
 
-	public Dictionary<DateOnly, int> DailyVoluntaryExits { get; set; } = [];
+	public SortedList<DateOnly, int> DailyVoluntaryExits { get; set; } = [];
 
 	public List<MinipoolIndexEntry> ExpressQueue { get; init; } = [];
 
-	public Dictionary<string, Dictionary<int, Minipool>> MegaMinipools { get; init; } = [];
+	public Dictionary<string, Dictionary<int, Minipool>> MegaMinipools { get; init; } =
+		new(StringComparer.OrdinalIgnoreCase);
 
-	public Dictionary<string, string> MegapoolNodeOperatorMap { get; init; } = [];
+	public Dictionary<string, string> MegapoolNodeOperatorMap { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
-	public Dictionary<string, NodeIndexEntry> NodeIndex { get; init; } = [];
+	public Dictionary<string, NodeIndexEntry> NodeIndex { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
-	public Dictionary<string, Node> Nodes { get; init; } = [];
+	public Dictionary<string, Node> Nodes { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
 	public required RocketNodeManagerService RocketNodeManager { get; set; }
 

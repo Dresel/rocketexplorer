@@ -1,0 +1,61 @@
+@page "/queue"
+@using LiveChartsCore.Defaults
+@inherits PageBase<RocketExplorer.Shared.Nodes.QueueSnapshot>
+
+<PageTitle>Rocket Explorer - Queue</PageTitle>
+<MudStack>
+	<MudText Typo="Typo.h4" Align="Align.Center">Megapool queue over time</MudText>
+	<MudGrid Justify="Justify.Center">
+		<MudItem>
+			<ChartTotal Title="Total queue length" YAxesName="Nodes" Data="queueTotalData"></ChartTotal>
+		</MudItem>
+		<MudItem>
+			<ChartDelta Title="Queue Activity" YAxesName="Nodes" Data="queueDeltaData" DataTransform="dataTransform" Series="series" MinLimit="null"></ChartDelta>
+		</MudItem>
+	</MudGrid>
+	@* TODO: MudTable *@
+</MudStack>
+
+@code {
+	private SortedList<DateOnly, int>[]? queueTotalData;
+	private SortedList<DateOnly, int>[]? queueDeltaData;
+	private readonly Func<int, int>[] dataTransform = [x => x, x => x * -1, x => x * -1,];
+
+	private readonly ISeries[] series =
+	[
+		new ColumnSeries<DateTimePoint>
+		{
+			Name = "Enqueued minipools",
+			Padding = 3,
+			MaxBarWidth = 20,
+		},
+		new ColumnSeries<DateTimePoint>
+		{
+			Name = "Dequeued minipools",
+			Padding = 3,
+			MaxBarWidth = 20,
+		},
+		new ColumnSeries<DateTimePoint>
+		{
+			Name = "Voluntary exited minipools",
+			Padding = 3,
+			MaxBarWidth = 20,
+		},
+	];
+
+	protected override async Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
+
+		ObjectStoreKey = "queue-snapshot.msgpack";
+	}
+
+	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
+	{
+		queueTotalData = [Snapshot?.TotalQueueCount ?? [],];
+		queueDeltaData = [Snapshot?.DailyEnqueued ?? [], Snapshot?.DailyDequeued ?? [], Snapshot?.DailyVoluntaryExits ?? [],];
+
+		return Task.CompletedTask;
+	}
+
+}

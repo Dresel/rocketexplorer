@@ -64,7 +64,7 @@
 		Scheme<uint> lightScheme = new LightSchemeMapper().Map(CorePalette.Of(color, Style.Vibrant));
 		Scheme<uint> darkScheme = new DarkSchemeMapper().Map(CorePalette.Of(color, Style.Vibrant));
 
-		CorePalette markPalette = CorePalette.Of(ColorUtils.ArgbFromRgb(255, 238, 153), Style.Vibrant);
+		CorePalette markPalette = CorePalette.Of(ColorUtils.ArgbFromRgb(255, 235, 59), Style.Vibrant);
 		Scheme<uint> markLightScheme = new LightSchemeMapper().Map(markPalette);
 		Scheme<uint> markDarkScheme = new DarkSchemeMapper().Map(markPalette);
 
@@ -114,7 +114,12 @@
 		LiveCharts.DefaultSettings.AddLightTheme(
 			chartsTheme =>
 			{
-				chartsTheme.Colors = [ThemeService.CurrentPalette.Primary.ToLvcColor(), ThemeService.CurrentPalette.Secondary.ToLvcColor(),];
+				chartsTheme.Colors =
+				[
+					ThemeService.CurrentPalette.Primary.ToLvcColor(),
+					CorePalette.Of(ColorUtils.ArgbFromRgb(156, 39, 176), Style.Vibrant).Primary[40].ToLvcColor(),
+					CorePalette.Of(ColorUtils.ArgbFromRgb(33, 150, 243), Style.Vibrant).Primary[40].ToLvcColor(),
+				];
 				chartsTheme.HasRuleForLineSeries(
 					rule =>
 					{
@@ -130,7 +135,12 @@
 		LiveCharts.DefaultSettings.AddDarkTheme(
 			chartsTheme =>
 			{
-				chartsTheme.Colors = [ThemeService.CurrentPalette.Primary.ToLvcColor(), ThemeService.CurrentPalette.Secondary.ToLvcColor(),];
+				chartsTheme.Colors =
+				[
+					ThemeService.CurrentPalette.Primary.ToLvcColor(),
+					CorePalette.Of(ColorUtils.ArgbFromRgb(156, 39, 176), Style.Vibrant).Primary[80].ToLvcColor(),
+					CorePalette.Of(ColorUtils.ArgbFromRgb(33, 150, 243), Style.Vibrant).Primary[80].ToLvcColor(),
+				];
 				chartsTheme.HasRuleForLineSeries(
 					rule =>
 					{

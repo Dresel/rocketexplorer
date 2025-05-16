@@ -7,10 +7,10 @@
 	<MudText Typo="Typo.h4" Align="Align.Center">Node operators over time</MudText>
 	<MudGrid Justify="Justify.Center">
 		<MudItem>
-			<ChartTotal Title="Total operators" YAxesName="Nodes" Data="@Snapshot?.TotalNodeCount"></ChartTotal>
+			<ChartTotal Title="Total operators" YAxesName="Nodes" Data="nodesTotalData"></ChartTotal>
 		</MudItem>
 		<MudItem>
-			<ChartDelta Title="New operators" YAxesName="Nodes" Data="@Snapshot?.DailyRegistrations"></ChartDelta>
+			<ChartDelta Title="New operators" YAxesName="Nodes" Data="nodesDeltaData"></ChartDelta>
 		</MudItem>
 	</MudGrid>
 	<MudText Typo="Typo.h4" Align="Align.Center" Class="mt-8">Node list</MudText>
@@ -61,6 +61,9 @@
 	private string? searchString;
 
 	private NodeIndexViewModel[] nodes = null!;
+
+	private SortedList<DateOnly, int>[]? nodesTotalData;
+	private SortedList<DateOnly, int>[]? nodesDeltaData;
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -115,6 +118,9 @@
 				MegapoolAddress = x.MegapoolAddress == null ? null : "0x" + Convert.ToHexString(x.MegapoolAddress),
 				RegistrationDate = DateTimeOffset.FromUnixTimeSeconds(x.RegistrationTimestamp),
 			}).ToArray();
+
+		nodesTotalData = [Snapshot?.TotalNodeCount ?? [],];
+		nodesDeltaData = [Snapshot?.DailyRegistrations ?? [],];
 
 		return Task.CompletedTask;
 	}

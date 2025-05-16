@@ -29,14 +29,20 @@
 
 	protected override void SetSeries()
 	{
+		// TODO: Support Data.Length > 1
+		if (Series == null || Data == null || Series.Length != Data.Length)
+		{
+			return;
+		}
+
 		DateOnly target;
 
 		switch (Aggregation)
 		{
 			case ChartAggregation.Yearly:
-				if (Data?.Count > 0)
+				if (Data.FirstOrDefault()?.Count > 0)
 				{
-					target = Data.Min(x => x.Key);
+					target = Data.FirstOrDefault()!.Min(x => x.Key);
 					target = new DateOnly(target.Year - 1, 1, 1);
 				}
 				else
@@ -59,7 +65,7 @@
 				throw new ArgumentOutOfRangeException(nameof(Aggregation));
 		}
 
-		Series[0].Values = Data?.PrepareTotal(Aggregation, target).ToList() ?? [];
+		Series[0].Values = Data.FirstOrDefault()?.PrepareTotal(Aggregation, target).ToList() ?? [];
 	}
 
 }

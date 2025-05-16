@@ -23,17 +23,23 @@
 			new ColumnSeries<DateTimePoint>
 			{
 				Padding = 6,
+				MaxBarWidth = 20,
 			},
 		];
 
 	protected override void SetSeries()
 	{
+		if (Series == null || Data == null || Series.Length != Data.Length)
+		{
+			return;
+		}
+
 		DateOnly target;
 
 		switch (Aggregation)
 		{
 			case ChartAggregation.Yearly:
-				target = Data?.Count > 0 ? Data.Min(x => x.Key) : new DateOnly(2020, 1, 1);
+				target = Data?.Sum(x => x.Count) > 0 ? Data.Min(data => data.Min(x => x.Key)) : new DateOnly(2020, 1, 1);
 				break;
 
 			case ChartAggregation.Monthly:
@@ -49,7 +55,10 @@
 				throw new ArgumentOutOfRangeException(nameof(Aggregation));
 		}
 
-		Series[0].Values = Data?.PrepareDelta(Aggregation, target).ToList() ?? [];
+		foreach ((SortedList<DateOnly, int> data, int index) in (Data ?? []).Select((data, index) => (data, index)))
+		{
+			Series[index].Values = data.PrepareDelta(DataTransform?[index], Aggregation, target).ToList();
+		}
 	}
 
 }

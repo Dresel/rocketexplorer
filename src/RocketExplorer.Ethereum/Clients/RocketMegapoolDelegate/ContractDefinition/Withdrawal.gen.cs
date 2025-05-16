@@ -8,19 +8,17 @@ using Nethereum.ABI.FunctionEncoding.Attributes;
 
 namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 {
-    public partial class ValidatorProof : ValidatorProofBase { }
+    public partial class Withdrawal : WithdrawalBase { }
 
-    public class ValidatorProofBase 
+    public class WithdrawalBase 
     {
-        [Parameter("uint64", "slot", 1)]
-        public virtual ulong Slot { get; set; }
+        [Parameter("uint64", "index", 1)]
+        public virtual ulong Index { get; set; }
         [Parameter("uint64", "validatorIndex", 2)]
         public virtual ulong ValidatorIndex { get; set; }
-        [Parameter("bytes", "pubkey", 3)]
-        public virtual byte[] Pubkey { get; set; }
-        [Parameter("bytes32", "withdrawalCredentials", 4)]
+        [Parameter("bytes20", "withdrawalCredentials", 3)]
         public virtual byte[] WithdrawalCredentials { get; set; }
-        [Parameter("bytes32[]", "witnesses", 5)]
-        public virtual List<byte[]> Witnesses { get; set; }
+        [Parameter("uint64", "amountInGwei", 4)]
+        public virtual ulong AmountInGwei { get; set; }
     }
 }

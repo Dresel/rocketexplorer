@@ -9,6 +9,16 @@ public static class MudColorExtensions
 	public static LvcColor ToLvcColor(this MudColor mudColor) =>
 		new(mudColor.R, mudColor.G, mudColor.B, mudColor.A);
 
+	public static LvcColor ToLvcColor(this uint argb)
+	{
+		byte a = (byte)((argb & 0xFF000000) >> 24);
+		byte r = (byte)((argb & 0x00FF0000) >> 16);
+		byte g = (byte)((argb & 0x0000FF00) >> 8);
+		byte b = (byte)(argb & 0x000000FF);
+
+		return new LvcColor(r, g, b, a);
+	}
+
 	public static MudColor ToMudColor(this string mudColor) =>
 		MudColor.Parse(mudColor);
 

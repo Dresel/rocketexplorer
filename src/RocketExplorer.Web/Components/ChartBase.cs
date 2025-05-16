@@ -8,12 +8,17 @@ namespace RocketExplorer.Web.Components;
 
 public class ChartBase : ComponentBase
 {
-	private SortedList<DateOnly, int>? previousData;
-	private string? previousTitle;
-	private string? previousYAxesName;
+	[Parameter]
+	public SortedList<DateOnly, int>[]? Data { get; set; }
 
 	[Parameter]
-	public SortedList<DateOnly, int>? Data { get; set; } = [];
+	public Func<int, int>[]? DataTransform { get; set; }
+
+	[Parameter]
+	public double? MinLimit { get; set; } = -0.9;
+
+	[Parameter]
+	public ISeries[]? Series { get; set; } = [];
 
 	[Parameter]
 	public string? Title { get; set; }
@@ -27,10 +32,10 @@ public class ChartBase : ComponentBase
 
 	protected Guid Key { get; set; } = Guid.NewGuid();
 
-	protected ISeries[] Series { get; set; } = [];
-
 	[Inject]
 	protected ThemeService ThemeService { get; set; } = null!;
+
+	protected List<TrackedParameter> TrackedParameters { get; set; } = [];
 
 	protected virtual ICartesianAxis[] XAxes
 	{
@@ -52,13 +57,37 @@ public class ChartBase : ComponentBase
 				_ => throw new ArgumentOutOfRangeException(nameof(Aggregation)),
 			};
 
+			DateTimeAxis dateTimeAxis = new(unit, date => date.ToString(dateTimeFormat))
+			{
+				TextSize = 13,
+				NameTextSize = 14,
+			};
+
+			DateOnly target;
+
+			switch (Aggregation)
+			{
+				case ChartAggregation.Yearly:
+					dateTimeAxis.CustomSeparators = Enumerable.Range(2020, DateTime.Now.Year - 2020 + 1)
+						.Select(y => (double)new DateTime(y, 7, 1).Ticks)
+						.ToArray();
+					break;
+
+				case ChartAggregation.Monthly:
+					target = DateOnly.FromDateTime(DateTime.Now).AddMonths(Expanded ? -36 : -12);
+					dateTimeAxis.MinLimit = new DateTime(target.Year, target.Month, 16).AddDays(-15).Ticks;
+					break;
+
+				case ChartAggregation.Daily:
+					target = DateOnly.FromDateTime(DateTime.Now).AddDays(Expanded ? -42 : -14);
+					dateTimeAxis.MinLimit = new DateTime(target.Year, target.Month, target.Day).AddDays(-0.5).Ticks;
+					dateTimeAxis.MaxLimit = DateTime.Now.Ticks;
+					break;
+			}
+
 			return
 			[
-				new DateTimeAxis(unit, date => date.ToString(dateTimeFormat))
-				{
-					TextSize = 13,
-					NameTextSize = 14,
-				},
+				dateTimeAxis,
 			];
 		}
 	}
@@ -71,6 +100,7 @@ public class ChartBase : ComponentBase
 			MinStep = 1,
 			TextSize = 13,
 			NameTextSize = 14,
+			MinLimit = MinLimit,
 		},
 	];
 
@@ -88,18 +118,36 @@ public class ChartBase : ComponentBase
 		}
 	}
 
+	protected override async Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
+
+		TrackedParameters =
+		[
+			new TrackedParameter(() => Data),
+			new TrackedParameter(() => DataTransform),
+			new TrackedParameter(() => MinLimit),
+			new TrackedParameter(() => Series),
+			new TrackedParameter(() => Title),
+			new TrackedParameter(() => YAxesName),
+		];
+	}
+
 	protected override async Task OnParametersSetAsync()
 	{
 		await base.OnParametersSetAsync();
 
-		if (Data != this.previousData || Title != this.previousTitle || YAxesName != this.previousYAxesName)
+		bool shouldSetSeries = false;
+
+		foreach (TrackedParameter trackedParameter in TrackedParameters)
+		{
+			shouldSetSeries |= trackedParameter.Update();
+		}
+
+		if (shouldSetSeries)
 		{
 			SetSeries();
 		}
-
-		this.previousData = Data;
-		this.previousTitle = Title;
-		this.previousYAxesName = YAxesName;
 	}
 
 	protected void SetAggregation(ChartAggregation value)

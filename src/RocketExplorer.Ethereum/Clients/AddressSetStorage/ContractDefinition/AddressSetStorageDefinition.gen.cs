@@ -23,7 +23,6 @@ namespace RocketExplorer.Ethereum.AddressSetStorage.ContractDefinition
     public class AddressSetStorageDeploymentBase : ContractDeploymentMessage
     {
         public static string BYTECODE = """
-			
 [
 	{
 		"inputs": [

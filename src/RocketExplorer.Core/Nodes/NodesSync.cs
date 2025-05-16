@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Nethereum.Contracts;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.RPC.Eth.DTOs;
+using Nethereum.Util;
 using Nethereum.Web3;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketMegapoolDelegate;
@@ -52,13 +53,15 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 
 			await eventLog.WhenIsAsync<MegapoolValidatorAssignedEventDTO>(
 				(@event, log, innerCancellationToken) => EventUpdateMegapoolAsync(
-					context, context.Web3, @event.Megapool, (int)@event.ValidatorId, MinipoolStatus.Staking,
+					context, context.Web3, log.Address.ConvertToEthereumChecksumAddress(), (int)@event.ValidatorId,
+					MinipoolStatus.Staking,
 					@event.Time,
 					log, innerCancellationToken), cancellationToken);
 
 			await eventLog.WhenIsAsync<MegapoolValidatorDequeuedEventDTO>(
 				(@event, log, innerCancellationToken) => EventUpdateMegapoolAsync(
-					context, context.Web3, @event.Megapool, (int)@event.ValidatorId, MinipoolStatus.Dequeued,
+					context, context.Web3, log.Address.ConvertToEthereumChecksumAddress(), (int)@event.ValidatorId,
+					MinipoolStatus.Dequeued,
 					@event.Time,
 					log, innerCancellationToken), cancellationToken);
 		}
@@ -92,7 +95,6 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				ProcessedBlockNumber = activationHeight,
 				Data = new QueueSnapshot
 				{
-					BlockHeight = activationHeight,
 					StandardIndex = [],
 					ExpressIndex = [],
 					TotalQueueCount = [],
@@ -151,7 +153,6 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				ProcessedBlockNumber = context.CurrentBlockHeight,
 				Data = new QueueSnapshot
 				{
-					BlockHeight = context.CurrentBlockHeight,
 					TotalQueueCount = context.TotalQueueCount,
 					DailyEnqueued = context.DailyEnqueued,
 					DailyDequeued = context.DailyDequeued,
@@ -191,7 +192,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		NodesSyncContext context, Web3 web3, MegapoolValidatorEnqueuedEventDTO @event, FilterLog log,
 		CancellationToken cancellationToken = default)
 	{
-		string megapoolAddress = @event.Megapool;
+		string megapoolAddress = log.Address.ConvertToEthereumChecksumAddress();
 		RocketMegapoolDelegateService megapoolDelegate = new(web3, megapoolAddress);
 
 		context.MegapoolNodeOperatorMap.TryGetValue(megapoolAddress, out string? nodeOperatorAddress);
@@ -346,6 +347,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		{
 			int h = 0;
 
+			// TODO: Sequence Equal?
 			h += context.StandardQueue.RemoveAll(
 				x =>
 					x.PubKey == context.MegaMinipools[megapoolAddress][validatorId].PubKey);
@@ -355,7 +357,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 
 			Debug.Assert(h == 1, "Only one element should be removed");
 
-			Dictionary<DateOnly, int> dictionary =
+			SortedList<DateOnly, int> dictionary =
 				status == MinipoolStatus.Staking ? context.DailyDequeued : context.DailyVoluntaryExits;
 			DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventTime).DateTime);
 			dictionary[key] = dictionary.GetValueOrDefault(key) + 1;
@@ -381,7 +383,9 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		}
 
 		// Can happen if the same node operator address is used for multiple rocket pool deployments
-		if (await context.RocketNodeManager.GetMegapoolAddressQueryAsync(nodeOperatorAddress) != megapoolAddress)
+		if (!string.Equals(
+				await context.RocketNodeManager.GetMegapoolAddressQueryAsync(nodeOperatorAddress), megapoolAddress,
+				StringComparison.OrdinalIgnoreCase))
 		{
 			logger.LogWarning(
 				"Node operator {NodeOperatorAddress} found in index but megapool address {Megapool} does not match.",

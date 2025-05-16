@@ -73,8 +73,8 @@ public static class EnumerableExtensions
 		this IEnumerable<KeyValuePair<DateOnly, int>> data, ChartAggregation aggregation) =>
 		aggregation switch
 		{
-			ChartAggregation.Yearly => data.GroupBy(x => new DateOnly(x.Key.Year, 1, 1)),
-			ChartAggregation.Monthly => data.GroupBy(x => new DateOnly(x.Key.Year, x.Key.Month, 1)),
+			ChartAggregation.Yearly => data.GroupBy(x => new DateOnly(x.Key.Year, 7, 1)),
+			ChartAggregation.Monthly => data.GroupBy(x => new DateOnly(x.Key.Year, x.Key.Month, 16)),
 			ChartAggregation.Daily => data.GroupBy(x => new DateOnly(x.Key.Year, x.Key.Month, x.Key.Day)),
 			_ => throw new ArgumentOutOfRangeException(nameof(aggregation), aggregation, null),
 		};
@@ -101,9 +101,9 @@ public static class EnumerableExtensions
 	}
 
 	public static IEnumerable<DateTimePoint> PrepareDelta(
-		this ICollection<KeyValuePair<DateOnly, int>> data, ChartAggregation aggregation, DateOnly start)
+		this ICollection<KeyValuePair<DateOnly, int>> data, Func<int, int>? dataTransform, ChartAggregation aggregation, DateOnly start)
 	{
-		//// Assuming data.Max(x => x.Key) <= DateTime.Now
+		// Assuming data.Max(x => x.Key) <= DateTime.Now
 		DateOnly end = DateOnly.FromDateTime(DateTime.Now);
 
 		int startIndex = data.BinarySearch(start, (key, item) => key.CompareTo(item.Key));
@@ -113,30 +113,11 @@ public static class EnumerableExtensions
 			startIndex = ~startIndex;
 		}
 
-		int endIndex = data.BinarySearch(end, (key, item) => key.CompareTo(item.Key));
-
-		if (endIndex < 0)
-		{
-			endIndex = ~endIndex;
-		}
-
 		IEnumerable<KeyValuePair<DateOnly, int>> keyValuePairs = data.Skip(Math.Max(0, startIndex));
-
-		if (startIndex == data.Count || startIndex - 1 < 0 || data.ElementAt(startIndex).Key != start)
-		{
-			keyValuePairs = keyValuePairs.Prepend(
-				new KeyValuePair<DateOnly, int>(start, startIndex - 1 >= 0 ? data.ElementAt(startIndex - 1).Value : 0));
-		}
-
-		if (endIndex == data.Count || data.ElementAt(endIndex).Key != end)
-		{
-			keyValuePairs = keyValuePairs.Append(
-				new KeyValuePair<DateOnly, int>(end, endIndex - 1 >= 0 ? data.ElementAt(endIndex - 1).Value : 0));
-		}
 
 		return keyValuePairs.GroupBy(aggregation).Select(
 			x =>
-				new DateTimePoint(new DateTime(x.Key.Year, x.Key.Month, x.Key.Day), x.Sum(x => x.Value)));
+				new DateTimePoint(new DateTime(x.Key.Year, x.Key.Month, x.Key.Day), x.Sum(x => dataTransform?.Invoke(x.Value) ?? x.Value)));
 	}
 
 	public static IEnumerable<DateTimePoint> PrepareTotal(

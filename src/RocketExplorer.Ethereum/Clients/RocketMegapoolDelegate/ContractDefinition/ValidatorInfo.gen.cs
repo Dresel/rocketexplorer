@@ -20,17 +20,27 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         public virtual uint LastRequestedValue { get; set; }
         [Parameter("uint32", "lastRequestedBond", 4)]
         public virtual uint LastRequestedBond { get; set; }
-        [Parameter("bool", "staked", 5)]
+        [Parameter("uint32", "depositValue", 5)]
+        public virtual uint DepositValue { get; set; }
+        [Parameter("bool", "staked", 6)]
         public virtual bool Staked { get; set; }
-        [Parameter("bool", "exited", 6)]
+        [Parameter("bool", "exited", 7)]
         public virtual bool Exited { get; set; }
-        [Parameter("bool", "inQueue", 7)]
+        [Parameter("bool", "inQueue", 8)]
         public virtual bool InQueue { get; set; }
-        [Parameter("bool", "inPrestake", 8)]
+        [Parameter("bool", "inPrestake", 9)]
         public virtual bool InPrestake { get; set; }
-        [Parameter("bool", "expressUsed", 9)]
+        [Parameter("bool", "expressUsed", 10)]
         public virtual bool ExpressUsed { get; set; }
-        [Parameter("bool", "dissolved", 10)]
+        [Parameter("bool", "dissolved", 11)]
         public virtual bool Dissolved { get; set; }
+        [Parameter("bool", "exiting", 12)]
+        public virtual bool Exiting { get; set; }
+        [Parameter("uint64", "validatorIndex", 13)]
+        public virtual ulong ValidatorIndex { get; set; }
+        [Parameter("uint64", "exitBalance", 14)]
+        public virtual ulong ExitBalance { get; set; }
+        [Parameter("uint64", "withdrawableEpoch", 15)]
+        public virtual ulong WithdrawableEpoch { get; set; }
     }
 }

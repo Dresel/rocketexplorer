@@ -1,9 +1,9 @@
 {
-  "profiles": {
-    "RocketExplorer.Functions": {
-      "commandName": "Project",
-      "commandLineArgs": "--port 7183",
-      "launchBrowser": false
-    }
-  }
+	"profiles": {
+		"RocketExplorer.Functions": {
+			"commandName": "Project",
+			"commandLineArgs": "--port 7183",
+			"launchBrowser": false
+		}
+	}
 }

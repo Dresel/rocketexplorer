@@ -10,7 +10,7 @@ public static class Keys
 
 	public const string SnapshotMetadata = "snapshot-metadata.msgpack";
 
-	public static string MegapoolMinipool(string megapoolAddress, int megapoolIndex) =>
+	public static string MegapoolValidator(string megapoolAddress, int megapoolIndex) =>
 		$"minipools/{megapoolAddress.ToLowerInvariant()}/{megapoolIndex.ToStringInvariant()}.msgpack";
 
 	public static string Node(string nodeAddress) => $"nodes/{nodeAddress.ToLowerInvariant()}.msgpack";

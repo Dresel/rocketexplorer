@@ -1,5 +1,5 @@
 using MessagePack;
-using RocketExplorer.Shared.Minipools;
+using RocketExplorer.Shared.Validators;
 
 namespace RocketExplorer.Shared.Nodes;
 
@@ -9,10 +9,10 @@ namespace RocketExplorer.Shared.Nodes;
 public record class QueueSnapshot
 {
 	[Key(0)]
-	public required MinipoolIndexEntry[] StandardIndex { get; init; }
+	public required ValidatorIndexEntry[] StandardIndex { get; init; }
 
 	[Key(1)]
-	public required MinipoolIndexEntry[] ExpressIndex { get; init; }
+	public required ValidatorIndexEntry[] ExpressIndex { get; init; }
 
 	[Key(2)]
 	public required SortedList<DateOnly, int> TotalQueueCount { get; init; }

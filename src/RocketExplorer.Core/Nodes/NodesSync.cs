@@ -11,12 +11,15 @@ using Nethereum.Web3;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketMegapoolDelegate;
 using RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition;
+using RocketExplorer.Ethereum.RocketMinipoolDelegate;
+using RocketExplorer.Ethereum.RocketMinipoolDelegate.ContractDefinition;
+using RocketExplorer.Ethereum.RocketMinipoolQueue.ContractDefinition;
 using RocketExplorer.Ethereum.RocketNodeManager;
 using RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition;
 using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Shared.Contracts;
-using RocketExplorer.Shared.Minipools;
 using RocketExplorer.Shared.Nodes;
+using RocketExplorer.Shared.Validators;
 
 namespace RocketExplorer.Core.Nodes;
 
@@ -47,21 +50,39 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 
 		foreach (IEventLog eventLog in megapoolEvents)
 		{
+			await eventLog.WhenIsAsync<MinipoolEnqueuedEventDTO>(
+				(@event, log, innerCancellationToken) =>
+				{
+					return Task.CompletedTask;
+				}, cancellationToken);
+
+			await eventLog.WhenIsAsync<MinipoolDequeuedEventDTO>(
+				(@event, log, innerCancellationToken) =>
+				{
+					return Task.CompletedTask;
+				}, cancellationToken);
+
+			await eventLog.WhenIsAsync<StatusUpdatedEventDTO>(
+				(@event, log, innerCancellationToken) =>
+				{
+					return Task.CompletedTask;
+				}, cancellationToken);
+
 			await eventLog.WhenIsAsync<MegapoolValidatorEnqueuedEventDTO>(
-				(@event, log, innerCancellationToken) => EventAddNewMegapool(
+				(@event, log, innerCancellationToken) => EventAddNewMegapoolValidator(
 					context, context.Web3, @event, log, innerCancellationToken), cancellationToken);
 
 			await eventLog.WhenIsAsync<MegapoolValidatorAssignedEventDTO>(
-				(@event, log, innerCancellationToken) => EventUpdateMegapoolAsync(
+				(@event, log, innerCancellationToken) => EventUpdateMegapoolValidatorAsync(
 					context, context.Web3, log.Address.ConvertToEthereumChecksumAddress(), (int)@event.ValidatorId,
-					MinipoolStatus.Staking,
+					ValidatorStatus.Staking,
 					@event.Time,
 					log, innerCancellationToken), cancellationToken);
 
 			await eventLog.WhenIsAsync<MegapoolValidatorDequeuedEventDTO>(
-				(@event, log, innerCancellationToken) => EventUpdateMegapoolAsync(
+				(@event, log, innerCancellationToken) => EventUpdateMegapoolValidatorAsync(
 					context, context.Web3, log.Address.ConvertToEthereumChecksumAddress(), (int)@event.ValidatorId,
-					MinipoolStatus.Dequeued,
+					ValidatorStatus.Dequeued,
 					@event.Time,
 					log, innerCancellationToken), cancellationToken);
 		}
@@ -173,14 +194,14 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				}, cancellationToken: cancellationToken);
 		}
 
-		foreach ((string? megapoolAddress, int megapoolIndex, Minipool? minipool) in
+		foreach ((string? megapoolAddress, int megapoolIndex, Validator? minipool) in
 				context.MegaMinipools.SelectMany(
 					megapool =>
 						megapool.Value.Select(index => (megapool.Key, index.Key, index.Value))))
 		{
-			Logger.LogInformation("Writing {snapshot}", Keys.MegapoolMinipool(megapoolAddress, megapoolIndex));
+			Logger.LogInformation("Writing {snapshot}", Keys.MegapoolValidator(megapoolAddress, megapoolIndex));
 			await Storage.WriteAsync(
-				Keys.MegapoolMinipool(megapoolAddress, megapoolIndex), new BlobObject<Minipool>
+				Keys.MegapoolValidator(megapoolAddress, megapoolIndex), new BlobObject<Validator>
 				{
 					ProcessedBlockNumber = context.CurrentBlockHeight,
 					Data = minipool,
@@ -188,7 +209,64 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		}
 	}
 
-	private async Task EventAddNewMegapool(
+	private async Task EventAddNewMinipoolValidator(
+		NodesSyncContext context, Web3 web3, MinipoolEnqueuedEventDTO @event, FilterLog log,
+		CancellationToken cancellationToken = default)
+	{
+		RocketMinipoolDelegateService minipoolDelegate = new(web3, @event.Minipool);
+		string nodeOperatorAddress = await minipoolDelegate.GetNodeAddressQueryAsync(new BlockParameter(log.BlockNumber));
+
+		// TODO: 
+
+		GetValidatorInfoOutputDTO validatorInfo = await megapoolDelegate.GetValidatorInfoQueryAsync(
+			(uint)@event.ValidatorId, new BlockParameter(log.BlockNumber));
+
+		Validator validator = new()
+		{
+			NodeAddress = nodeOperatorAddress.HexToByteArray(),
+			MegapoolAddress = megapoolAddress.HexToByteArray(),
+			MegapoolIndex = (int)@event.ValidatorId,
+			ExpressTicketUsed = validatorInfo.ReturnValue1.ExpressUsed,
+			PubKey = validatorInfo.ReturnValue1.PubKey,
+			Status = ValidatorStatus.InQueue,
+			Bond = 4, // TODO: Saturn2
+			Type = ValidatorType.Megapool,
+			CreationTimestamp = (ulong)@event.Time,
+			EnqueueTimestamp = (ulong)@event.Time,
+		};
+
+		context.MegaMinipools.TryAdd(megapoolAddress, []);
+		context.MegaMinipools[megapoolAddress][validator.MegapoolIndex.Value] = validator;
+
+		// TODO: Use list
+		ValidatorIndexEntry entry = new()
+		{
+			NodeAddress = validator.NodeAddress,
+			PubKey = validator.PubKey,
+			MegapoolAddress = megapoolAddress.HexToByteArray(),
+		};
+
+		context.Nodes[nodeOperatorAddress].MegaMinipools =
+		[
+			..context.Nodes[nodeOperatorAddress].MegaMinipools, entry,
+		];
+
+		if (!validatorInfo.ReturnValue1.ExpressUsed)
+		{
+			context.StandardQueue.Add(entry);
+		}
+		else
+		{
+			context.ExpressQueue.Add(entry);
+		}
+
+		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)@event.Time).DateTime);
+
+		context.TotalQueueCount[key] = context.TotalQueueCount.GetLatestOrDefault() + 1;
+		context.DailyEnqueued[key] = context.DailyEnqueued.GetValueOrDefault(key) + 1;
+	}
+
+	private async Task EventAddNewMegapoolValidator(
 		NodesSyncContext context, Web3 web3, MegapoolValidatorEnqueuedEventDTO @event, FilterLog log,
 		CancellationToken cancellationToken = default)
 	{
@@ -223,30 +301,29 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		GetValidatorInfoOutputDTO validatorInfo = await megapoolDelegate.GetValidatorInfoQueryAsync(
 			(uint)@event.ValidatorId, new BlockParameter(log.BlockNumber));
 
-		Minipool minipool = new()
+		Validator validator = new()
 		{
-			NodeOperatorAddress = nodeOperatorAddress.HexToByteArray(),
+			NodeAddress = nodeOperatorAddress.HexToByteArray(),
 			MegapoolAddress = megapoolAddress.HexToByteArray(),
 			MegapoolIndex = (int)@event.ValidatorId,
 			ExpressTicketUsed = validatorInfo.ReturnValue1.ExpressUsed,
 			PubKey = validatorInfo.ReturnValue1.PubKey,
-			CreationTimestamp = (ulong)@event.Time,
-			Status = MinipoolStatus.InQueue,
+			Status = ValidatorStatus.InQueue,
 			Bond = 4, // TODO: Saturn2
-			Type = MinipoolType.Megapool,
+			Type = ValidatorType.Megapool,
+			CreationTimestamp = (ulong)@event.Time,
+			EnqueueTimestamp = (ulong)@event.Time,
 		};
 
 		context.MegaMinipools.TryAdd(megapoolAddress, []);
-		context.MegaMinipools[megapoolAddress][minipool.MegapoolIndex.Value] = minipool;
+		context.MegaMinipools[megapoolAddress][validator.MegapoolIndex.Value] = validator;
 
 		// TODO: Use list
-		MinipoolIndexEntry entry = new()
+		ValidatorIndexEntry entry = new()
 		{
-			CreationTimestamp = (long)minipool.CreationTimestamp,
-			NodeAddress = minipool.NodeOperatorAddress,
-			PubKey = minipool.PubKey,
+			NodeAddress = validator.NodeAddress,
+			PubKey = validator.PubKey,
 			MegapoolAddress = megapoolAddress.HexToByteArray(),
-			MegapoolIndex = minipool.MegapoolIndex,
 		};
 
 		context.Nodes[nodeOperatorAddress].MegaMinipools =
@@ -310,8 +387,8 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		context.TotalNodesCount[key] = context.TotalNodesCount.GetLatestOrDefault() + 1;
 	}
 
-	private async Task EventUpdateMegapoolAsync(
-		NodesSyncContext context, Web3 web3, string megapoolAddress, int validatorId, MinipoolStatus status,
+	private async Task EventUpdateMegapoolValidatorAsync(
+		NodesSyncContext context, Web3 web3, string megapoolAddress, int validatorId, ValidatorStatus status,
 		BigInteger eventTime,
 		FilterLog log, CancellationToken cancellationToken)
 	{
@@ -336,14 +413,14 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 
 		if (!context.MegaMinipools[megapoolAddress].ContainsKey(validatorId))
 		{
-			context.MegaMinipools[megapoolAddress][validatorId] = (await Storage.ReadAsync<Minipool>(
-					Keys.MegapoolMinipool(megapoolAddress, validatorId), cancellationToken))?.Data ??
+			context.MegaMinipools[megapoolAddress][validatorId] = (await Storage.ReadAsync<Validator>(
+					Keys.MegapoolValidator(megapoolAddress, validatorId), cancellationToken))?.Data ??
 				throw new InvalidOperationException("Cannot read node operator from storage.");
 		}
 
 		context.MegaMinipools[megapoolAddress][validatorId].Status = status;
 
-		if (status == MinipoolStatus.Staking || status == MinipoolStatus.Dequeued)
+		if (status == ValidatorStatus.Staking || status == ValidatorStatus.Dequeued)
 		{
 			int h = 0;
 
@@ -358,7 +435,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 			Debug.Assert(h == 1, "Only one element should be removed");
 
 			SortedList<DateOnly, int> dictionary =
-				status == MinipoolStatus.Staking ? context.DailyDequeued : context.DailyVoluntaryExits;
+				status == ValidatorStatus.Staking ? context.DailyDequeued : context.DailyVoluntaryExits;
 			DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventTime).DateTime);
 			dictionary[key] = dictionary.GetValueOrDefault(key) + 1;
 

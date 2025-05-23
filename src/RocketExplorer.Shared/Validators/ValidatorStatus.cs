@@ -1,6 +1,6 @@
-namespace RocketExplorer.Shared.Minipools;
+namespace RocketExplorer.Shared.Validators;
 
-public enum MinipoolStatus : byte
+public enum ValidatorStatus : byte
 {
 	InQueue, // Initialised
 

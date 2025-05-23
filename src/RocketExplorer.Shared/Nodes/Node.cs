@@ -1,5 +1,5 @@
 using MessagePack;
-using RocketExplorer.Shared.Minipools;
+using RocketExplorer.Shared.Validators;
 
 namespace RocketExplorer.Shared.Nodes;
 
@@ -16,7 +16,7 @@ public record class Node
 	public byte[]? MegapoolAddress { get; init; }
 
 	[Key(3)]
-	public MinipoolIndexEntry[] MegaMinipools { get; set; } = [];
+	public ValidatorIndexEntry[] MegaMinipools { get; set; } = [];
 
 	[Key(4)]
 	public required string Timezone { get; set; }

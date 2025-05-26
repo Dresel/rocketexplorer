@@ -1,3 +1,5 @@
+using System.Net.Http.Headers;
+using System.Text;
 using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.Extensions.Configuration;
@@ -19,46 +21,43 @@ using Serilog.Sinks.SystemConsole.Themes;
 
 IHost host = Host.CreateDefaultBuilder(args)
 	.ConfigureAppConfiguration(configuration => configuration.AddJsonFile("appsettings.local.json", true, true))
-	.ConfigureLogging(
-		logging =>
+	.ConfigureLogging(logging =>
+	{
+		logging.ClearProviders();
+
+		Logger logger = new LoggerConfiguration().MinimumLevel.Debug().WriteTo.Console(theme: AnsiConsoleTheme.Code)
+			.CreateLogger();
+		logging.AddSerilog(logger);
+	})
+	.ConfigureServices((context, services) =>
+	{
+		string environment = context.Configuration.GetValue<string>("Environment") ??
+			throw new InvalidOperationException("Environment is null");
+
+		services.Configure<SyncOptions>(context.Configuration.GetSection(environment));
+
+		services.AddTransient<ContractsSync>();
+		services.AddTransient<NodesSync>();
+
+		services.AddTransient<Storage>();
+
+		services.AddTransient(_ =>
 		{
-			logging.ClearProviders();
-
-			Logger logger = new LoggerConfiguration().MinimumLevel.Debug().WriteTo.Console(theme: AnsiConsoleTheme.Code)
-				.CreateLogger();
-			logging.AddSerilog(logger);
-		})
-	.ConfigureServices(
-		(context, services) =>
-		{
-			string environment = context.Configuration.GetValue<string>("Environment") ??
-				throw new InvalidOperationException("Environment is null");
-
-			services.Configure<SyncOptions>(context.Configuration.GetSection(environment));
-
-			services.AddTransient<ContractsSync>();
-			services.AddTransient<NodesSync>();
-
-			services.AddTransient<Storage>();
-
-			services.AddTransient(
-				_ =>
+			AmazonS3Client s3Client = new(
+				context.Configuration["BlobStorage:User"],
+				context.Configuration["BlobStorage:Password"],
+				new AmazonS3Config
 				{
-					AmazonS3Client s3Client = new(
-						context.Configuration["BlobStorage:User"],
-						context.Configuration["BlobStorage:Password"],
-						new AmazonS3Config
-						{
-							ServiceURL = context.Configuration["BlobStorage:Url"],
-							ForcePathStyle = true,
-							AuthenticationRegion = context.Configuration["BlobStorage:Region"],
-							RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
-							ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED,
-						});
-
-					return s3Client;
+					ServiceURL = context.Configuration["BlobStorage:Url"],
+					ForcePathStyle = true,
+					AuthenticationRegion = context.Configuration["BlobStorage:Region"],
+					RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
+					ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED,
 				});
-		})
+
+			return s3Client;
+		});
+	})
 	.Build();
 
 ILogger<Program> logger = host.Services.GetRequiredService<ILogger<Program>>();
@@ -67,7 +66,21 @@ SyncOptions options = host.Services.GetRequiredService<IOptions<SyncOptions>>().
 logger.LogInformation(
 	"Using Rocket Pool environment {Environment} with rpc endpoint {RPCUrl}", options.Environment, options.RPCUrl);
 
-Web3 web3 = new(options.RPCUrl);
+Web3 web3;
+
+if (!string.IsNullOrWhiteSpace(options.RpcBasicAuthUsername) &&
+	!string.IsNullOrWhiteSpace(options.RpcBasicAuthPassword))
+{
+	logger.LogInformation("Using BasicAuth...");
+
+	byte[] byteArray = Encoding.ASCII.GetBytes($"{options.RpcBasicAuthUsername}:{options.RpcBasicAuthPassword}");
+	AuthenticationHeaderValue authenticationHeaderValue = new("Basic", Convert.ToBase64String(byteArray));
+	web3 = new Web3(options.RPCUrl, authenticationHeader: authenticationHeaderValue);
+}
+else
+{
+	web3 = new Web3(options.RPCUrl);
+}
 
 BlockWithTransactions latestBlock =
 	await web3.Eth.Blocks.GetBlockWithTransactionsByNumber.SendRequestAsync(BlockParameter.CreateLatest());

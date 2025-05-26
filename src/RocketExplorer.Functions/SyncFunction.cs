@@ -1,3 +1,5 @@
+using System.Net.Http.Headers;
+using System.Text;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -34,7 +36,21 @@ public class SyncFunction
 	[Function("SyncFunction")]
 	public async Task Run([TimerTrigger("*/15 * * * * *")] TimerInfo myTimer)
 	{
-		Web3 web3 = new(this.options.RPCUrl);
+		Web3 web3;
+
+		if (!string.IsNullOrWhiteSpace(options.RpcBasicAuthUsername) &&
+			!string.IsNullOrWhiteSpace(options.RpcBasicAuthPassword))
+		{
+			logger.LogInformation("Using BasicAuth...");
+
+			byte[] byteArray = Encoding.ASCII.GetBytes($"{options.RpcBasicAuthUsername}:{options.RpcBasicAuthPassword}");
+			AuthenticationHeaderValue authenticationHeaderValue = new("Basic", Convert.ToBase64String(byteArray));
+			web3 = new Web3(options.RPCUrl, authenticationHeader: authenticationHeaderValue);
+		}
+		else
+		{
+			web3 = new Web3(options.RPCUrl);
+		}
 
 		BlockWithTransactions latestBlock =
 			await web3.Eth.Blocks.GetBlockWithTransactionsByNumber.SendRequestAsync(BlockParameter.CreateLatest());

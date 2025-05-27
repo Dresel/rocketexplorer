@@ -8,6 +8,7 @@ using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade.ContractDefinition;
 using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Shared.Contracts;
+using RocketExplorer.Shared.Nodes;
 
 namespace RocketExplorer.Core.Contracts;
 
@@ -55,23 +56,17 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 	{
 		Logger.LogInformation("Loading {snapshot}", ContractsSnapshotKey);
 
-		BlobObject<ContractsSnapshot>? snapshot = await Storage.ReadAsync<ContractsSnapshot>(
-			ContractsSnapshotKey, cancellationToken);
-
-		if (snapshot == null)
-		{
-			return new ContractsSyncContext
+		BlobObject<ContractsSnapshot> snapshot =
+			await Storage.ReadAsync<ContractsSnapshot>(ContractsSnapshotKey, cancellationToken) ??
+			new BlobObject<ContractsSnapshot>()
 			{
-				Web3 = web3,
-				CurrentBlockHeight = 0,
-				RocketStorage = rocketStorage,
-				Contracts = contracts,
-				TrustedUpgradeContractAddress =
-					await Policy.ExecuteAsync(() => rocketStorage.GetAddressQueryAsync("rocketDAONodeTrustedUpgrade")),
-				ContextContracts = [],
-				ContextUpgradeContracts = [],
+				ProcessedBlockNumber = 0,
+				Data = new ContractsSnapshot()
+				{
+					Contracts = [],
+					UpgradeContracts = [],
+				},
 			};
-		}
 
 		return new ContractsSyncContext
 		{

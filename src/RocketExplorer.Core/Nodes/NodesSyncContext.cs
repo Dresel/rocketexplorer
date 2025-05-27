@@ -8,7 +8,6 @@ public class NodesSyncContext : ContextBase
 {
 	// TODO: What to persist?
 	// Total megapool minipools count
-
 	public SortedList<DateOnly, int> DailyDequeued { get; set; } = [];
 
 	public SortedList<DateOnly, int> DailyEnqueued { get; set; } = [];
@@ -24,9 +23,13 @@ public class NodesSyncContext : ContextBase
 
 	public Dictionary<string, string> MegapoolNodeOperatorMap { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
-	public Dictionary<string, NodeIndexEntry> NodeIndex { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+	public required Dictionary<string, NodeIndexEntry> NodeIndex { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+	public required Dictionary<string, ValidatorIndexEntry> ValidatorIndex { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
 	public Dictionary<string, Node> Nodes { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+	public required string[] RocketMinipoolManagerAddresses { get; init; }
 
 	public required RocketNodeManagerService RocketNodeManager { get; set; }
 

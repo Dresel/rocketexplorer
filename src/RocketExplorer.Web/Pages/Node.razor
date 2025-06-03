@@ -12,10 +12,10 @@
 }
 else
 {
-    <div>@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.ContractAddress)</div>
-    <div>@DateTimeOffset.FromUnixTimeSeconds(Snapshot.Data.RegistrationTimestamp).ToString("G")</div>
-    <div>Timezone: @Snapshot.Data.Timezone</div>
-    <div>@Snapshot.Data.MinipoolValidators.Count() minipools</div>
+	<div>@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.ContractAddress)</div>
+	<div>@DateTimeOffset.FromUnixTimeSeconds(Snapshot.Data.RegistrationTimestamp).ToString("G")</div>
+	<div>Timezone: @Snapshot.Data.Timezone</div>
+	<div>@Snapshot.Data.MinipoolValidators.Count() minipools</div>
 
 	<div>Minipools</div>
 	<MudTable Class="mt-0" ServerData="LoadMinipoolValidators" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
@@ -29,14 +29,14 @@ else
 				<MudTableSortLabel T="ValidatorViewModel" SortLabel="MinipoolAddress">Minipool Address</MudTableSortLabel>
 			</MudTh>
 			<MudTh>
-                <MudTableSortLabel T="ValidatorViewModel" SortLabel="RegistrationDate" InitialDirection="SortDirection.Ascending">Registration Date</MudTableSortLabel>
+				<MudTableSortLabel T="ValidatorViewModel" SortLabel="RegistrationDate" InitialDirection="SortDirection.Ascending">Registration Date</MudTableSortLabel>
 			</MudTh>
 		</HeaderContent>
 		<RowTemplate>
 			<MudTd>
 				<Address ContractAddress="@context.MinipoolAddress" HrefPlaceholder="validator/{0}" AppendEtherscanCodeAnchor="true"></Address>
 			</MudTd>
-            <MudTd>@context.ValidatorStatus</MudTd>
+			<MudTd>@context.ValidatorStatus</MudTd>
 		</RowTemplate>
 		<NoRecordsContent>
 			<MudText>No matching records found</MudText>
@@ -52,7 +52,7 @@ else
 
 @code {
 
-    private MudTable<ValidatorViewModel> table = null!;
+	private MudTable<ValidatorViewModel> table = null!;
 
 	[Parameter]
 	public string? Address { get; set; }
@@ -76,8 +76,13 @@ else
 			MinipoolAddress = "0x" + Convert.ToHexString(x.MinipoolAddress!),
 		}).ToArray();
 
-		table.ReloadServerData();
+		return Task.CompletedTask;
+	}
 
+    // TODO: Test partial update within datagrid
+	protected override Task OnAfterAppStateChanged(CancellationToken cancellationToken = default)
+	{
+		table.ReloadServerData();
 		return Task.CompletedTask;
 	}
 
@@ -106,8 +111,7 @@ else
 
 		List<Task<ValidatorViewModel>> query = items.Skip(state.Page * state.PageSize).Take(state.PageSize).Select(async x =>
 		{
-            Shared.Validators.Validator validatorSnapshot = MessagePackSerializer.Deserialize<Shared.Validators.Validator>(
-				await HttpClient.GetStreamAsync(GetObjectStoreUrl(Keys.MinipoolValidator(x.MinipoolAddress!)), token));
+			Shared.Validators.Validator validatorSnapshot = MessagePackSerializer.Deserialize<Shared.Validators.Validator>(await HttpClient.GetStreamAsync(GetObjectStoreUrl(Keys.MinipoolValidator(x.MinipoolAddress!)), token));
 			return new ValidatorViewModel
 			{
 				MinipoolAddress = "0x" + Convert.ToHexString(validatorSnapshot.MinipoolAddress!),

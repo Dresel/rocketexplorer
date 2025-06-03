@@ -1,9 +1,8 @@
-using MessagePack;
 using Microsoft.AspNetCore.Components;
 
 namespace RocketExplorer.Web.Pages;
 
-public abstract class PageBase<T> : ComponentBase
+public abstract class PageBase<T> : ComponentBase, IDisposable
 {
 	private readonly TaskCompletionSource taskCompletionSource = new();
 
@@ -32,6 +31,21 @@ public abstract class PageBase<T> : ComponentBase
 
 	protected Snapshot<T>? Snapshot { get; set; }
 
+	public void Dispose()
+	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	protected virtual void Dispose(bool disposing)
+	{
+		if (disposing)
+		{
+			HttpClient.Dispose();
+			AppState.OnAppStateChanged -= OnAppStateChanged;
+		}
+	}
+
 	protected string GetObjectStoreUrl(string key) => $"{Configuration.ObjectStoreBaseUrl}/{key}";
 
 	protected async Task LoadAsync(CancellationToken cancellationToken = default)
@@ -43,7 +57,7 @@ public abstract class PageBase<T> : ComponentBase
 		}
 
 		// TODO: Polly
-		SnapshotResponse<T> response = await HttpClient.GetSnapshotResponse<T>(ObjectStoreUrl, cancellationToken: cancellationToken);
+		SnapshotResponse<T> response = await HttpClient.GetSnapshotResponse<T>(ObjectStoreUrl, cancellationToken);
 
 		// Check manually to avoid additional render cycles
 		if (Snapshot is null || string.IsNullOrWhiteSpace(response.ETag) || Snapshot.ETag != response.ETag)
@@ -53,7 +67,11 @@ public abstract class PageBase<T> : ComponentBase
 			await OnAfterSnapshotLoadedAsync(cancellationToken);
 			this.taskCompletionSource.TrySetResult();
 		}
+
+		await OnAfterAppStateChanged(cancellationToken);
 	}
+
+	protected abstract Task OnAfterAppStateChanged(CancellationToken cancellationToken = default);
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
@@ -72,8 +90,6 @@ public abstract class PageBase<T> : ComponentBase
 
 	protected abstract Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default);
 
-	private void OnAppStateChanged(object? sender, AppState e)
-	{
+	protected virtual void OnAppStateChanged(object? sender, AppState e) =>
 		LoadAsync().ContinueWith(async _ => await InvokeAsync(StateHasChanged));
-	}
 }

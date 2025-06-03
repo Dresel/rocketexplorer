@@ -6,7 +6,7 @@
 
 <MudText Typo="Typo.h3">Validator History</MudText>
 <MudTimeline TimelinePosition="TimelinePosition.Left">
-	@foreach (ValidatorHistory history in Snapshot?.History ?? [])
+	@foreach (ValidatorHistory history in Snapshot?.Data.History ?? [])
 	{
 		<MudTimelineItem Color="Color.Default" Variant="Variant.Filled">
 			<ItemContent>
@@ -15,9 +15,9 @@
 			</ItemContent>
 		</MudTimelineItem>
 
-        @if (history.Status == ValidatorStatus.Dissolved)
+		@if (history.Status == ValidatorStatus.Dissolved)
 		{
-            <MudTimelineItem Color="Color.Error" Variant="Variant.Filled">
+			<MudTimelineItem Color="Color.Error" Variant="Variant.Filled">
 				<ItemContent>
 					<MudText Color="Color.Error" Typo="Typo.h6" GutterBottom="true">Dissolved</MudText>
 					<MudText Typo="Typo.body2" Class="mud-text-secondary">@(DateTimeOffset.FromUnixTimeSeconds(history.Timestamp).ToString("G"))</MudText>

@@ -12,10 +12,10 @@
 }
 else
 {
-	<div>@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.ContractAddress)</div>
-	<div>@DateTimeOffset.FromUnixTimeSeconds(Snapshot.RegistrationTimestamp).ToString("G")</div>
-	<div>Timezone: @Snapshot.Timezone</div>
-	<div>@Snapshot.MinipoolValidators.Count() minipools</div>
+    <div>@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.ContractAddress)</div>
+    <div>@DateTimeOffset.FromUnixTimeSeconds(Snapshot.Data.RegistrationTimestamp).ToString("G")</div>
+    <div>Timezone: @Snapshot.Data.Timezone</div>
+    <div>@Snapshot.Data.MinipoolValidators.Count() minipools</div>
 
 	<div>Minipools</div>
 	<MudTable Class="mt-0" ServerData="LoadMinipoolValidators" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
@@ -71,10 +71,12 @@ else
 
 	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
 	{
-		minipoolValidators = Snapshot!.MinipoolValidators.Select(x => new ValidatorIndexViewModel
+		minipoolValidators = Snapshot!.Data.MinipoolValidators.Select(x => new ValidatorIndexViewModel
 		{
 			MinipoolAddress = "0x" + Convert.ToHexString(x.MinipoolAddress!),
 		}).ToArray();
+
+		table.ReloadServerData();
 
 		return Task.CompletedTask;
 	}

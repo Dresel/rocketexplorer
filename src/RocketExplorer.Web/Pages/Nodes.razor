@@ -111,7 +111,7 @@
 
 	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
 	{
-		nodes = Snapshot!.Index.Select(
+        nodes = Snapshot!.Data.Index.Select(
 			x => new NodeIndexViewModel
 			{
 				ContractAddress = "0x" + Convert.ToHexString(x.ContractAddress),
@@ -119,8 +119,8 @@
 				RegistrationDate = DateTimeOffset.FromUnixTimeSeconds(x.RegistrationTimestamp),
 			}).ToArray();
 
-		nodesTotalData = [Snapshot?.TotalNodeCount ?? [],];
-		nodesDeltaData = [Snapshot?.DailyRegistrations ?? [],];
+        nodesTotalData = [Snapshot?.Data.TotalNodeCount ?? [],];
+        nodesDeltaData = [Snapshot?.Data.DailyRegistrations ?? [],];
 
 		return Task.CompletedTask;
 	}

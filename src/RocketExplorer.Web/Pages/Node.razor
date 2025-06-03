@@ -1,48 +1,148 @@
 @page "/node/{address}"
 @using MessagePack
 @using Nethereum.Util
-@inject HttpClient Http
-@inject Configuration Configuration
+@using RocketExplorer.Shared.Nodes
+@using RocketExplorer.Shared.Validators
+@inherits PageBase<RocketExplorer.Shared.Nodes.Node>
 
-<PageTitle>Rocket Explorer - Node @Address</PageTitle>
-@if (node == null)
+<PageTitle>Node @Address</PageTitle>
+@if (Snapshot == null)
 {
 	<div>Node not found</div>
 }
 else
 {
-	<div>@AddressUtil.Current.ConvertToChecksumAddress(node.ContractAddress)</div>
-	<div>@DateTimeOffset.FromUnixTimeSeconds(node.RegistrationTimestamp).ToString("G")</div>
-	<div>Timezone: @node.Timezone</div>
-	<div>@node.MegaMinipools.Count() minipools</div>
+	<div>@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.ContractAddress)</div>
+	<div>@DateTimeOffset.FromUnixTimeSeconds(Snapshot.RegistrationTimestamp).ToString("G")</div>
+	<div>Timezone: @Snapshot.Timezone</div>
+	<div>@Snapshot.MinipoolValidators.Count() minipools</div>
+
+	<div>Minipools</div>
+	<MudTable Class="mt-0" ServerData="LoadMinipoolValidators" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
+		@* 		<ToolBarContent>
+			<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+				AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+			</MudTextField>
+		</ToolBarContent> *@
+		<HeaderContent>
+			<MudTh>
+				<MudTableSortLabel T="ValidatorViewModel" SortLabel="MinipoolAddress">Minipool Address</MudTableSortLabel>
+			</MudTh>
+			<MudTh>
+                <MudTableSortLabel T="ValidatorViewModel" SortLabel="RegistrationDate" InitialDirection="SortDirection.Ascending">Registration Date</MudTableSortLabel>
+			</MudTh>
+		</HeaderContent>
+		<RowTemplate>
+			<MudTd>
+				<Address ContractAddress="@context.MinipoolAddress" HrefPlaceholder="validator/{0}" AppendEtherscanCodeAnchor="true"></Address>
+			</MudTd>
+            <MudTd>@context.ValidatorStatus</MudTd>
+		</RowTemplate>
+		<NoRecordsContent>
+			<MudText>No matching records found</MudText>
+		</NoRecordsContent>
+		<LoadingContent>
+			<MudText>Loading...</MudText>
+		</LoadingContent>
+		<PagerContent>
+			<MudTablePager />
+		</PagerContent>
+	</MudTable>
 }
 
 @code {
 
-	[Parameter] public string? Address { get; set; }
+    private MudTable<ValidatorViewModel> table = null!;
 
-	private Shared.Nodes.Node? node;
+	[Parameter]
+	public string? Address { get; set; }
+
+	private ValidatorIndexViewModel[] minipoolValidators = [];
 
 	protected override async Task OnParametersSetAsync()
 	{
 		await base.OnParametersSetAsync();
 
-		node = null;
+		if (!string.IsNullOrWhiteSpace(Address))
+		{
+			ObjectStoreKey = $"nodes/{Address.ToLowerInvariant()}.msgpack";
+		}
+	}
 
-		if (string.IsNullOrWhiteSpace(Address))
+	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
+	{
+		minipoolValidators = Snapshot!.MinipoolValidators.Select(x => new ValidatorIndexViewModel
 		{
-			return;
-		}
+			MinipoolAddress = "0x" + Convert.ToHexString(x.MinipoolAddress!),
+		}).ToArray();
 
-		try
+		return Task.CompletedTask;
+	}
+
+	private async Task<TableData<ValidatorViewModel>> LoadMinipoolValidators(TableState state, CancellationToken token)
+	{
+		await LoadedTask;
+
+		IEnumerable<ValidatorIndexViewModel> items = minipoolValidators;
+
+		// if (state.SortLabel is nameof(ValidatorIndexViewModel.ContractAddress))
+		// {
+		// 	items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.ContractAddress).ToList() : items.OrderByDescending(x => x.ContractAddress).ToList();
+		// }
+
+		// if (state.SortLabel is nameof(ValidatorIndexViewModel.RegistrationDate))
+		// {
+		// 	items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.RegistrationDate).ToList() : items.OrderByDescending(x => x.RegistrationDate).ToList();
+		// }
+
+		// if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
+		// {
+		// 	items = items.Where(x => x.ContractAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToArray();
+		// }
+
+		int count = items.Count();
+
+		List<Task<ValidatorViewModel>> query = items.Skip(state.Page * state.PageSize).Take(state.PageSize).Select(async x =>
 		{
-			var streamAsync = await Http.GetStreamAsync($"https://rocketexplorer.nbg1.your-objectstorage.com/{Configuration.Environment.ToString().ToLowerInvariant()}/nodes/{Address.ToLowerInvariant()}.msgpack");
-			node = MessagePackSerializer.Deserialize<Shared.Nodes.Node>(streamAsync);
-		}
-		catch (Exception e)
+            Shared.Validators.Validator validatorSnapshot = MessagePackSerializer.Deserialize<Shared.Validators.Validator>(
+				await HttpClient.GetStreamAsync(GetObjectStoreUrl(Keys.MinipoolValidator(x.MinipoolAddress!)), token));
+			return new ValidatorViewModel
+			{
+				MinipoolAddress = "0x" + Convert.ToHexString(validatorSnapshot.MinipoolAddress!),
+				PubKey = validatorSnapshot.PubKey != null ? "0x" + Convert.ToHexString(validatorSnapshot.PubKey) : null,
+				ValidatorStatus = validatorSnapshot.Status,
+			};
+		}).ToList();
+
+		ValidatorViewModel[] validators = await Task.WhenAll(query);
+
+		return new TableData<ValidatorViewModel>
 		{
-			// TODO: Show 404 or similar
-		}
+			TotalItems = count,
+			Items = validators,
+		};
+	}
+
+	public class ValidatorIndexViewModel
+	{
+		public string? MegapoolAddress { get; init; }
+
+		public int? MegapoolIndex { get; set; }
+
+		public string? MinipoolAddress { get; init; }
+	}
+
+	public class ValidatorViewModel
+	{
+		public string? MegapoolAddress { get; init; }
+
+		public int? MegapoolIndex { get; set; }
+
+		public string? MinipoolAddress { get; init; }
+
+		public string? PubKey { get; init; }
+
+		public required ValidatorStatus ValidatorStatus { get; set; }
 	}
 
 }

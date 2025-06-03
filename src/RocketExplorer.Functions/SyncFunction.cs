@@ -11,6 +11,7 @@ using RocketExplorer.Core.Nodes;
 using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Shared;
 using RocketExplorer.Shared.Contracts;
+using RocketExplorer.Shared.Nodes;
 
 namespace RocketExplorer.Functions;
 

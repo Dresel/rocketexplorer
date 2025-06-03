@@ -5,18 +5,25 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Contracts;
 using Nethereum.Hex.HexConvertors.Extensions;
+using Nethereum.Hex.HexTypes;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Util;
 using Nethereum.Web3;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketMegapoolDelegate;
 using RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition;
+using RocketExplorer.Ethereum.RocketMinipoolDelegate;
+using RocketExplorer.Ethereum.RocketMinipoolDelegate.ContractDefinition;
+using RocketExplorer.Ethereum.RocketMinipoolManager;
+using RocketExplorer.Ethereum.RocketMinipoolManager.ContractDefinition;
+using RocketExplorer.Ethereum.RocketMinipoolQueue.ContractDefinition;
 using RocketExplorer.Ethereum.RocketNodeManager;
 using RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition;
 using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Shared.Contracts;
-using RocketExplorer.Shared.Minipools;
 using RocketExplorer.Shared.Nodes;
+using RocketExplorer.Shared.Validators;
+using Validator = RocketExplorer.Shared.Validators.Validator;
 
 namespace RocketExplorer.Core.Nodes;
 
@@ -38,32 +45,78 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 					context, context.RocketNodeManager, @event, innerCancellationToken), cancellationToken);
 		}
 
+		IEnumerable<IEventLog> minipoolCreatedEvents = await context.Web3.FilterAsync(
+			(ulong)fromBlock, (ulong)toBlock, [typeof(MinipoolCreatedEventDTO),],
+			context.ValidatorInfo.RocketMinipoolManagerAddresses, Policy);
+
+		foreach (IEventLog eventLog in minipoolCreatedEvents)
+		{
+			await eventLog.WhenIsAsync<MinipoolCreatedEventDTO>(
+				(@event, log, innerCancellationToken) => EventAddMinipoolValidatorAsync(
+					context, @event, log, innerCancellationToken),
+				cancellationToken);
+		}
+
 		IEnumerable<IEventLog> megapoolEvents = await context.Web3.FilterAsync(
 			(ulong)fromBlock, (ulong)toBlock,
 			[
-				typeof(MegapoolValidatorEnqueuedEventDTO), typeof(MegapoolValidatorAssignedEventDTO),
+				typeof(MegapoolValidatorEnqueuedEventDTO),
+				typeof(MegapoolValidatorAssignedEventDTO),
 				typeof(MegapoolValidatorDequeuedEventDTO),
+				typeof(MinipoolEnqueuedEventDTO),
+				typeof(MinipoolDequeuedEventDTO),
+				typeof(MinipoolPrestakedEventDTO),
+				typeof(StatusUpdatedEventDTO),
+				////typeof(MinipoolVacancyPreparedEventDTO),
+				////typeof(MinipoolPromotedEventDTO),
+				////typeof(MinipoolDestroyedEventDTO), // Process?
+				typeof(EtherWithdrawalProcessedEventDTO), // Exit
 			], [], Policy);
 
 		foreach (IEventLog eventLog in megapoolEvents)
 		{
-			await eventLog.WhenIsAsync<MegapoolValidatorEnqueuedEventDTO>(
-				(@event, log, innerCancellationToken) => EventAddNewMegapool(
-					context, context.Web3, @event, log, innerCancellationToken), cancellationToken);
+			await eventLog.WhenIsAsync<MinipoolPrestakedEventDTO>(
+				(@event, log, innerCancellationToken) => EventUpdateMinipoolValidatorAsync(
+					context, log.Address.ConvertToEthereumChecksumAddress(), ValidatorStatus.PreStaked,
+					@event.ValidatorPubkey, @event.Time, log, innerCancellationToken), cancellationToken);
 
-			await eventLog.WhenIsAsync<MegapoolValidatorAssignedEventDTO>(
-				(@event, log, innerCancellationToken) => EventUpdateMegapoolAsync(
-					context, context.Web3, log.Address.ConvertToEthereumChecksumAddress(), (int)@event.ValidatorId,
-					MinipoolStatus.Staking,
-					@event.Time,
+			await eventLog.WhenIsAsync<MinipoolEnqueuedEventDTO>(
+				(@event, log, innerCancellationToken) => EventUpdateMinipoolValidatorAsync(
+					context, @event.Minipool, ValidatorStatus.InQueue, null, @event.Time,
 					log, innerCancellationToken), cancellationToken);
 
-			await eventLog.WhenIsAsync<MegapoolValidatorDequeuedEventDTO>(
-				(@event, log, innerCancellationToken) => EventUpdateMegapoolAsync(
-					context, context.Web3, log.Address.ConvertToEthereumChecksumAddress(), (int)@event.ValidatorId,
-					MinipoolStatus.Dequeued,
-					@event.Time,
+			await eventLog.WhenIsAsync<MinipoolDequeuedEventDTO>(
+				(@event, log, innerCancellationToken) => EventUpdateMinipoolValidatorAsync(
+					context, @event.Minipool, ValidatorStatus.Dequeued, null,
+					@event.Time, log, innerCancellationToken), cancellationToken);
+
+			await eventLog.WhenIsAsync<EtherWithdrawalProcessedEventDTO>(
+				(@event, log, innerCancellationToken) => EventUpdateMinipoolValidatorAsync(
+					context, log.Address.ConvertToEthereumChecksumAddress(), ValidatorStatus.Exited, null, @event.Time,
 					log, innerCancellationToken), cancellationToken);
+
+			await eventLog.WhenIsAsync<StatusUpdatedEventDTO>(
+				(@event, log, innerCancellationToken) => EventUpdateMinipoolValidatorAsync(
+					context, log.Address.ConvertToEthereumChecksumAddress(), @event.Status.ToValidatorStatus(), null,
+					@event.Time, log, innerCancellationToken), cancellationToken);
+
+			//await eventLog.WhenIsAsync<MegapoolValidatorEnqueuedEventDTO>(
+			//	(@event, log, innerCancellationToken) => EventAddNewMegapoolValidator(
+			//		context, @event, log, innerCancellationToken), cancellationToken);
+
+			//await eventLog.WhenIsAsync<MegapoolValidatorAssignedEventDTO>(
+			//	(@event, log, innerCancellationToken) => EventUpdateMegapoolValidatorAsync(
+			//		context, context.Web3, log.Address.ConvertToEthereumChecksumAddress(), (int)@event.ValidatorId,
+			//		ValidatorStatus.Staking,
+			//		@event.Time,
+			//		log, innerCancellationToken), cancellationToken);
+
+			//await eventLog.WhenIsAsync<MegapoolValidatorDequeuedEventDTO>(
+			//	(@event, log, innerCancellationToken) => EventUpdateMegapoolValidatorAsync(
+			//		context, context.Web3, log.Address.ConvertToEthereumChecksumAddress(), (int)@event.ValidatorId,
+			//		ValidatorStatus.Dequeued,
+			//		@event.Time,
+			//		log, innerCancellationToken), cancellationToken);
 		}
 	}
 
@@ -75,8 +128,9 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 
 		Logger.LogInformation("Loading {snapshot}", Keys.NodesSnapshot);
 		BlobObject<NodesSnapshot> nodesSnapshot =
-			await Storage.ReadAsync<NodesSnapshot>(Keys.NodesSnapshot, cancellationToken) ??
-			new BlobObject<NodesSnapshot>
+
+			//await Storage.ReadAsync<NodesSnapshot>(Keys.NodesSnapshot, cancellationToken) ??
+			new()
 			{
 				ProcessedBlockNumber = activationHeight,
 				Data = new NodesSnapshot
@@ -87,10 +141,24 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				},
 			};
 
+		Logger.LogInformation("Loading {snapshot}", Keys.ValidatorSnapshot);
+		BlobObject<ValidatorSnapshot> validatorSnapshot =
+
+			//await Storage.ReadAsync<QueueSnapshot>(Keys.QueueSnapshot, cancellationToken) ??
+			new()
+			{
+				ProcessedBlockNumber = activationHeight,
+				Data = new ValidatorSnapshot
+				{
+					Index = [],
+				},
+			};
+
 		Logger.LogInformation("Loading {snapshot}", Keys.QueueSnapshot);
 		BlobObject<QueueSnapshot> queueSnapshot =
-			await Storage.ReadAsync<QueueSnapshot>(Keys.QueueSnapshot, cancellationToken) ??
-			new BlobObject<QueueSnapshot>
+
+			//await Storage.ReadAsync<QueueSnapshot>(Keys.QueueSnapshot, cancellationToken) ??
+			new()
 			{
 				ProcessedBlockNumber = activationHeight,
 				Data = new QueueSnapshot
@@ -113,18 +181,32 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 			RocketNodeManager =
 				new RocketNodeManagerService(
 					web3, await Policy.ExecuteAsync(() => rocketStorage.GetAddressQueryAsync("rocketNodeManager"))),
+			RocketMinipoolManager =
+				new RocketMinipoolManagerService(
+					web3, await Policy.ExecuteAsync(() => rocketStorage.GetAddressQueryAsync("rocketMinipoolManager"))),
 			RocketNodeManagerAddresses = contracts["rocketNodeManager"].Versions.Select(x => x.Address).ToArray(),
 			NodeIndex =
 				nodesSnapshot.Data.Index.ToDictionary(
 					x => x.ContractAddress.ToHex(true), x => x, StringComparer.OrdinalIgnoreCase),
-			DailyRegistrations = nodesSnapshot.Data.DailyRegistrations,
 			TotalNodesCount = nodesSnapshot.Data.TotalNodeCount,
-			StandardQueue = queueSnapshot.Data.StandardIndex.ToList(),
-			ExpressQueue = queueSnapshot.Data.ExpressIndex.ToList(),
-			TotalQueueCount = new SortedList<DateOnly, int>(queueSnapshot.Data.TotalQueueCount),
-			DailyEnqueued = queueSnapshot.Data.DailyEnqueued,
-			DailyDequeued = queueSnapshot.Data.DailyDequeued,
-			DailyVoluntaryExits = queueSnapshot.Data.DailyVoluntaryExits,
+			DailyRegistrations = nodesSnapshot.Data.DailyRegistrations,
+			ValidatorInfo = new ValidatorInfo
+			{
+				RocketMinipoolManagerAddresses =
+					contracts["rocketMinipoolManager"].Versions.Select(x => x.Address).ToArray(),
+				ValidatorIndex = validatorSnapshot.Data.Index.ToDictionary(
+					x => x.MinipoolAddress?.ToHex(true) ?? x.MegapoolAddress.ToHex(true), x => x,
+					StringComparer.OrdinalIgnoreCase),
+			},
+			QueueInfo = new QueueInfo
+			{
+				StandardQueue = queueSnapshot.Data.StandardIndex.ToList(),
+				ExpressQueue = queueSnapshot.Data.ExpressIndex.ToList(),
+				TotalQueueCount = new SortedList<DateOnly, int>(queueSnapshot.Data.TotalQueueCount),
+				DailyEnqueued = queueSnapshot.Data.DailyEnqueued,
+				DailyDequeued = queueSnapshot.Data.DailyDequeued,
+				DailyVoluntaryExits = queueSnapshot.Data.DailyVoluntaryExits,
+			},
 		};
 	}
 
@@ -153,12 +235,12 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				ProcessedBlockNumber = context.CurrentBlockHeight,
 				Data = new QueueSnapshot
 				{
-					TotalQueueCount = context.TotalQueueCount,
-					DailyEnqueued = context.DailyEnqueued,
-					DailyDequeued = context.DailyDequeued,
-					DailyVoluntaryExits = context.DailyVoluntaryExits,
-					StandardIndex = context.StandardQueue.ToArray(),
-					ExpressIndex = context.ExpressQueue.ToArray(),
+					TotalQueueCount = context.QueueInfo.TotalQueueCount,
+					DailyEnqueued = context.QueueInfo.DailyEnqueued,
+					DailyDequeued = context.QueueInfo.DailyDequeued,
+					DailyVoluntaryExits = context.QueueInfo.DailyVoluntaryExits,
+					StandardIndex = context.QueueInfo.StandardQueue.ToArray(),
+					ExpressIndex = context.QueueInfo.ExpressQueue.ToArray(),
 				},
 			}, cancellationToken: cancellationToken);
 
@@ -173,41 +255,112 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				}, cancellationToken: cancellationToken);
 		}
 
-		foreach ((string? megapoolAddress, int megapoolIndex, Minipool? minipool) in
-				context.MegaMinipools.SelectMany(
-					megapool =>
-						megapool.Value.Select(index => (megapool.Key, index.Key, index.Value))))
+		foreach ((string? megapoolAddress, int megapoolIndex, Validator? minipool) in
+				context.ValidatorInfo.MegaMinipools.SelectMany(megapool =>
+					megapool.Value.Select(index => (megapool.Key, index.Key, index.Value))))
 		{
-			Logger.LogInformation("Writing {snapshot}", Keys.MegapoolMinipool(megapoolAddress, megapoolIndex));
+			Logger.LogInformation("Writing {snapshot}", Keys.MegapoolValidator(megapoolAddress, megapoolIndex));
 			await Storage.WriteAsync(
-				Keys.MegapoolMinipool(megapoolAddress, megapoolIndex), new BlobObject<Minipool>
+				Keys.MegapoolValidator(megapoolAddress, megapoolIndex), new BlobObject<Validator>
 				{
 					ProcessedBlockNumber = context.CurrentBlockHeight,
 					Data = minipool,
 				}, cancellationToken: cancellationToken);
 		}
+
+		foreach ((string minipoolAddress, Validator validator) in context.ValidatorInfo.Validators)
+		{
+			Logger.LogInformation("Writing {snapshot}", Keys.MinipoolValidator(minipoolAddress));
+			await Storage.WriteAsync(
+				Keys.MinipoolValidator(minipoolAddress), new BlobObject<Validator>
+				{
+					ProcessedBlockNumber = context.CurrentBlockHeight,
+					Data = validator,
+				}, cancellationToken: cancellationToken);
+		}
 	}
 
-	private async Task EventAddNewMegapool(
-		NodesSyncContext context, Web3 web3, MegapoolValidatorEnqueuedEventDTO @event, FilterLog log,
+	private async Task EventAddMinipoolValidatorAsync(
+		NodesSyncContext context, MinipoolCreatedEventDTO @event, FilterLog log,
+		CancellationToken cancellationToken = default)
+	{
+		RocketMinipoolDelegateService minipoolDelegate = new(context.Web3, @event.Minipool);
+		string nodeOperatorAddress =
+			await minipoolDelegate.GetNodeAddressQueryAsync(new BlockParameter(log.BlockNumber));
+
+		// This should not happen
+		if (!context.NodeIndex.ContainsKey(nodeOperatorAddress))
+		{
+			logger.LogError(
+				"Node operator {NodeOperatorAddress} for {Minipool} not found in index.", nodeOperatorAddress,
+				@event.Minipool);
+			return;
+		}
+
+		context.ValidatorInfo.MinipoolNodeOperatorMap[@event.Minipool] = nodeOperatorAddress;
+
+		ValidatorIndexEntry entry = new()
+		{
+			NodeAddress = nodeOperatorAddress.HexToByteArray(),
+			MinipoolAddress = @event.Minipool.HexToByteArray(),
+			PubKey = null,
+		};
+
+		context.ValidatorInfo.ValidatorIndex[@event.Minipool] = entry;
+
+		context.ValidatorInfo.Validators[@event.Minipool] = new Validator
+		{
+			NodeAddress = entry.NodeAddress,
+			MinipoolAddress = entry.MinipoolAddress,
+			PubKey = entry.PubKey,
+			Status = ValidatorStatus.Created,
+			Bond = (float)UnitConversion.Convert.FromWei(
+				await minipoolDelegate.GetNodeDepositBalanceQueryAsync(new BlockParameter(log.BlockNumber))),
+			Type = ValidatorType.Legacy,
+			History =
+			[
+				new ValidatorHistory
+				{
+					Status = ValidatorStatus.Created,
+					Timestamp = (long)@event.Time,
+				},
+			],
+		};
+
+		// Update node
+		if (!context.Nodes.ContainsKey(nodeOperatorAddress))
+		{
+			context.Nodes[nodeOperatorAddress] =
+				(await Storage.ReadAsync<Node>(Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
+				throw new InvalidOperationException("Cannot read node operator from storage.");
+		}
+
+		context.Nodes[nodeOperatorAddress].MinipoolValidators =
+		[
+			..context.Nodes[nodeOperatorAddress].MinipoolValidators, entry,
+		];
+	}
+
+	private async Task EventAddNewMegapoolValidator(
+		NodesSyncContext context, MegapoolValidatorEnqueuedEventDTO @event, FilterLog log,
 		CancellationToken cancellationToken = default)
 	{
 		string megapoolAddress = log.Address.ConvertToEthereumChecksumAddress();
-		RocketMegapoolDelegateService megapoolDelegate = new(web3, megapoolAddress);
+		RocketMegapoolDelegateService megapoolDelegate = new(context.Web3, megapoolAddress);
 
-		context.MegapoolNodeOperatorMap.TryGetValue(megapoolAddress, out string? nodeOperatorAddress);
+		context.ValidatorInfo.MegapoolNodeOperatorMap.TryGetValue(megapoolAddress, out string? nodeOperatorAddress);
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
-			nodeOperatorAddress = await FetchNodeOperatorAddress(
-				context, log, megapoolAddress, megapoolDelegate, cancellationToken);
+			nodeOperatorAddress = await FetchNodeOperatorAddressFromMegapoolAddress(
+				context, log.BlockNumber, megapoolAddress, megapoolDelegate, cancellationToken);
 
 			if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 			{
 				return;
 			}
 
-			context.MegapoolNodeOperatorMap[megapoolAddress] = nodeOperatorAddress;
+			context.ValidatorInfo.MegapoolNodeOperatorMap[megapoolAddress] = nodeOperatorAddress;
 
 			context.NodeIndex[nodeOperatorAddress] = context.NodeIndex[nodeOperatorAddress] with
 			{
@@ -223,50 +376,55 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		GetValidatorInfoOutputDTO validatorInfo = await megapoolDelegate.GetValidatorInfoQueryAsync(
 			(uint)@event.ValidatorId, new BlockParameter(log.BlockNumber));
 
-		Minipool minipool = new()
+		Validator validator = new()
 		{
-			NodeOperatorAddress = nodeOperatorAddress.HexToByteArray(),
+			NodeAddress = nodeOperatorAddress.HexToByteArray(),
 			MegapoolAddress = megapoolAddress.HexToByteArray(),
 			MegapoolIndex = (int)@event.ValidatorId,
 			ExpressTicketUsed = validatorInfo.ReturnValue1.ExpressUsed,
 			PubKey = validatorInfo.ReturnValue1.PubKey,
-			CreationTimestamp = (ulong)@event.Time,
-			Status = MinipoolStatus.InQueue,
+			Status = ValidatorStatus.Created,
 			Bond = 4, // TODO: Saturn2
-			Type = MinipoolType.Megapool,
+			Type = ValidatorType.Megapool,
+			History =
+			[
+				new ValidatorHistory
+				{
+					Status = ValidatorStatus.Created,
+					Timestamp = (long)@event.Time,
+				},
+			],
 		};
 
-		context.MegaMinipools.TryAdd(megapoolAddress, []);
-		context.MegaMinipools[megapoolAddress][minipool.MegapoolIndex.Value] = minipool;
+		context.ValidatorInfo.MegaMinipools.TryAdd(megapoolAddress, []);
+		context.ValidatorInfo.MegaMinipools[megapoolAddress][validator.MegapoolIndex.Value] = validator;
 
 		// TODO: Use list
-		MinipoolIndexEntry entry = new()
+		ValidatorIndexEntry entry = new()
 		{
-			CreationTimestamp = (long)minipool.CreationTimestamp,
-			NodeAddress = minipool.NodeOperatorAddress,
-			PubKey = minipool.PubKey,
+			NodeAddress = validator.NodeAddress,
+			PubKey = validator.PubKey,
 			MegapoolAddress = megapoolAddress.HexToByteArray(),
-			MegapoolIndex = minipool.MegapoolIndex,
 		};
 
-		context.Nodes[nodeOperatorAddress].MegaMinipools =
+		context.Nodes[nodeOperatorAddress].MegapoolValidators =
 		[
-			..context.Nodes[nodeOperatorAddress].MegaMinipools, entry,
+			..context.Nodes[nodeOperatorAddress].MegapoolValidators, entry,
 		];
 
 		if (!validatorInfo.ReturnValue1.ExpressUsed)
 		{
-			context.StandardQueue.Add(entry);
+			context.QueueInfo.StandardQueue.Add(entry);
 		}
 		else
 		{
-			context.ExpressQueue.Add(entry);
+			context.QueueInfo.ExpressQueue.Add(entry);
 		}
 
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)@event.Time).DateTime);
 
-		context.TotalQueueCount[key] = context.TotalQueueCount.GetLatestOrDefault() + 1;
-		context.DailyEnqueued[key] = context.DailyEnqueued.GetValueOrDefault(key) + 1;
+		context.QueueInfo.TotalQueueCount[key] = context.QueueInfo.TotalQueueCount.GetLatestOrDefault() + 1;
+		context.QueueInfo.DailyEnqueued[key] = context.QueueInfo.DailyEnqueued.GetValueOrDefault(key) + 1;
 	}
 
 	private async Task EventAddNewNodeAsync(
@@ -310,86 +468,174 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		context.TotalNodesCount[key] = context.TotalNodesCount.GetLatestOrDefault() + 1;
 	}
 
-	private async Task EventUpdateMegapoolAsync(
-		NodesSyncContext context, Web3 web3, string megapoolAddress, int validatorId, MinipoolStatus status,
-		BigInteger eventTime,
-		FilterLog log, CancellationToken cancellationToken)
+	private async Task EventUpdateMegapoolValidatorAsync(
+		NodesSyncContext context, string megapoolAddress, int validatorId, ValidatorStatus status,
+		BigInteger eventTime, FilterLog log, CancellationToken cancellationToken)
 	{
-		RocketMegapoolDelegateService megapoolDelegate = new(web3, megapoolAddress);
+		RocketMegapoolDelegateService megapoolDelegate = new(context.Web3, megapoolAddress);
 
-		context.MegapoolNodeOperatorMap.TryGetValue(megapoolAddress, out string? nodeOperatorAddress);
+		context.ValidatorInfo.MegapoolNodeOperatorMap.TryGetValue(megapoolAddress, out string? nodeOperatorAddress);
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
-			nodeOperatorAddress = await FetchNodeOperatorAddress(
-				context, log, megapoolAddress, megapoolDelegate, cancellationToken);
+			nodeOperatorAddress = await FetchNodeOperatorAddressFromMegapoolAddress(
+				context, log.BlockNumber, megapoolAddress, megapoolDelegate, cancellationToken);
 
 			if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 			{
 				return;
 			}
 
-			context.MegapoolNodeOperatorMap[megapoolAddress] = nodeOperatorAddress;
+			context.ValidatorInfo.MegapoolNodeOperatorMap[megapoolAddress] = nodeOperatorAddress;
 		}
 
-		context.MegaMinipools.TryAdd(megapoolAddress, []);
+		context.ValidatorInfo.MegaMinipools.TryAdd(megapoolAddress, []);
 
-		if (!context.MegaMinipools[megapoolAddress].ContainsKey(validatorId))
+		if (!context.ValidatorInfo.MegaMinipools[megapoolAddress].ContainsKey(validatorId))
 		{
-			context.MegaMinipools[megapoolAddress][validatorId] = (await Storage.ReadAsync<Minipool>(
-					Keys.MegapoolMinipool(megapoolAddress, validatorId), cancellationToken))?.Data ??
+			context.ValidatorInfo.MegaMinipools[megapoolAddress][validatorId] = (await Storage.ReadAsync<Validator>(
+					Keys.MegapoolValidator(megapoolAddress, validatorId), cancellationToken))?.Data ??
 				throw new InvalidOperationException("Cannot read node operator from storage.");
 		}
 
-		context.MegaMinipools[megapoolAddress][validatorId].Status = status;
+		context.ValidatorInfo.MegaMinipools[megapoolAddress][validatorId].Status = status;
 
-		if (status == MinipoolStatus.Staking || status == MinipoolStatus.Dequeued)
+		// TODO: Why Staking?
+		if (status == ValidatorStatus.Staking || status == ValidatorStatus.Dequeued)
 		{
 			int h = 0;
 
 			// TODO: Sequence Equal?
-			h += context.StandardQueue.RemoveAll(
-				x =>
-					x.PubKey == context.MegaMinipools[megapoolAddress][validatorId].PubKey);
-			h += context.ExpressQueue.RemoveAll(
-				x =>
-					x.PubKey == context.MegaMinipools[megapoolAddress][validatorId].PubKey);
+			h += context.QueueInfo.StandardQueue.RemoveAll(x =>
+				x.PubKey == context.ValidatorInfo.MegaMinipools[megapoolAddress][validatorId].PubKey);
+			h += context.QueueInfo.ExpressQueue.RemoveAll(x =>
+				x.PubKey == context.ValidatorInfo.MegaMinipools[megapoolAddress][validatorId].PubKey);
 
 			Debug.Assert(h == 1, "Only one element should be removed");
 
 			SortedList<DateOnly, int> dictionary =
-				status == MinipoolStatus.Staking ? context.DailyDequeued : context.DailyVoluntaryExits;
+				status == ValidatorStatus.Staking
+					? context.QueueInfo.DailyDequeued
+					: context.QueueInfo.DailyVoluntaryExits;
 			DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventTime).DateTime);
 			dictionary[key] = dictionary.GetValueOrDefault(key) + 1;
 
-			context.TotalQueueCount[key] = context.TotalQueueCount.GetLatestOrDefault() - 1;
+			context.QueueInfo.TotalQueueCount[key] = context.QueueInfo.TotalQueueCount.GetLatestOrDefault() - 1;
 		}
 	}
 
-	private async Task<string?> FetchNodeOperatorAddress(
-		NodesSyncContext context, FilterLog log, string megapoolAddress,
+	private async Task EventUpdateMinipoolValidatorAsync(
+		NodesSyncContext context, string minipoolAddress, ValidatorStatus status, byte[]? pubKey,
+		BigInteger eventTime, FilterLog log,
+		CancellationToken cancellationToken = default)
+	{
+		RocketMinipoolDelegateService minipoolDelegate = new(context.Web3, minipoolAddress);
+		context.ValidatorInfo.MinipoolNodeOperatorMap.TryGetValue(minipoolAddress, out string? nodeOperatorAddress);
+
+		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
+		{
+			nodeOperatorAddress = await FetchNodeOperatorAddressFromMinipoolAddress(
+				context, log.BlockNumber, minipoolAddress, minipoolDelegate, cancellationToken);
+
+			if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
+			{
+				return;
+			}
+
+			context.ValidatorInfo.MinipoolNodeOperatorMap[minipoolAddress] = nodeOperatorAddress;
+		}
+
+		if (!context.ValidatorInfo.Validators.ContainsKey(minipoolAddress))
+		{
+			context.ValidatorInfo.Validators[minipoolAddress] = (await Storage.ReadAsync<Validator>(
+					Keys.MinipoolValidator(minipoolAddress), cancellationToken))?.Data ??
+				throw new InvalidOperationException("Cannot read node operator from storage.");
+		}
+
+		context.ValidatorInfo.Validators[minipoolAddress] = context.ValidatorInfo.Validators[minipoolAddress] with
+		{
+			Status = status,
+			History =
+			[
+				.. context.ValidatorInfo.Validators[minipoolAddress].History,
+				new ValidatorHistory
+				{
+					Status = status,
+					Timestamp = (long)eventTime,
+				},
+			],
+		};
+
+		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventTime).DateTime);
+
+		switch (status)
+		{
+			case ValidatorStatus.InQueue:
+				context.QueueInfo.TotalQueueCount[key] = context.QueueInfo.TotalQueueCount.GetLatestOrDefault() + 1;
+				context.QueueInfo.DailyEnqueued[key] = context.QueueInfo.DailyEnqueued.GetValueOrDefault(key) + 1;
+				break;
+
+			case ValidatorStatus.Dequeued:
+				context.QueueInfo.DailyDequeued[key] = context.QueueInfo.DailyDequeued.GetValueOrDefault(key) + 1;
+				context.QueueInfo.TotalQueueCount[key] = context.QueueInfo.TotalQueueCount.GetLatestOrDefault() - 1;
+				break;
+
+			case ValidatorStatus.PreStaked:
+				context.ValidatorInfo.ValidatorIndex[minipoolAddress] =
+					context.ValidatorInfo.ValidatorIndex[minipoolAddress] with
+					{
+						PubKey = pubKey,
+					};
+
+				context.ValidatorInfo.Validators[minipoolAddress] =
+					context.ValidatorInfo.Validators[minipoolAddress] with
+					{
+						PubKey = pubKey,
+					};
+
+				context.Nodes[nodeOperatorAddress].MinipoolValidators.ReplaceWhere(
+					x => x.MinipoolAddress!.SequenceEqual(minipoolAddress.HexToByteArray()),
+					x => x with
+					{
+						PubKey = pubKey,
+					});
+
+				break;
+		}
+	}
+
+	private async Task<string?> FetchNodeOperatorAddressFromMegapoolAddress(
+		NodesSyncContext context, HexBigInteger blockNumber, string megapoolAddress,
 		RocketMegapoolDelegateService megapoolDelegate, CancellationToken cancellationToken = default)
 	{
 		string nodeOperatorAddress =
-			await megapoolDelegate.GetNodeAddressQueryAsync(new BlockParameter(log.BlockNumber));
+			await megapoolDelegate.GetNodeAddressQueryAsync(new BlockParameter(blockNumber));
 
 		// If not found might be megapool from different rocket pool version
 		if (!context.NodeIndex.ContainsKey(nodeOperatorAddress))
 		{
 			logger.LogWarning(
-				"Node operator {NodeOperatorAddress} for {Megapool} not found in index.", nodeOperatorAddress,
+				"Node operator {NodeOperatorAddress} for {MegapoolAddress} not found in index.", nodeOperatorAddress,
 				megapoolAddress);
 			return null;
 		}
 
-		// Can happen if the same node operator address is used for multiple rocket pool deployments
-		if (!string.Equals(
-				await context.RocketNodeManager.GetMegapoolAddressQueryAsync(nodeOperatorAddress), megapoolAddress,
-				StringComparison.OrdinalIgnoreCase))
+		try
 		{
-			logger.LogWarning(
-				"Node operator {NodeOperatorAddress} found in index but megapool address {Megapool} does not match.",
-				nodeOperatorAddress, megapoolAddress);
+			// Can happen if the same node operator address is used for multiple rocket pool deployments
+			if (!string.Equals(
+					await context.RocketNodeManager.GetMegapoolAddressQueryAsync(nodeOperatorAddress), megapoolAddress,
+					StringComparison.OrdinalIgnoreCase))
+			{
+				logger.LogWarning(
+					"Node operator {NodeOperatorAddress} found in index but megapool address {MegapoolAddress} does not match.",
+					nodeOperatorAddress, megapoolAddress);
+				return null;
+			}
+		}
+		catch (Exception e)
+		{
+			// Not implemented, cannot rely on version query
 			return null;
 		}
 
@@ -402,4 +648,68 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 
 		return nodeOperatorAddress;
 	}
+
+	private async Task<string?> FetchNodeOperatorAddressFromMinipoolAddress(
+		NodesSyncContext context, HexBigInteger blockNumber, string minipoolAddress,
+		RocketMinipoolDelegateService minipoolDelegate, CancellationToken cancellationToken = default)
+	{
+		string nodeOperatorAddress =
+			await minipoolDelegate.GetNodeAddressQueryAsync(new BlockParameter(blockNumber));
+
+		// If not found might be minipool from different rocket pool version
+		if (!context.NodeIndex.ContainsKey(nodeOperatorAddress))
+		{
+			logger.LogDebug(
+				"Node operator {NodeOperatorAddress} for {MinipoolAddress} not found in index.", nodeOperatorAddress,
+				minipoolAddress);
+			return null;
+		}
+
+		// Can happen if the same node operator address is used for multiple rocket pool deployments
+		if (!await context.RocketMinipoolManager.GetMinipoolExistsQueryAsync(nodeOperatorAddress))
+		{
+			logger.LogDebug(
+				"Node operator {NodeOperatorAddress} found in index but minipool address {MinipoolAddress} does not exist.",
+				nodeOperatorAddress, minipoolAddress);
+			return null;
+		}
+
+		if (!context.Nodes.ContainsKey(nodeOperatorAddress))
+		{
+			context.Nodes[nodeOperatorAddress] =
+				(await Storage.ReadAsync<Node>(Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
+				throw new InvalidOperationException("Cannot read node operator from storage.");
+		}
+
+		return nodeOperatorAddress;
+	}
+}
+
+public static class CollectionExtensions
+{
+	public static void ReplaceWhere<T>(this T[] elements, Predicate<T> predicate, Func<T, T> replaceFunc)
+	{
+		int index = Array.FindIndex(elements, predicate);
+
+		if (index == -1)
+		{
+			throw new InvalidOperationException("Element not found");
+		}
+
+		elements[index] = replaceFunc(elements[index]);
+	}
+}
+
+public static class ValidatorExtensions
+{
+	public static ValidatorStatus ToValidatorStatus(this byte status) =>
+		status switch
+		{
+			0 => ValidatorStatus.Created,
+			1 => ValidatorStatus.PreLaunch,
+			2 => ValidatorStatus.Staking,
+			3 => ValidatorStatus.Exited,
+			4 => ValidatorStatus.Dissolved,
+			_ => throw new ArgumentException("Unknown status", nameof(status)),
+		};
 }

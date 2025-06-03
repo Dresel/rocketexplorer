@@ -1,0 +1,57 @@
+@page "/validator/{minipoolAddress}"
+@page "/validator/{megapoolAddress}/{megapoolIndex}"
+@using RocketExplorer.Shared.Nodes
+@using RocketExplorer.Shared.Validators
+@inherits PageBase<RocketExplorer.Shared.Validators.Validator>
+
+<MudText Typo="Typo.h3">Validator History</MudText>
+<MudTimeline TimelinePosition="TimelinePosition.Left">
+	@foreach (ValidatorHistory history in Snapshot?.History ?? [])
+	{
+		<MudTimelineItem Color="Color.Default" Variant="Variant.Filled">
+			<ItemContent>
+				<MudText Typo="Typo.button">@history.Status</MudText>
+				<MudText Typo="Typo.body2" Class="mud-text-secondary">@(DateTimeOffset.FromUnixTimeSeconds(history.Timestamp).ToString("G"))</MudText>
+			</ItemContent>
+		</MudTimelineItem>
+
+        @if (history.Status == ValidatorStatus.Dissolved)
+		{
+            <MudTimelineItem Color="Color.Error" Variant="Variant.Filled">
+				<ItemContent>
+					<MudText Color="Color.Error" Typo="Typo.h6" GutterBottom="true">Dissolved</MudText>
+					<MudText Typo="Typo.body2" Class="mud-text-secondary">@(DateTimeOffset.FromUnixTimeSeconds(history.Timestamp).ToString("G"))</MudText>
+				</ItemContent>
+			</MudTimelineItem>
+		}
+	}
+</MudTimeline>
+
+@code {
+
+	[Parameter]
+	public string? MinipoolAddress { get; set; }
+
+	[Parameter]
+	public string? MegapoolAddress { get; set; }
+
+	[Parameter]
+	public int? MegapoolIndex { get; set; }
+
+	protected override async Task OnParametersSetAsync()
+	{
+		await base.OnParametersSetAsync();
+
+		if (!string.IsNullOrWhiteSpace(MinipoolAddress))
+		{
+			ObjectStoreKey = Keys.MinipoolValidator(MinipoolAddress);
+		}
+		else if (!string.IsNullOrWhiteSpace(MegapoolAddress) && MegapoolIndex != null)
+		{
+			ObjectStoreKey = Keys.MegapoolValidator(MegapoolAddress, MegapoolIndex.Value);
+		}
+	}
+
+	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+}

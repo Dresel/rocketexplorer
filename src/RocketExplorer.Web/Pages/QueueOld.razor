@@ -1,0 +1,337 @@
+@page "/queue-old"
+@using LiveChartsCore.Defaults
+@using LiveChartsCore.Kernel
+@using LiveChartsCore.Kernel.Sketches
+@using LiveChartsCore.SkiaSharpView.Drawing.Geometries
+@using MessagePack
+@using RocketExplorer.Shared.Nodes
+@using RocketExplorer.Shared.Validators
+@using Animation = LiveChartsCore.Drawing.Animation
+@inject ILogger<Queue> Logger
+
+@inject HttpClient Http
+@inject Configuration Configuration
+
+<MudStack>
+	<MudText Typo="Typo.h6">Nodes</MudText>
+	<CartesianChart Series="series" XAxes="xAxes">
+	</CartesianChart>
+</MudStack>
+
+@* <MudGrid Justify="Justify.Center">
+    <MudItem>
+        <div style="width: 600px; height: 300px;">
+            <CartesianChart Series="series" XAxes="xAxes">
+            </CartesianChart>
+        </div>
+    </MudItem>
+    <MudItem>
+        <div style="width: 600px; height: 300px;">
+            <CartesianChart Series="series2" XAxes="xAxes">
+            </CartesianChart>
+        </div>
+    </MudItem>
+</MudGrid>
+
+<MudTable ServerData="LoadQueue" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true">
+    <ToolBarContent>
+        <MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+        AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+        </MudTextField>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>
+            <MudTableSortLabel T="NodeIndexViewModel" SortLabel="ContractAddress">Contract Address</MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel T="NodeIndexViewModel" SortLabel="RegistrationDate" InitialDirection="SortDirection.Ascending">Registration Date</MudTableSortLabel>
+        </MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd Style="font-family: monospace;">
+            <MudLink Style="font-family: monospace;" Typo="Typo.body2" Href="@($"node/{context.ContractAddress.ToLowerInvariant()}")"><MudHighlighter Text="@AddressUtil.Current.ConvertToChecksumAddress(context.ContractAddress)" HighlightedText="@searchString" /></MudLink>
+            <a href="@($"https://{Configuration.EtherscanPrefix}etherscan.io/address/{AddressUtil.Current.ConvertToChecksumAddress(context.ContractAddress)}#code")" target="_blank">
+                <MudIcon Icon="@Icons.Material.Filled.Search" Style="vertical-align: text-bottom" Size="Size.Small" Color="Color.Primary" />
+            </a>
+        </MudTd>
+        <MudTd>@context.RegistrationDate.ToString("G")</MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No matching records found</MudText>
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText>Loading...</MudText>
+    </LoadingContent>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable> *@
+
+@code {
+
+	private NodesSnapshot snapshot = null!;
+	private QueueSnapshot queueSnapshot = null!;
+
+	private QueueSnapshotViewModel viewModel = null!;
+	Task<bool>? loaded;
+
+	private ISeries[] series;
+	private ColumnSeries<DateTimePoint>[] series2;
+
+	private readonly ICartesianAxis[] xAxes = [new DateTimeAxis(TimeSpan.FromDays(1), date => date.ToString("dd.MM.yyyy")),];
+
+	protected override async Task OnInitializedAsync()
+	{
+		Console.WriteLine("On Init");
+
+		TaskCompletionSource<bool> tcs = new();
+		loaded = tcs.Task;
+
+		// TODO: Polly
+		Stream streamAsync = await Http.GetStreamAsync($"https://rocketexplorer.nbg1.your-objectstorage.com/{Configuration.Environment.ToString().ToLower()}/nodes-snapshot.msgpack");
+		snapshot = MessagePackSerializer.Deserialize<NodesSnapshot>(streamAsync, MessagePackSerializerOptions.Standard);
+
+		Stream streamAsync2 = await Http.GetStreamAsync($"https://rocketexplorer.nbg1.your-objectstorage.com/{Configuration.Environment.ToString().ToLower()}/queue-snapshot.msgpack");
+		queueSnapshot = MessagePackSerializer.Deserialize<QueueSnapshot>(streamAsync2, MessagePackSerializerOptions.Standard);
+
+		// viewModel = new()
+		// {
+		//           BlockHeight = queueSnapshot.BlockHeight,
+		//           StandardIndex = queueSnapshot.StandardIndex.Select(x => new MinipoolIndexViewModel
+		//           {
+		//               MegapoolAddress = "0x" + Convert.ToHexString(x.MegapoolAddress),
+		//               MegapoolIndex = x.MegapoolIndex ?? throw new InvalidOperationException("MegapoolIndex must not be null"),
+		//               ExpressTicketUsed = x.ExpressTicketUsed,
+		//               RegistrationDate = x.RegistrationDate,
+		//               Bond = x.Bond,
+		//           }).ToArray(),
+		//           ExpressIndex = queueSnapshot.ExpressIndex.Select(x => new MinipoolIndexViewModel
+		//           {
+		//               MegapoolAddress = x.MegapoolAddress,
+		//               MegapoolIndex = x.MegapoolIndex,
+		//               ExpressTicketUsed = x.ExpressTicketUsed,
+		//               RegistrationDate = x.RegistrationDate,
+		//               Bond = x.Bond,
+		//           }).ToArray(),
+		// }
+
+		tcs.TrySetResult(true);
+
+		LineSeries<DateTimePoint> columnSeries = new()
+		{
+			LineSmoothness = 0,
+		};
+
+		// asdf.PointMeasured += OnPointMeasured;
+		series = [columnSeries,];
+
+		List<DateTimePoint> columnSeriesValues = FillGaps(queueSnapshot.TotalQueueCount).Select(x => new DateTimePoint(new DateTime(x.Key.Year, x.Key.Month, x.Key.Day), x.Value)).ToList();
+
+		Logger.LogInformation("{data}", columnSeriesValues);
+		columnSeries.Values = columnSeriesValues;
+
+		// asdf.Values = snapshot.DailyRegistrations.GroupBy(x => (x.Key.Month, x.Key.Year)).Select(x => new DateTimePoint(new DateTime(x.Key.Year, x.Key.Month, 1), x.Sum(x => x.Value))).ToList();
+
+		series2 =
+		[
+			new ColumnSeries<DateTimePoint>(queueSnapshot.DailyEnqueued.Select(x => new DateTimePoint(new DateTime(x.Key.Year, x.Key.Month, x.Key.Day), x.Value)).ToList()),
+			new ColumnSeries<DateTimePoint>(queueSnapshot.DailyDequeued.Select(x => new DateTimePoint(new DateTime(x.Key.Year, x.Key.Month, x.Key.Day), x.Value * -1)).ToList()),
+			new ColumnSeries<DateTimePoint>(queueSnapshot.DailyVoluntaryExits.Select(x => new DateTimePoint(new DateTime(x.Key.Year, x.Key.Month, x.Key.Day), x.Value * -1)).ToList()),
+		];
+
+		await base.OnInitializedAsync();
+	}
+
+	private void OnPointMeasured(ChartPoint<DateTimePoint, RoundedRectangleGeometry, LabelGeometry> point)
+	{
+		int perPointDelay = 10; // in milliseconds
+		int delay = point.Context.Entity.MetaData!.EntityIndex * perPointDelay;
+		float speed = (float)point.Context.Chart.AnimationsSpeed.TotalMilliseconds + delay;
+
+		// the animation takes a function, that represents the progress of the animation
+		// the parameter is the progress of the animation, it goes from 0 to 1
+		// the function must return a value from 0 to 1, where 0 is the initial state
+		// and 1 is the end state
+
+		point.Visual?.SetTransition(
+			new Animation(
+				progress =>
+				{
+					float d = delay / speed;
+
+					return progress <= d
+						? 0
+						: EasingFunctions.BuildCustomElasticOut(1.5f, 0.60f)((progress - d) / (1 - d));
+				},
+				TimeSpan.FromMilliseconds(speed)));
+	}
+
+	public static IEnumerable<KeyValuePair<DateOnly, int>> FillGaps(ICollection<KeyValuePair<DateOnly, int>> data)
+	{
+		if (data.Count == 0)
+		{
+			yield break;
+		}
+
+		KeyValuePair<DateOnly, int> previous = data.First();
+		yield return previous;
+
+		foreach (KeyValuePair<DateOnly, int> point in data.Skip(1))
+		{
+			DateOnly currentDay = previous.Key.AddDays(1);
+
+			while (currentDay < point.Key)
+			{
+				yield return new KeyValuePair<DateOnly, int>(currentDay, previous.Value);
+				currentDay = currentDay.AddDays(1);
+			}
+
+			yield return point;
+			previous = point;
+		}
+	}
+
+	public class MinipoolIndexViewModel
+	{
+		public required string NodeAddress { get; init; }
+
+		public required string MegapoolAddress { get; init; }
+
+		public required int MegapoolIndex { get; init; }
+
+		public required string PubKey { get; init; }
+
+		public required DateTimeOffset RegistrationDate { get; init; }
+	}
+
+	private async Task<TableData<MinipoolIndexViewModel>> LoadNodes(TableState state, CancellationToken token)
+	{
+		await (loaded ?? throw new InvalidOperationException());
+
+		IEnumerable<(ValidatorIndexEntry entry, int index)> items = Zip(queueSnapshot.StandardIndex, queueSnapshot.ExpressIndex, 0, 2)
+			.Select((item, index) => (entry: item, index));
+
+		// if (state.SortLabel is nameof(NodeIndexViewModel.ContractAddress))
+		//       {
+		//           items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.ContractAddress).ToList() : items.OrderByDescending(x => x.ContractAddress).ToList();
+		//       }
+
+		//       if (state.SortLabel is nameof(NodeIndexViewModel.RegistrationDate))
+		//       {
+		//           items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.RegistrationDate).ToList() : items.OrderByDescending(x => x.RegistrationDate).ToList();
+		//       }
+
+		// if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
+		// {
+		//     items = items.Where(x => x.ContractAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToArray();
+		// }
+
+		(List<(ValidatorIndexEntry entry, int index)> Items, int TotalItems) paginatedResult = items.Paginate(state.Page, state.PageSize);
+
+		int count = items.Count();
+		items = items.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList();
+
+		//       return new TableData<MinipoolIndexViewModel>
+		// {
+		// 	TotalItems = paginatedResult.TotalItems,
+		// 	Items = paginatedResult.Items.Select(x => new MinipoolIndexViewModel() {})
+		// };
+
+		return null;
+	}
+
+	public static IEnumerable<T> Zip<T>(
+		IEnumerable<T> normal,
+		IEnumerable<T> express,
+		int index, int rate)
+	{
+		using IEnumerator<T> expressEnumerator = express.GetEnumerator();
+
+		for (int i = index; i % (rate + 1) == 0; i++)
+		{
+			if (expressEnumerator.MoveNext())
+			{
+				yield return expressEnumerator.Current;
+			}
+		}
+
+		using IEnumerator<T> normalEnumerator = normal.GetEnumerator();
+
+		while (true)
+		{
+			if (normalEnumerator.MoveNext())
+			{
+				yield return normalEnumerator.Current;
+			}
+			else
+			{
+				break;
+			}
+
+			for (int i = 0; i < rate; i++)
+			{
+				if (expressEnumerator.MoveNext())
+				{
+					yield return expressEnumerator.Current;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+
+		while (normalEnumerator.MoveNext())
+		{
+			yield return normalEnumerator.Current;
+		}
+
+		while (expressEnumerator.MoveNext())
+		{
+			yield return expressEnumerator.Current;
+		}
+	}
+
+	public record class QueueSnapshotViewModel
+	{
+		public long BlockHeight { get; init; }
+
+		public required MinipoolIndexViewModel[] StandardIndex { get; init; }
+
+		public required MinipoolIndexViewModel[] ExpressIndex { get; init; }
+
+		// TODO: Check
+		// // [Key(4)]
+		// // public required SortedList<DateOnly, int> TotalQueueCount { get; init; }
+
+		// // [Key(5)]
+		// // public required Dictionary<DateOnly, int> DailyEnqueued { get; init; }
+
+		// // [Key(6)]
+		// // public required Dictionary<DateOnly, int> DailyDequeued { get; init; }
+
+		// // [Key(7)]
+		// // public required Dictionary<DateOnly, int> DailyVoluntaryExits { get; init; }
+	}
+
+}
+
+
+<script>
+	const container = document.getElementById('test');
+
+	function onResize() {
+		// Grab the window’s innerWidth
+		const w = window.innerWidth;
+		// Round it to the nearest multiple of 10
+		const snappedWidth = Math.round(w / 10) * 10;
+		// Update the container’s width
+		container.style.width = snappedWidth + 'px';
+	}
+
+	// Attach the resize listener
+	window.addEventListener('resize', onResize);
+
+	// Call once on page load
+	onResize();
+</script>

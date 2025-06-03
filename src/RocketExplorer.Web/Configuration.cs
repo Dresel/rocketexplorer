@@ -17,6 +17,8 @@ public class Configuration
 			_ => Environment.Mainnet,
 		};
 
+		Environment = Environment.Testnet;
+
 		Network = Environment switch
 		{
 			Environment.Devnet => Network.Hoodi,

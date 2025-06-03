@@ -29,9 +29,12 @@ public abstract class PageBase<T> : ComponentBase
 
 	protected string? ObjectStoreKey { get; set; }
 
-	protected string ObjectStoreUrl => $"{Configuration.ObjectStoreBaseUrl}/{ObjectStoreKey}";
+	protected string ObjectStoreUrl =>
+		!string.IsNullOrWhiteSpace(ObjectStoreKey) ? GetObjectStoreUrl(ObjectStoreKey) : string.Empty;
 
 	protected T? Snapshot { get; set; }
+
+	protected string GetObjectStoreUrl(string key) => $"{Configuration.ObjectStoreBaseUrl}/{key}";
 
 	protected async Task LoadAsync(CancellationToken cancellationToken = default)
 	{

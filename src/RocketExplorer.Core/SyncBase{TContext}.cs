@@ -11,7 +11,7 @@ namespace RocketExplorer.Core;
 public abstract class SyncBase<TContext>(IOptions<SyncOptions> options, Storage storage, ILogger logger)
 	where TContext : ContextBase
 {
-	private const long BlockRange = 100000;
+	private const long BlockRange = 25000;
 
 	protected ILogger Logger { get; set; } = logger;
 
@@ -41,7 +41,7 @@ public abstract class SyncBase<TContext>(IOptions<SyncOptions> options, Storage 
 		{
 			long toBlock = Math.Min(currentBlock + BlockRange - 1, latestBlock);
 
-			Logger.LogDebug("Processing block {FromBlock} to {ToBlock}", currentBlock, toBlock);
+			Logger.LogInformation("Processing block {FromBlock} to {ToBlock}", currentBlock, toBlock);
 			await HandleBlocksAsync(context, currentBlock, toBlock, latestBlock, cancellationToken);
 			context.CurrentBlockHeight = toBlock;
 

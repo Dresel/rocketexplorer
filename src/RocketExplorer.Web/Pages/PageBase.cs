@@ -1,3 +1,4 @@
+using System.Threading;
 using Microsoft.AspNetCore.Components;
 
 namespace RocketExplorer.Web.Pages;
@@ -41,7 +42,6 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 	{
 		if (disposing)
 		{
-			HttpClient.Dispose();
 			AppState.OnAppStateChanged -= OnAppStateChanged;
 		}
 	}
@@ -67,11 +67,7 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 			await OnAfterSnapshotLoadedAsync(cancellationToken);
 			this.taskCompletionSource.TrySetResult();
 		}
-
-		await OnAfterAppStateChanged(cancellationToken);
 	}
-
-	protected abstract Task OnAfterAppStateChanged(CancellationToken cancellationToken = default);
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{

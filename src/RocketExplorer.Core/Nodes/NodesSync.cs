@@ -100,23 +100,23 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 					context, log.Address.ConvertToEthereumChecksumAddress(), @event.Status.ToValidatorStatus(), null,
 					@event.Time, log, innerCancellationToken), cancellationToken);
 
-			//await eventLog.WhenIsAsync<MegapoolValidatorEnqueuedEventDTO>(
-			//	(@event, log, innerCancellationToken) => EventAddNewMegapoolValidator(
-			//		context, @event, log, innerCancellationToken), cancellationToken);
+			await eventLog.WhenIsAsync<MegapoolValidatorEnqueuedEventDTO>(
+				(@event, log, innerCancellationToken) => EventAddNewMegapoolValidator(
+					context, @event, log, innerCancellationToken), cancellationToken);
 
-			//await eventLog.WhenIsAsync<MegapoolValidatorAssignedEventDTO>(
-			//	(@event, log, innerCancellationToken) => EventUpdateMegapoolValidatorAsync(
-			//		context, context.Web3, log.Address.ConvertToEthereumChecksumAddress(), (int)@event.ValidatorId,
-			//		ValidatorStatus.Staking,
-			//		@event.Time,
-			//		log, innerCancellationToken), cancellationToken);
+			await eventLog.WhenIsAsync<MegapoolValidatorAssignedEventDTO>(
+				(@event, log, innerCancellationToken) => EventUpdateMegapoolValidatorAsync(
+					context, context.Web3, log.Address.ConvertToEthereumChecksumAddress(), (int)@event.ValidatorId,
+					ValidatorStatus.Staking,
+					@event.Time,
+					log, innerCancellationToken), cancellationToken);
 
-			//await eventLog.WhenIsAsync<MegapoolValidatorDequeuedEventDTO>(
-			//	(@event, log, innerCancellationToken) => EventUpdateMegapoolValidatorAsync(
-			//		context, context.Web3, log.Address.ConvertToEthereumChecksumAddress(), (int)@event.ValidatorId,
-			//		ValidatorStatus.Dequeued,
-			//		@event.Time,
-			//		log, innerCancellationToken), cancellationToken);
+			await eventLog.WhenIsAsync<MegapoolValidatorDequeuedEventDTO>(
+				(@event, log, innerCancellationToken) => EventUpdateMegapoolValidatorAsync(
+					context, context.Web3, log.Address.ConvertToEthereumChecksumAddress(), (int)@event.ValidatorId,
+					ValidatorStatus.Dequeued,
+					@event.Time,
+					log, innerCancellationToken), cancellationToken);
 		}
 	}
 
@@ -268,16 +268,19 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				}, cancellationToken: cancellationToken);
 		}
 
-		foreach ((string minipoolAddress, Validator validator) in context.ValidatorInfo.Validators)
-		{
-			Logger.LogInformation("Writing {snapshot}", Keys.MinipoolValidator(minipoolAddress));
-			await Storage.WriteAsync(
-				Keys.MinipoolValidator(minipoolAddress), new BlobObject<Validator>
-				{
-					ProcessedBlockNumber = context.CurrentBlockHeight,
-					Data = validator,
-				}, cancellationToken: cancellationToken);
-		}
+		await Parallel.ForEachAsync(
+			context.ValidatorInfo.Validators, cancellationToken, async (validatorEntry, innerCancellationToken) =>
+			{
+				(string minipoolAddress, Validator validator) = validatorEntry;
+
+				Logger.LogInformation("Writing {snapshot}", Keys.MinipoolValidator(minipoolAddress));
+				await Storage.WriteAsync(
+					Keys.MinipoolValidator(minipoolAddress), new BlobObject<Validator>
+					{
+						ProcessedBlockNumber = context.CurrentBlockHeight,
+						Data = validator,
+					}, cancellationToken: innerCancellationToken);
+			});
 	}
 
 	private async Task EventAddMinipoolValidatorAsync(

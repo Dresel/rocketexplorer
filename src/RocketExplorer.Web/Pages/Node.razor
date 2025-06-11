@@ -6,45 +6,38 @@
 @inherits PageBase<RocketExplorer.Shared.Nodes.Node>
 
 <PageTitle>Node @Address</PageTitle>
-
-<MudGrid>
-	<MudItem>
-		<MudText Typo="Typo.subtitle2" Class="font-weight-bold">Title:</MudText>
-	</MudItem>
-	<MudItem>
-		<MudText Typo="Typo.body1">Text</MudText>
-	</MudItem>
-	<MudFlexBreak />
-	<MudItem>
-		<MudText Typo="Typo.subtitle2" Class="font-weight-bold">Title:</MudText>
-	</MudItem>
-	<MudItem>
-		<MudText Typo="Typo.body1">Text</MudText>
-	</MudItem>
-</MudGrid>
-
-<MudStack>
-	<MudText Typo="Typo.h4" Align="Align.Center">Node Operator <Address ContractAddress="@Address" AppendEtherscanCodeAnchor="true"></Address></MudText>
-	
+<MudStack Spacing="6">
+	<MudContainer Class="mud-typography-align-center">
+		<MudText Typo="Typo.h4" Align="Align.Center">Node Operator</MudText>
+		<Address Typo="Typo.body1" Expanded="true" ContractAddress="@Address" AppendEtherscanCodeAnchor="true"></Address>
+	</MudContainer>
 	@if (Snapshot == null)
 	{
 		<div>Node not found</div>
 	}
 	else
 	{
-		
-		<div>@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.ContractAddress)</div>
-		<div>@DateTimeOffset.FromUnixTimeSeconds(Snapshot.Data.RegistrationTimestamp).ToString("G")</div>
-		<div>Timezone: @Snapshot.Data.Timezone</div>
-		<div>@Snapshot.Data.MinipoolValidators.Count() minipools</div>
+		<MudStack Spacing="2" Wrap="Wrap.Wrap" Row="true">
+			<MudItem Class="label">
+				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Registration Date</MudText>
+			</MudItem>
+			<MudItem>
+				<MudText Typo="Typo.body1">@DateTimeOffset.FromUnixTimeSeconds(Snapshot.Data.RegistrationTimestamp).ToString("G")</MudText>
+			</MudItem>
+			<MudFlexBreak />
+			<MudItem Class="label">
+				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Timezone</MudText>
+			</MudItem>
+			<MudItem>
+				<MudText Typo="Typo.body1">@Snapshot.Data.Timezone</MudText>
+			</MudItem>
+		</MudStack>
 
+		<MudText Typo="Typo.h6" Align="Align.Center">@Snapshot.Data.MinipoolValidators.Count() Minipool Validators</MudText>
 
-
-		<MudText Typo="Typo.h6" Align="Align.Center">Minipool Validators</MudText>
-
-		<MudTable Class="mt-0" ServerData="LoadMinipoolValidators" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
+		<MudTable Class="mt-0" ServerData="LoadMinipoolValidators" Dense="true" Hover="true" @ref="minipoolTable" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
 			<ToolBarContent>
-				<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+				<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnMinipoolSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
 					AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
 				</MudTextField>
 			</ToolBarContent>
@@ -57,7 +50,40 @@
 			</HeaderContent>
 			<RowTemplate>
 				<MudTd>
-					<Address ContractAddress="@context.MinipoolAddress" HighlightedText="@searchString" HrefPlaceholder="validator/{0}" AppendEtherscanCodeAnchor="true"></Address>
+					<Address ContractAddress="@context.MinipoolAddress" HighlightedText="@minipoolSearchString" HrefPlaceholder="validator/{0}" AppendEtherscanCodeAnchor="true"></Address>
+				</MudTd>
+				<MudTd>@context.ValidatorStatus</MudTd>
+				<MudTd>@context.History.First().Timestamp.ToString("G")</MudTd>
+			</RowTemplate>
+			<NoRecordsContent>
+				<MudText>No matching records found</MudText>
+			</NoRecordsContent>
+			<LoadingContent>
+				<MudText>Loading...</MudText>
+			</LoadingContent>
+			<PagerContent>
+				<MudTablePager />
+			</PagerContent>
+		</MudTable>
+
+		<MudText Typo="Typo.h6" Align="Align.Center">@Snapshot.Data.MegapoolValidators.Count() Megapool Validators</MudText>
+
+		<MudTable Class="mt-0" ServerData="LoadMegapoolValidators" Dense="true" Hover="true" @ref="megapoolTable" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
+			<ToolBarContent>
+				<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnMegapoolSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+					AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+				</MudTextField>
+			</ToolBarContent>
+			<HeaderContent>
+				<MudTh>
+					<MudTableSortLabel T="ValidatorViewModel" SortLabel="MegapoolAddress">Megapool Index</MudTableSortLabel>
+				</MudTh>
+				<MudTh>Status</MudTh>
+				<MudTh>Registration Date</MudTh>
+			</HeaderContent>
+			<RowTemplate>
+				<MudTd>
+					<Address ContractAddress="@context.MinipoolAddress" HighlightedText="@minipoolSearchString" HrefPlaceholder="validator/{0}" AppendEtherscanCodeAnchor="true"></Address>
 				</MudTd>
 				<MudTd>@context.ValidatorStatus</MudTd>
 				<MudTd>@context.History.First().Timestamp.ToString("G")</MudTd>
@@ -77,13 +103,17 @@
 
 @code {
 
-	private MudTable<ValidatorViewModel> table = null!;
-	private string searchString = string.Empty;
-
 	[Parameter]
 	public string? Address { get; set; }
 
+	private MudTable<ValidatorViewModel> minipoolTable = null!;
+	private string minipoolSearchString = string.Empty;
+
+	private MudTable<ValidatorViewModel> megapoolTable = null!;
+	private string megapoolSearchString = string.Empty;
+
 	private ValidatorIndexViewModel[] minipoolValidators = [];
+	private ValidatorIndexViewModel[] megapoolValidators = [];
 
 	protected override async Task OnParametersSetAsync()
 	{
@@ -95,10 +125,16 @@
 		}
 	}
 
-	private void OnSearch(string text)
+	private void OnMinipoolSearch(string text)
 	{
-		searchString = text;
-		table.ReloadServerData();
+		minipoolSearchString = text;
+		minipoolTable.ReloadServerData();
+	}
+
+	private void OnMegapoolSearch(string text)
+	{
+		megapoolSearchString = text;
+		megapoolTable.ReloadServerData();
 	}
 
 	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
@@ -106,6 +142,12 @@
 		minipoolValidators = Snapshot!.Data.MinipoolValidators.Select(x => new ValidatorIndexViewModel
 		{
 			MinipoolAddress = "0x" + Convert.ToHexString(x.MinipoolAddress!),
+		}).ToArray();
+
+		megapoolValidators = Snapshot!.Data.MegapoolValidators.Select(x => new ValidatorIndexViewModel
+		{
+			MegapoolAddress = "0x" + Convert.ToHexString(x.MegapoolAddress!),
+			MegapoolIndex = x.MegapoolIndex,
 		}).ToArray();
 
 		return Task.CompletedTask;
@@ -122,9 +164,9 @@
 			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.MinipoolAddress).ToList() : items.OrderByDescending(x => x.MinipoolAddress).ToList();
 		}
 
-		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
+		if (!string.IsNullOrWhiteSpace(minipoolSearchString) && minipoolSearchString.Length > 1)
 		{
-			items = items.Where(x => x.MinipoolAddress!.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToArray();
+			items = items.Where(x => x.MinipoolAddress!.Contains(minipoolSearchString, StringComparison.OrdinalIgnoreCase)).ToArray();
 		}
 
 		int count = items.Count();
@@ -135,7 +177,52 @@
 			
 			return new ValidatorViewModel
 			{
-				MinipoolAddress = "0x" + Convert.ToHexString(validatorSnapshot.MinipoolAddress!),
+				MinipoolAddress = x.MinipoolAddress,
+				PubKey = validatorSnapshot.PubKey != null ? "0x" + Convert.ToHexString(validatorSnapshot.PubKey) : null,
+				ValidatorStatus = validatorSnapshot.Status,
+				History = validatorSnapshot!.History.Select(x => new ValidatorHistoryViewModel
+				{
+					Timestamp = DateTimeOffset.FromUnixTimeSeconds(x.Timestamp),
+					Status = x.Status,
+				}).ToArray(),
+			};
+		}).ToList();
+
+		ValidatorViewModel[] validators = await Task.WhenAll(query);
+
+		return new TableData<ValidatorViewModel>
+		{
+			TotalItems = count,
+			Items = validators,
+		};
+	}
+
+	private async Task<TableData<ValidatorViewModel>> LoadMegapoolValidators(TableState state, CancellationToken token)
+	{
+		await LoadedTask;
+
+		IEnumerable<ValidatorIndexViewModel> items = megapoolValidators;
+
+		if (state.SortLabel is nameof(ValidatorIndexViewModel.MegapoolIndex))
+		{
+			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.MegapoolIndex).ToList() : items.OrderByDescending(x => x.MegapoolIndex).ToList();
+		}
+
+		if (!string.IsNullOrWhiteSpace(megapoolSearchString) && megapoolSearchString.Length > 1)
+		{
+			// TODO: Index Search?
+		}
+
+		int count = items.Count();
+
+		List<Task<ValidatorViewModel>> query = items.Skip(state.Page * state.PageSize).Take(state.PageSize).Select(async x =>
+		{
+			Shared.Validators.Validator validatorSnapshot = MessagePackSerializer.Deserialize<Shared.Validators.Validator>(await HttpClient.GetStreamAsync(GetObjectStoreUrl(Keys.MegapoolValidator(x.MegapoolAddress!, x.MegapoolIndex!.Value)), token));
+			
+			return new ValidatorViewModel
+			{
+				MegapoolAddress = x.MegapoolAddress,
+				MegapoolIndex = x.MegapoolIndex,
 				PubKey = validatorSnapshot.PubKey != null ? "0x" + Convert.ToHexString(validatorSnapshot.PubKey) : null,
 				ValidatorStatus = validatorSnapshot.Status,
 				History = validatorSnapshot!.History.Select(x => new ValidatorHistoryViewModel

@@ -8,16 +8,16 @@
 
 @* TODO: Make title variant *@
 
-<div>
+<div class="@Class">
 	@if (string.IsNullOrWhiteSpace(HrefPlaceholder))
 	{
-		<MudText Typo="Typo.body2" Color="Color.Primary" Class="d-inline" Style="font-family: monospace;">
+		<MudText Typo="Typo" Color="Color.Primary" Class="d-inline" Style="font-family: monospace;">
 			<MudHighlighter Text="@displayContractAddress" HighlightedTexts="@displayHighlightedTexts" />
 		</MudText>
 	}
 	else
 	{
-		<MudLink Typo="Typo.body2" Style="font-family: monospace;" Href="@string.Format(HrefPlaceholder, contractChecksumAddress)">
+		<MudLink Typo="Typo" Style="font-family: monospace;" Href="@string.Format(HrefPlaceholder, contractChecksumAddress)">
 			<MudHighlighter Text="@displayContractAddress" HighlightedTexts="@displayHighlightedTexts" />
 		</MudLink>
 	}
@@ -32,6 +32,12 @@
 	private IJSObjectReference? module;
 
 	[Parameter]
+	public Typo Typo { get; set; } = Typo.body2;
+
+	[Parameter]
+	public string Class { get; set; } = string.Empty;
+
+	[Parameter]
 	public string HrefPlaceholder { get; set; } = string.Empty;
 
 	[Parameter]
@@ -42,6 +48,9 @@
 
 	[Parameter]
 	public bool AppendEtherscanCodeAnchor { get; set; }
+
+	[Parameter]
+	public bool Expanded { get; set; }
 
 	[Parameter]
 	public int PrefixLength { get; set; } = 6;
@@ -78,6 +87,12 @@
 			await BrowserViewportService.SubscribeAsync(this);
 
 			module = await JS.InvokeAsync<IJSObjectReference>("import", "./Components/Address.razor.js");
+
+			if (Expanded)
+			{
+				PrefixLength = 42;
+				SuffixLength = 42;
+			}
 		}
 
 		await base.OnAfterRenderAsync(firstRender);
@@ -158,6 +173,12 @@
 				PrefixLength = 42;
 				SuffixLength = 42;
 				break;
+		}
+
+		if (Expanded)
+		{
+			PrefixLength = 42;
+			SuffixLength = 42;
 		}
 
 		displayContractAddress = PrefixLength + SuffixLength < contractChecksumAddress.Length ? $"{contractChecksumAddress[..PrefixLength]}...{contractChecksumAddress[^SuffixLength..]}" : contractChecksumAddress;

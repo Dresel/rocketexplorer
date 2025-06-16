@@ -1,6 +1,5 @@
 @page "/node/{address}"
 @using MessagePack
-@using Nethereum.Util
 @using RocketExplorer.Shared.Nodes
 @using RocketExplorer.Shared.Validators
 @inherits PageBase<RocketExplorer.Shared.Nodes.Node>
@@ -30,6 +29,13 @@
 			</MudItem>
 			<MudItem>
 				<MudText Typo="Typo.body1">@Snapshot.Data.Timezone</MudText>
+			</MudItem>
+			<MudFlexBreak />
+			<MudItem Class="label">
+				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Megapool Address</MudText>
+			</MudItem>
+			<MudItem>
+				<Address Typo="Typo.body1" ContractAddress="@("0x" + Convert.ToHexString(Snapshot.Data.MegapoolAddress!))" HighlightedText="@minipoolSearchString" AppendEtherscanCodeAnchor="true"></Address>
 			</MudItem>
 		</MudStack>
 
@@ -82,9 +88,7 @@
 				<MudTh>Registration Date</MudTh>
 			</HeaderContent>
 			<RowTemplate>
-				<MudTd>
-					<Address ContractAddress="@context.MinipoolAddress" HighlightedText="@minipoolSearchString" HrefPlaceholder="validator/{0}" AppendEtherscanCodeAnchor="true"></Address>
-				</MudTd>
+				<MudTd><MudLink Typo="Typo.body2" Href="@($"validator/{context.MegapoolAddress}/{context.MegapoolIndex}")">Validator #@context.MegapoolIndex</MudLink></MudTd>
 				<MudTd>@context.ValidatorStatus</MudTd>
 				<MudTd>@context.History.First().Timestamp.ToString("G")</MudTd>
 			</RowTemplate>

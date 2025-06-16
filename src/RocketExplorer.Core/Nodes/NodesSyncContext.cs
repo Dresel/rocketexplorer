@@ -47,11 +47,12 @@ public class ValidatorInfo
 {
 	public required string[] RocketMinipoolManagerAddresses { get; init; }
 
-	public required Dictionary<string, ValidatorIndexEntry> ValidatorIndex { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+	// TODO: MegapoolValidatorIndex
+	public required Dictionary<string, ValidatorIndexEntry> MinipoolValidatorIndex { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
-	public Dictionary<string, Validator> Validators { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+	public Dictionary<string, Validator> MinipoolValidators { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
-	public Dictionary<string, Dictionary<int, Validator>> MegaMinipools { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+	public Dictionary<string, Dictionary<int, Validator>> MegapoolValidators { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
 	public Dictionary<string, string> MegapoolNodeOperatorMap { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 

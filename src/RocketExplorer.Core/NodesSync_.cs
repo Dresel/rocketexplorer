@@ -223,7 +223,7 @@
 //		NodesSyncContext context, Web3 web3, MegapoolValidatorEnqueuedEventDTO @event, FilterLog log)
 //	{
 //		string megapoolAddress = @event.Megapool;
-//		context.MegaMinipools.TryAdd(megapoolAddress, []);
+//		context.MegapoolValidators.TryAdd(megapoolAddress, []);
 
 //		RocketMegapoolDelegateService megapoolDelegate = new(web3, megapoolAddress);
 
@@ -260,9 +260,9 @@
 //			Type = MinipoolType.Megapool,
 //		};
 
-//		context.MegaMinipools[megapoolAddress].Add(minipool);
-//		context.Nodes[nodeOperatorAddress].MegaMinipools =
-//			[..context.Nodes[nodeOperatorAddress].MegaMinipools, minipool,];
+//		context.MegapoolValidators[megapoolAddress].Add(minipool);
+//		context.Nodes[nodeOperatorAddress].MegapoolValidators =
+//			[..context.Nodes[nodeOperatorAddress].MegapoolValidators, minipool,];
 
 //		if (!validatorInfo.ReturnValue1.ExpressUsed)
 //		{
@@ -323,7 +323,7 @@
 //		BigInteger eventTime,
 //		FilterLog log)
 //	{
-//		context.MegaMinipools.TryAdd(megapoolAddress, []);
+//		context.MegapoolValidators.TryAdd(megapoolAddress, []);
 
 //		RocketMegapoolDelegateService megapoolDelegate = new(web3, megapoolAddress);
 
@@ -338,18 +338,18 @@
 //				return;
 //			}
 
-//			context.MegaMinipools[megapoolAddress] = context.Nodes[nodeOperatorAddress].MegaMinipools.ToList();
+//			context.MegapoolValidators[megapoolAddress] = context.Nodes[nodeOperatorAddress].MegapoolValidators.ToList();
 //		}
 
-//		context.MegaMinipools[megapoolAddress][validatorId].Status = status;
+//		context.MegapoolValidators[megapoolAddress][validatorId].Status = status;
 
 //		if (status == MinipoolStatus.Staking || status == MinipoolStatus.Dequeued)
 //		{
 //			int h = 0;
 //			h += context.StandardQueue.RemoveAll(
-//				x => x.ContractAddress == context.MegaMinipools[megapoolAddress][validatorId].PubKey);
+//				x => x.ContractAddress == context.MegapoolValidators[megapoolAddress][validatorId].PubKey);
 //			h += context.ExpressQueue.RemoveAll(
-//				x => x.ContractAddress == context.MegaMinipools[megapoolAddress][validatorId].PubKey);
+//				x => x.ContractAddress == context.MegapoolValidators[megapoolAddress][validatorId].PubKey);
 
 //			Debug.Assert(h == 1, "Only one element should be removed");
 

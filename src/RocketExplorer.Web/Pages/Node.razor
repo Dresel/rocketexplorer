@@ -82,7 +82,7 @@
 			</ToolBarContent>
 			<HeaderContent>
 				<MudTh>
-					<MudTableSortLabel T="ValidatorViewModel" SortLabel="MegapoolAddress">Megapool Index</MudTableSortLabel>
+					<MudTableSortLabel T="ValidatorViewModel" SortLabel="MegapoolIndex">Megapool Index</MudTableSortLabel>
 				</MudTh>
 				<MudTh>Status</MudTh>
 				<MudTh>Registration Date</MudTh>
@@ -209,7 +209,7 @@
 
 		if (state.SortLabel is nameof(ValidatorIndexViewModel.MegapoolIndex))
 		{
-			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.MegapoolIndex).ToList() : items.OrderByDescending(x => x.MegapoolIndex).ToList();
+			items = state.SortDirection <= SortDirection.Ascending ? items.OrderBy(x => x.MegapoolIndex).ToList() : items.OrderByDescending(x => x.MegapoolIndex).ToList();
 		}
 
 		if (!string.IsNullOrWhiteSpace(megapoolSearchString) && megapoolSearchString.Length > 1)

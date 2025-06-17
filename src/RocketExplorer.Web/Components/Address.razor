@@ -22,42 +22,49 @@
 		</MudLink>
 	}
 	<MudIconButton Icon="@Icons.Material.Filled.CopyAll" Style="padding-right: 0; vertical-align: top;" Size="Size.Small" Color="Color.Primary" OnClick="@(() => module?.InvokeVoidAsync("copyToClipboard", contractChecksumAddress))" />
-	<a href="@($"https://{Configuration.EtherscanPrefix}etherscan.io/address/{contractChecksumAddress}{(AppendEtherscanCodeAnchor ? "#code" : "")}")" target="_blank">
+	<a href="@LookupUrl" target="_blank">
 		<MudIconButton Icon="@Icons.Material.Filled.ArrowOutward" Style="padding: 0; vertical-align: sub;" Size="Size.Small" Color="Color.Primary" />
 	</a>
 </div>
 
 @code
 {
-	private IJSObjectReference? module;
+    private IJSObjectReference? module;
 
-	[Parameter]
-	public Typo Typo { get; set; } = Typo.body2;
+    [Parameter]
+    public Typo Typo { get; set; } = Typo.body2;
 
-	[Parameter]
-	public string Class { get; set; } = string.Empty;
+    [Parameter]
+    public string Class { get; set; } = string.Empty;
 
-	[Parameter]
-	public string HrefPlaceholder { get; set; } = string.Empty;
+    [Parameter]
+    public string HrefPlaceholder { get; set; } = string.Empty;
 
-	[Parameter]
-	public string ContractAddress { get; set; } = string.Empty;
+    [Parameter]
+    public string ContractAddress { get; set; } = string.Empty;
 
-	[Parameter]
-	public string HighlightedText { get; set; } = string.Empty;
+    [Parameter]
+    public string HighlightedText { get; set; } = string.Empty;
 
-	[Parameter]
-	public bool AppendEtherscanCodeAnchor { get; set; }
+    [Parameter]
+    public bool AppendEtherscanCodeAnchor { get; set; }
 
-	[Parameter]
-	public bool Expanded { get; set; }
+    [Parameter]
+    public bool Expanded { get; set; }
 
-	[Parameter]
-	public int PrefixLength { get; set; } = 6;
+    [Parameter]
+    public int PrefixLength { get; set; } = 6;
 
-	[Parameter]
-	public int SuffixLength { get; set; } = 4;
+    [Parameter]
+    public int SuffixLength { get; set; } = 4;
 
+    [Parameter]
+    public bool IsPubKey { get; set; }
+
+    private string LookupUrl => !IsPubKey ?
+        $"https://{Configuration.EtherscanPrefix}etherscan.io/address/{contractChecksumAddress}{(AppendEtherscanCodeAnchor ? "#code" : "")}" :
+            $"https://{Configuration.EtherscanPrefix}beaconcha.in/validator/{contractChecksumAddress}";
+    
 	Guid IBrowserViewportObserver.Id { get; } = Guid.NewGuid();
 
 	private string displayContractAddress = string.Empty;
@@ -102,7 +109,8 @@
 	{
 		base.OnParametersSet();
 
-		contractChecksumAddress = AddressUtil.Current.ConvertToChecksumAddress(ContractAddress);
+		contractChecksumAddress = AddressUtil.Current.IsValidEthereumAddressHexFormat(ContractAddress) ?
+			AddressUtil.Current.ConvertToChecksumAddress(ContractAddress) : ContractAddress;
 
 		displayContractAddress = PrefixLength + SuffixLength < contractChecksumAddress.Length ? $"{contractChecksumAddress[..PrefixLength]}...{contractChecksumAddress[^SuffixLength..]}" : contractChecksumAddress;
 		displayHighlightedTexts = ExtractHighlightTexts().OrderByDescending(x => x.Length);

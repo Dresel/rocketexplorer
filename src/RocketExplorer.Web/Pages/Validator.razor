@@ -1,5 +1,6 @@
 @page "/validator/{minipoolAddress}"
 @page "/validator/{megapoolAddress}/{megapoolIndex:int}"
+@using Nethereum.Hex.HexConvertors.Extensions
 @using Nethereum.Util
 @using RocketExplorer.Shared.Nodes
 @using RocketExplorer.Shared.Validators
@@ -51,6 +52,20 @@
 					</MudItem>
 					<MudItem>
 						<MudText Typo="Typo.body1">@Snapshot.Data.Type</MudText>
+					</MudItem>
+					<MudFlexBreak />
+					<MudItem Class="label">
+						<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">PubKey</MudText>
+					</MudItem>
+					<MudItem>
+						@if (Snapshot.Data.PubKey is not null)
+						{
+							<Address ContractAddress="@Snapshot.Data.PubKey.ToHex().ToUpperInvariant()" IsPubKey="true" HrefPlaceholder="https://hoodi.beaconcha.in/validator/{0}"></Address>
+						}
+						else
+						{
+							<MudText Typo="Typo.body1">-</MudText>
+						}
 					</MudItem>
 					<MudFlexBreak />
 					<MudItem Class="label">

@@ -41,9 +41,9 @@ internal class MegapoolEventHandlers
 
 		// TODO: Sequence Equal?
 		h += context.QueueInfo.StandardQueue.RemoveAll(x =>
-			x.PubKey == context.ValidatorInfo.Partial.UpdatedMegapoolValidators[megapoolAddress][validatorId].PubKey);
+			x.PubKey == context.ValidatorInfo.Partial.UpdatedMegapoolValidators[(megapoolAddress, validatorId)].PubKey);
 		h += context.QueueInfo.ExpressQueue.RemoveAll(x =>
-			x.PubKey == context.ValidatorInfo.Partial.UpdatedMegapoolValidators[megapoolAddress][validatorId].PubKey);
+			x.PubKey == context.ValidatorInfo.Partial.UpdatedMegapoolValidators[(megapoolAddress, validatorId)].PubKey);
 
 		Debug.Assert(h == 1, "Only one element should be removed");
 
@@ -79,9 +79,9 @@ internal class MegapoolEventHandlers
 
 		// TODO: Sequence Equal?
 		h += context.QueueInfo.StandardQueue.RemoveAll(x =>
-			x.PubKey == context.ValidatorInfo.Partial.UpdatedMegapoolValidators[megapoolAddress][validatorId].PubKey);
+			x.PubKey == context.ValidatorInfo.Partial.UpdatedMegapoolValidators[(megapoolAddress, validatorId)].PubKey);
 		h += context.QueueInfo.ExpressQueue.RemoveAll(x =>
-			x.PubKey == context.ValidatorInfo.Partial.UpdatedMegapoolValidators[megapoolAddress][validatorId].PubKey);
+			x.PubKey == context.ValidatorInfo.Partial.UpdatedMegapoolValidators[(megapoolAddress, validatorId)].PubKey);
 
 		Debug.Assert(h == 1, "Only one element should be removed");
 
@@ -95,7 +95,10 @@ internal class MegapoolEventHandlers
 		CancellationToken cancellationToken)
 	{
 		string megapoolAddress = eventLog.Log.Address.ConvertToEthereumChecksumAddress();
-		string? nodeOperatorAddress = await TryGetNodeOperator(context, megapoolAddress, eventLog.Log, cancellationToken);
+		int eventValidatorId = (int)eventLog.Event.ValidatorId;
+
+		string? nodeOperatorAddress = await TryGetNodeOperator(
+			context, megapoolAddress, eventLog.Log, cancellationToken);
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
@@ -119,15 +122,18 @@ internal class MegapoolEventHandlers
 
 		RocketMegapoolDelegateService megapoolDelegate = new(context.Web3, megapoolAddress);
 		GetValidatorInfoOutputDTO validatorInfo = await megapoolDelegate.GetValidatorInfoQueryAsync(
-			(uint)eventLog.Event.ValidatorId, new BlockParameter(eventLog.Log.BlockNumber));
+			(uint)eventValidatorId, new BlockParameter(eventLog.Log.BlockNumber));
 
 		MegapoolValidatorIndexEntry entry = new()
 		{
 			NodeAddress = nodeOperatorAddress.HexToByteArray(),
 			MegapoolAddress = megapoolAddress.HexToByteArray(),
-			MegapoolIndex = (int)eventLog.Event.ValidatorId,
+			MegapoolIndex = eventValidatorId,
 			PubKey = validatorInfo.ReturnValue1.PubKey,
 		};
+
+		context.ValidatorInfo.Data.MegapoolValidatorIndex.Add(
+			(megapoolAddress, (int)eventLog.Event.ValidatorId), entry);
 
 		Validator validator = new()
 		{
@@ -149,11 +155,7 @@ internal class MegapoolEventHandlers
 			],
 		};
 
-		context.ValidatorInfo.Partial.UpdatedMegapoolValidators.TryAdd(megapoolAddress, []);
-		Dictionary<int, Validator> megapoolValidators =
-			context.ValidatorInfo.Partial.UpdatedMegapoolValidators[megapoolAddress];
-
-		megapoolValidators.Add(validator.MegapoolIndex.Value, validator);
+		context.ValidatorInfo.Partial.UpdatedMegapoolValidators.Add((megapoolAddress, eventValidatorId), validator);
 
 		// TODO: Use list
 		context.Nodes.Partial.Updated[nodeOperatorAddress].MegapoolValidators =
@@ -179,6 +181,12 @@ internal class MegapoolEventHandlers
 	private static async Task<string?> EventMegapoolValidatorUpdateAsync(
 		NodesSyncContext context, MegapoolUpdatedEvent updatedEvent, CancellationToken cancellationToken)
 	{
+		if (!context.ValidatorInfo.Data.MegapoolValidatorIndex.ContainsKey(
+				(updatedEvent.MegapoolAddress, updatedEvent.ValidatorId)))
+		{
+			return null;
+		}
+
 		string? nodeOperatorAddress = await TryGetNodeOperator(
 			context, updatedEvent.MegapoolAddress, updatedEvent.Log, cancellationToken);
 
@@ -187,27 +195,25 @@ internal class MegapoolEventHandlers
 			return null;
 		}
 
-		context.ValidatorInfo.Partial.UpdatedMegapoolValidators.TryAdd(updatedEvent.MegapoolAddress, []);
+		Dictionary<(string Address, int Index), Validator> megapoolValidators =
+			context.ValidatorInfo.Partial.UpdatedMegapoolValidators;
 
-		Dictionary<int, Validator> megapoolValidators =
-			context.ValidatorInfo.Partial.UpdatedMegapoolValidators[updatedEvent.MegapoolAddress];
-
-		if (!megapoolValidators.ContainsKey(updatedEvent.ValidatorId))
+		if (!megapoolValidators.ContainsKey((updatedEvent.MegapoolAddress, updatedEvent.ValidatorId)))
 		{
-			megapoolValidators[updatedEvent.ValidatorId] = (await context.Storage.ReadAsync<Validator>(
+			megapoolValidators[(updatedEvent.MegapoolAddress, updatedEvent.ValidatorId)] =
+				(await context.Storage.ReadAsync<Validator>(
 					Keys.MegapoolValidator(updatedEvent.MegapoolAddress, updatedEvent.ValidatorId), cancellationToken))
 				?.Data ??
 				throw new InvalidOperationException("Cannot read node operator from storage.");
 		}
 
-		megapoolValidators[updatedEvent.ValidatorId] = megapoolValidators[
-				updatedEvent.ValidatorId] with
+		megapoolValidators[(updatedEvent.MegapoolAddress, updatedEvent.ValidatorId)] = megapoolValidators[
+				(updatedEvent.MegapoolAddress, updatedEvent.ValidatorId)] with
 			{
 				Status = updatedEvent.Status,
 				History =
 				[
-					.. megapoolValidators[
-						updatedEvent.ValidatorId].History,
+					..megapoolValidators[(updatedEvent.MegapoolAddress, updatedEvent.ValidatorId)].History,
 					new ValidatorHistory
 					{
 						Status = updatedEvent.Status,
@@ -286,18 +292,5 @@ internal class MegapoolEventHandlers
 		}
 
 		return nodeOperatorAddress;
-	}
-
-	internal class MegapoolUpdatedEvent
-	{
-		public required FilterLog Log { get; set; }
-
-		public required string MegapoolAddress { get; set; }
-
-		public required ValidatorStatus Status { get; set; }
-
-		public required long Time { get; set; }
-
-		public required int ValidatorId { get; set; }
 	}
 }

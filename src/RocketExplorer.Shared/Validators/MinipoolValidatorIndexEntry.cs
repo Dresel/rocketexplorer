@@ -30,5 +30,5 @@ public record class MegapoolValidatorIndexEntry
 	public required int MegapoolIndex { get; set; }
 
 	[Key(3)]
-	public byte[] PubKey { get; init; }
+	public required byte[] PubKey { get; init; }
 }

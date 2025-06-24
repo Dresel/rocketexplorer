@@ -16,15 +16,14 @@ public class ValidatorInfo
 	{
 		public Dictionary<string, Validator> UpdatedMinipoolValidators { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
-		public Dictionary<string, Dictionary<int, Validator>> UpdatedMegapoolValidators { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+		public Dictionary<(string Address, int Index), Validator> UpdatedMegapoolValidators { get; init; } = new(new MegapoolIndexEqualityComparer());
 	}
 
 	public class ValidatorInfoFull
 	{
 		public required Dictionary<string, MinipoolValidatorIndexEntry> MinipoolValidatorIndex { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
-		// TODO: Ignore Case
-		public required Dictionary<(string Address, int Index), MinipoolValidatorIndexEntry> MegapoolValidatorIndex { get; init; }
+		public required Dictionary<(string Address, int Index), MegapoolValidatorIndexEntry> MegapoolValidatorIndex { get; init; }
 	}
 
 	public class ValidatorInfoCache
@@ -32,5 +31,18 @@ public class ValidatorInfo
 		public Dictionary<string, string> MinipoolNodeOperatorMap { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
 		public Dictionary<string, string> MegapoolNodeOperatorMap { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+	}
+}
+
+public class MegapoolIndexEqualityComparer : IEqualityComparer<(string Address, int Index)>
+{
+	public bool Equals((string Address, int Index) x, (string Address, int Index) y)
+	{
+		return string.Equals(x.Address, y.Address, StringComparison.OrdinalIgnoreCase) && x.Index == y.Index;
+	}
+
+	public int GetHashCode((string Address, int Index) obj)
+	{
+		return HashCode.Combine(StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Address), obj.Index);
 	}
 }

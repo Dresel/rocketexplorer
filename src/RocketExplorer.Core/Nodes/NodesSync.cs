@@ -153,7 +153,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 		{
 			Storage = Storage,
 			Policy = Policy,
-			Logger = loggerFactory.CreateLogger<NodesSyncContext>(),
+			Logger = this.loggerFactory.CreateLogger<NodesSyncContext>(),
 			Web3 = web3,
 			CurrentBlockHeight = nodesSnapshot.ProcessedBlockNumber,
 			RocketStorage = rocketStorage,
@@ -184,9 +184,9 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 					MinipoolValidatorIndex = validatorSnapshot.Data.MinipoolValidatorIndex.ToDictionary(
 						x => x.MinipoolAddress.ToHex(true), x => x,
 						StringComparer.OrdinalIgnoreCase),
-
-					// TODO: Megapool validator index
-					MegapoolValidatorIndex = [],
+					MegapoolValidatorIndex = validatorSnapshot.Data.MegapoolValidatorIndex.ToDictionary(
+						x => (x.MegapoolAddress.ToHex(true), x.MegapoolIndex), x => x,
+						new MegapoolIndexEqualityComparer()),
 				},
 			},
 			QueueInfo = new QueueInfo
@@ -249,18 +249,21 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 				}, cancellationToken: cancellationToken);
 		}
 
-		foreach ((string? megapoolAddress, int megapoolIndex, Validator? minipool) in
-				context.ValidatorInfo.Partial.UpdatedMegapoolValidators.SelectMany(megapool =>
-					megapool.Value.Select(index => (megapool.Key, index.Key, index.Value))))
-		{
-			Logger.LogInformation("Writing {snapshot}", Keys.MegapoolValidator(megapoolAddress, megapoolIndex));
-			await Storage.WriteAsync(
-				Keys.MegapoolValidator(megapoolAddress, megapoolIndex), new BlobObject<Validator>
-				{
-					ProcessedBlockNumber = context.CurrentBlockHeight,
-					Data = minipool,
-				}, cancellationToken: cancellationToken);
-		}
+		await Parallel.ForEachAsync(
+			context.ValidatorInfo.Partial.UpdatedMegapoolValidators.Select(megapool =>
+				(megapool.Key.Address, megapool.Key.Index, megapool.Value)),
+			cancellationToken, async (validatorEntry, innerCancellationToken) =>
+			{
+				(string megapoolAddress, int megapoolIndex, Validator validator) = validatorEntry;
+
+				Logger.LogInformation("Writing {snapshot}", Keys.MegapoolValidator(megapoolAddress, megapoolIndex));
+				await Storage.WriteAsync(
+					Keys.MegapoolValidator(megapoolAddress, megapoolIndex), new BlobObject<Validator>
+					{
+						ProcessedBlockNumber = context.CurrentBlockHeight,
+						Data = validator,
+					}, cancellationToken: innerCancellationToken);
+			});
 
 		await Parallel.ForEachAsync(
 			context.ValidatorInfo.Partial.UpdatedMinipoolValidators, cancellationToken,

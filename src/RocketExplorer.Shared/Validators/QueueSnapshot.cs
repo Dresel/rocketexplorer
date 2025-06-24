@@ -8,10 +8,10 @@ namespace RocketExplorer.Shared.Validators;
 public record class QueueSnapshot
 {
 	[Key(0)]
-	public required ValidatorIndexEntry[] StandardIndex { get; init; }
+	public required MegapoolValidatorIndexEntry[] StandardIndex { get; init; }
 
 	[Key(1)]
-	public required ValidatorIndexEntry[] ExpressIndex { get; init; }
+	public required MegapoolValidatorIndexEntry[] ExpressIndex { get; init; }
 
 	[Key(2)]
 	public required SortedList<DateOnly, int> TotalQueueCount { get; init; }

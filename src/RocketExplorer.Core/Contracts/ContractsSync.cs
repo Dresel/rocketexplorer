@@ -32,7 +32,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 		CancellationToken cancellationToken = default)
 	{
 		IEnumerable<IEventLog> nodeAddedEvents = await context.Web3.FilterAsync(
-			(ulong)fromBlock, (ulong)toBlock, [typeof(ContractAddedEventDTO), typeof(ContractUpgradedEventDTO),],
+			fromBlock, toBlock, [typeof(ContractAddedEventDTO), typeof(ContractUpgradedEventDTO),],
 			[context.TrustedUpgradeContractAddress,], Policy);
 
 		foreach (IEventLog eventLog in nodeAddedEvents)

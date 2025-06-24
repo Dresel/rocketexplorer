@@ -6,5 +6,8 @@ namespace RocketExplorer.Shared.Validators;
 public record class ValidatorSnapshot
 {
 	[Key(0)]
-	public required ValidatorIndexEntry[] Index { get; init; }
+	public required MinipoolValidatorIndexEntry[] MinipoolValidatorIndex { get; init; }
+
+	[Key(1)]
+	public required MegapoolValidatorIndexEntry[] MegapoolValidatorIndex { get; init; }
 }

@@ -14,7 +14,7 @@ namespace RocketExplorer.Ethereum;
 public static class Web3Extensions
 {
 	public static async Task<IEnumerable<IEventLog>> FilterAsync(
-		this Web3 web3, ulong fromBlock, ulong toBlock, ICollection<Type> eventDtoTypes,
+		this Web3 web3, long fromBlock, long toBlock, ICollection<Type> eventDtoTypes,
 		ICollection<string> contractAddresses, AsyncRetryPolicy policy)
 	{
 		Debug.Assert(
@@ -44,8 +44,8 @@ public static class Web3Extensions
 
 		NewFilterInput filter = new()
 		{
-			FromBlock = new BlockParameter(fromBlock),
-			ToBlock = new BlockParameter(toBlock),
+			FromBlock = new BlockParameter((ulong)fromBlock),
+			ToBlock = new BlockParameter((ulong)toBlock),
 			Topics =
 			[
 				eventSignatures.ToArray(),
@@ -61,6 +61,6 @@ public static class Web3Extensions
 					[typeof(FilterLog[]),])?.Invoke(eventType, [logs,]) ??
 			throw new InvalidOperationException("DecodeAllEventsForEvent method not found or null returned")));
 
-		return results.OrderBy(x => (ulong)x.Log.BlockNumber.Value);
+		return results.OrderBy(x => (ulong)x.Log.BlockNumber.Value).ThenBy(x => eventSignatures.IndexOf(x.Log.EventSignature()));
 	}
 }

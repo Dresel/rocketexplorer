@@ -16,10 +16,10 @@ public record class Node
 	public byte[]? MegapoolAddress { get; init; }
 
 	[Key(4)]
-	public ValidatorIndexEntry[] MinipoolValidators { get; set; } = [];
+	public MinipoolValidatorIndexEntry[] MinipoolValidators { get; set; } = [];
 
 	[Key(5)]
-	public ValidatorIndexEntry[] MegapoolValidators { get; set; } = [];
+	public MegapoolValidatorIndexEntry[] MegapoolValidators { get; set; } = [];
 
 	[Key(6)]
 	public required string Timezone { get; set; }

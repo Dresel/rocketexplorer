@@ -82,7 +82,7 @@
 			</ToolBarContent>
 			<HeaderContent>
 				<MudTh>
-					<MudTableSortLabel T="ValidatorViewModel" SortLabel="MegapoolIndex">Megapool Index</MudTableSortLabel>
+					<MudTableSortLabel T="ValidatorViewModel" SortLabel="MegapoolMinipoolValidatorIndex">Megapool MinipoolValidatorIndex</MudTableSortLabel>
 				</MudTh>
 				<MudTh>Status</MudTh>
 				<MudTh>Registration Date</MudTh>
@@ -214,7 +214,7 @@
 
 		if (!string.IsNullOrWhiteSpace(megapoolSearchString) && megapoolSearchString.Length > 1)
 		{
-			// TODO: Index Search?
+			// TODO: MinipoolValidatorIndex Search?
 		}
 
 		int count = items.Count();

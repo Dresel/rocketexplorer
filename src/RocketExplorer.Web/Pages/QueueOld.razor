@@ -41,10 +41,10 @@
     </ToolBarContent>
     <HeaderContent>
         <MudTh>
-            <MudTableSortLabel T="NodeIndexViewModel" SortLabel="ContractAddress">Contract Address</MudTableSortLabel>
+            <MudTableSortLabel T="NodeMinipoolValidatorIndexViewModel" SortLabel="ContractAddress">Contract Address</MudTableSortLabel>
         </MudTh>
         <MudTh>
-            <MudTableSortLabel T="NodeIndexViewModel" SortLabel="RegistrationDate" InitialDirection="SortDirection.Ascending">Registration Date</MudTableSortLabel>
+            <MudTableSortLabel T="NodeMinipoolValidatorIndexViewModel" SortLabel="RegistrationDate" InitialDirection="SortDirection.Ascending">Registration Date</MudTableSortLabel>
         </MudTh>
     </HeaderContent>
     <RowTemplate>
@@ -208,8 +208,8 @@
 	{
 		await (loaded ?? throw new InvalidOperationException());
 
-		IEnumerable<(ValidatorIndexEntry entry, int index)> items = Zip(queueSnapshot.StandardIndex, queueSnapshot.ExpressIndex, 0, 2)
-			.Select((item, index) => (entry: item, index));
+		// IEnumerable<(MinipoolValidatorIndexEntry entry, int index)> items = Zip(queueSnapshot.StandardIndex, queueSnapshot.ExpressIndex, 0, 2)
+		// 	.Select((item, index) => (entry: item, index));
 
 		// if (state.SortLabel is nameof(NodeIndexViewModel.ContractAddress))
 		//       {
@@ -226,10 +226,10 @@
 		//     items = items.Where(x => x.ContractAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToArray();
 		// }
 
-		(List<(ValidatorIndexEntry entry, int index)> Items, int TotalItems) paginatedResult = items.Paginate(state.Page, state.PageSize);
+		// (List<(MinipoolValidatorIndexEntry entry, int index)> Items, int TotalItems) paginatedResult = items.Paginate(state.Page, state.PageSize);
 
-		int count = items.Count();
-		items = items.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList();
+		// int count = items.Count();
+		// items = items.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList();
 
 		//       return new TableData<MinipoolIndexViewModel>
 		// {

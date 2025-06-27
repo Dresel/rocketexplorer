@@ -13,20 +13,18 @@ builder.Services.AddMudServices();
 
 builder.Services.AddSingleton<ThemeService>();
 
-builder.Services.AddScoped(
-	_ => new HttpClient
-	{
-		BaseAddress = new Uri(builder.HostEnvironment.BaseAddress),
-	});
+builder.Services.AddScoped(_ => new HttpClient
+{
+	BaseAddress = new Uri(builder.HostEnvironment.BaseAddress),
+});
 builder.Services.AddScoped<Configuration>();
 
 builder.Services.AddSingleton<AppState>();
 
-builder.Services.AddScoped<Web3>(
-	provider =>
-	{
-		Configuration configuration = provider.GetRequiredService<Configuration>();
-		return new Web3(configuration.EthereumRPCEndpoint);
-	});
+builder.Services.AddScoped<Web3>(provider =>
+{
+	Configuration configuration = provider.GetRequiredService<Configuration>();
+	return new Web3(configuration.EthereumRPCEndpoint);
+});
 
 await builder.Build().RunAsync();

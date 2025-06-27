@@ -32,7 +32,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 		CancellationToken cancellationToken = default)
 	{
 		IEnumerable<IEventLog> nodeAddedEvents = await context.Web3.FilterAsync(
-			(ulong)fromBlock, (ulong)toBlock, [typeof(ContractAddedEventDTO), typeof(ContractUpgradedEventDTO),],
+			fromBlock, toBlock, [typeof(ContractAddedEventDTO), typeof(ContractUpgradedEventDTO),],
 			[context.TrustedUpgradeContractAddress,], Policy);
 
 		foreach (IEventLog eventLog in nodeAddedEvents)
@@ -55,23 +55,17 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 	{
 		Logger.LogInformation("Loading {snapshot}", ContractsSnapshotKey);
 
-		BlobObject<ContractsSnapshot>? snapshot = await Storage.ReadAsync<ContractsSnapshot>(
-			ContractsSnapshotKey, cancellationToken);
-
-		if (snapshot == null)
-		{
-			return new ContractsSyncContext
+		BlobObject<ContractsSnapshot> snapshot =
+			await Storage.ReadAsync<ContractsSnapshot>(ContractsSnapshotKey, cancellationToken) ??
+			new BlobObject<ContractsSnapshot>
 			{
-				Web3 = web3,
-				CurrentBlockHeight = 0,
-				RocketStorage = rocketStorage,
-				Contracts = contracts,
-				TrustedUpgradeContractAddress =
-					await Policy.ExecuteAsync(() => rocketStorage.GetAddressQueryAsync("rocketDAONodeTrustedUpgrade")),
-				ContextContracts = [],
-				ContextUpgradeContracts = [],
+				ProcessedBlockNumber = 0,
+				Data = new ContractsSnapshot
+				{
+					Contracts = [],
+					UpgradeContracts = [],
+				},
 			};
-		}
 
 		return new ContractsSyncContext
 		{
@@ -98,11 +92,10 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 				ProcessedBlockNumber = context.CurrentBlockHeight,
 				Data = new ContractsSnapshot
 				{
-					Contracts = context.ContextContracts.Values.OrderBy(
-						x =>
-							Array.IndexOf(Ethereum.Contracts.Names, x.Name) == -1
-								? int.MaxValue
-								: Array.IndexOf(Ethereum.Contracts.Names, x.Name)).ToArray(),
+					Contracts = context.ContextContracts.Values.OrderBy(x =>
+						Array.IndexOf(Ethereum.Contracts.Names, x.Name) == -1
+							? int.MaxValue
+							: Array.IndexOf(Ethereum.Contracts.Names, x.Name)).ToArray(),
 					UpgradeContracts = context.ContextUpgradeContracts.Values.ToArray(),
 				},
 			}, cancellationToken: cancellationToken);
@@ -262,9 +255,8 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 	private async Task TryUpdateContractAddressForBlockAsync(
 		ContractsSyncContext context, string contractName, string activationMethod, long currentBlock)
 	{
-		string address = await Policy.ExecuteAsync(
-			() =>
-				context.RocketStorage.GetAddressQueryAsync(contractName, new BlockParameter((ulong)currentBlock)));
+		string address = await Policy.ExecuteAsync(() =>
+			context.RocketStorage.GetAddressQueryAsync(contractName, new BlockParameter((ulong)currentBlock)));
 
 		if (address is null or "0x0000000000000000000000000000000000000000")
 		{

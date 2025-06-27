@@ -1,6 +1,6 @@
 @page "/queue"
 @using LiveChartsCore.Defaults
-@inherits PageBase<RocketExplorer.Shared.Nodes.QueueSnapshot>
+@inherits PageBase<RocketExplorer.Shared.Validators.QueueSnapshot>
 
 <PageTitle>Rocket Explorer - Queue</PageTitle>
 <MudStack>
@@ -52,8 +52,8 @@
 
 	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
 	{
-		queueTotalData = [Snapshot?.TotalQueueCount ?? [],];
-		queueDeltaData = [Snapshot?.DailyEnqueued ?? [], Snapshot?.DailyDequeued ?? [], Snapshot?.DailyVoluntaryExits ?? [],];
+		queueTotalData = [Snapshot?.Data.TotalQueueCount ?? [],];
+		queueDeltaData = [Snapshot?.Data.DailyEnqueued ?? [], Snapshot?.Data.DailyDequeued ?? [], Snapshot?.Data.DailyVoluntaryExits ?? [],];
 
 		return Task.CompletedTask;
 	}

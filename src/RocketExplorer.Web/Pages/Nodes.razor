@@ -7,7 +7,7 @@
 	<MudText Typo="Typo.h4" Align="Align.Center">Node operators over time</MudText>
 	<MudGrid Justify="Justify.Center">
 		<MudItem>
-			<ChartTotal Title="Total operators" YAxesName="Nodes" Data="nodesTotalData"></ChartTotal>
+			<ChartTotal Title="Total operators" YAxesName="Nodes" Data="nodesTotalData" MinLimit="null"></ChartTotal>
 		</MudItem>
 		<MudItem>
 			<ChartDelta Title="New operators" YAxesName="Nodes" Data="nodesDeltaData"></ChartDelta>
@@ -111,16 +111,15 @@
 
 	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
 	{
-		nodes = Snapshot!.Index.Select(
-			x => new NodeIndexViewModel
-			{
-				ContractAddress = "0x" + Convert.ToHexString(x.ContractAddress),
-				MegapoolAddress = x.MegapoolAddress == null ? null : "0x" + Convert.ToHexString(x.MegapoolAddress),
-				RegistrationDate = DateTimeOffset.FromUnixTimeSeconds(x.RegistrationTimestamp),
-			}).ToArray();
+		nodes = Snapshot!.Data.Index.Select(x => new NodeIndexViewModel
+		{
+			ContractAddress = "0x" + Convert.ToHexString(x.ContractAddress),
+			MegapoolAddress = x.MegapoolAddress == null ? null : "0x" + Convert.ToHexString(x.MegapoolAddress),
+			RegistrationDate = DateTimeOffset.FromUnixTimeSeconds(x.RegistrationTimestamp),
+		}).ToArray();
 
-		nodesTotalData = [Snapshot?.TotalNodeCount ?? [],];
-		nodesDeltaData = [Snapshot?.DailyRegistrations ?? [],];
+		nodesTotalData = [Snapshot?.Data.TotalNodeCount ?? [],];
+		nodesDeltaData = [Snapshot?.Data.DailyRegistrations ?? [],];
 
 		return Task.CompletedTask;
 	}

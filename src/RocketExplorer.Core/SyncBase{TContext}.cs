@@ -11,7 +11,7 @@ namespace RocketExplorer.Core;
 public abstract class SyncBase<TContext>(IOptions<SyncOptions> options, Storage storage, ILogger logger)
 	where TContext : ContextBase
 {
-	private const long BlockRange = 100000;
+	private const long BlockRange = 25000;
 
 	protected ILogger Logger { get; set; } = logger;
 

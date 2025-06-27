@@ -1,48 +1,287 @@
 @page "/node/{address}"
 @using MessagePack
-@using Nethereum.Util
-@inject HttpClient Http
-@inject Configuration Configuration
+@using RocketExplorer.Shared.Nodes
+@using RocketExplorer.Shared.Validators
+@inherits PageBase<RocketExplorer.Shared.Nodes.Node>
 
-<PageTitle>Rocket Explorer - Node @Address</PageTitle>
-@if (node == null)
-{
-	<div>Node not found</div>
-}
-else
-{
-	<div>@AddressUtil.Current.ConvertToChecksumAddress(node.ContractAddress)</div>
-	<div>@DateTimeOffset.FromUnixTimeSeconds(node.RegistrationTimestamp).ToString("G")</div>
-	<div>Timezone: @node.Timezone</div>
-	<div>@node.MegaMinipools.Count() minipools</div>
-}
+<PageTitle>Node @Address</PageTitle>
+<MudStack Spacing="6">
+	<MudContainer Class="mud-typography-align-center">
+		<MudText Typo="Typo.h4" Align="Align.Center">Node Operator</MudText>
+		<Address Typo="Typo.body1" Expanded="true" ContractAddress="@Address" AppendEtherscanCodeAnchor="true"></Address>
+	</MudContainer>
+	@if (Snapshot == null)
+	{
+		<div>Node not found</div>
+	}
+	else
+	{
+		<MudStack Spacing="2" Wrap="Wrap.Wrap" Row="true">
+			<MudItem Class="label">
+				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Registration Date</MudText>
+			</MudItem>
+			<MudItem>
+				<MudText Typo="Typo.body1">@DateTimeOffset.FromUnixTimeSeconds(Snapshot.Data.RegistrationTimestamp).ToString("G")</MudText>
+			</MudItem>
+			<MudFlexBreak />
+			<MudItem Class="label">
+				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Timezone</MudText>
+			</MudItem>
+			<MudItem>
+				<MudText Typo="Typo.body1">@Snapshot.Data.Timezone</MudText>
+			</MudItem>
+			<MudFlexBreak />
+			<MudItem Class="label">
+				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Megapool Address</MudText>
+			</MudItem>
+			<MudItem>
+				@if (Snapshot.Data.MegapoolAddress != null)
+				{
+					<Address Typo="Typo.body1" ContractAddress="@("0x" + Convert.ToHexString(Snapshot.Data.MegapoolAddress))" HighlightedText="@minipoolSearchString" AppendEtherscanCodeAnchor="true"></Address>
+				}
+				else
+				{
+					<MudText Typo="Typo.body1">-</MudText>
+				}
+			</MudItem>
+		</MudStack>
+
+		<MudText Typo="Typo.h6" Align="Align.Center">@Snapshot.Data.MinipoolValidators.Count() Minipool Validators</MudText>
+
+		<MudTable Class="mt-0" ServerData="LoadMinipoolValidators" Dense="true" Hover="true" @ref="minipoolTable" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
+			<ToolBarContent>
+				<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnMinipoolSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+					AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+				</MudTextField>
+			</ToolBarContent>
+			<HeaderContent>
+				<MudTh>
+					<MudTableSortLabel T="ValidatorViewModel" SortLabel="MinipoolAddress">Minipool Address</MudTableSortLabel>
+				</MudTh>
+				<MudTh>Status</MudTh>
+				<MudTh>Registration Date</MudTh>
+			</HeaderContent>
+			<RowTemplate>
+				<MudTd>
+					<Address ContractAddress="@context.MinipoolAddress" HighlightedText="@minipoolSearchString" HrefPlaceholder="validator/{0}" AppendEtherscanCodeAnchor="true"></Address>
+				</MudTd>
+				<MudTd>@context.ValidatorStatus</MudTd>
+				<MudTd>@context.History.First().Timestamp.ToString("G")</MudTd>
+			</RowTemplate>
+			<NoRecordsContent>
+				<MudText>No matching records found</MudText>
+			</NoRecordsContent>
+			<LoadingContent>
+				<MudText>Loading...</MudText>
+			</LoadingContent>
+			<PagerContent>
+				<MudTablePager />
+			</PagerContent>
+		</MudTable>
+
+		<MudText Typo="Typo.h6" Align="Align.Center">@Snapshot.Data.MegapoolValidators.Count() Megapool Validators</MudText>
+
+		<MudTable Class="mt-0" ServerData="LoadMegapoolValidators" Dense="true" Hover="true" @ref="megapoolTable" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
+			<ToolBarContent>
+				<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnMegapoolSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+					AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+				</MudTextField>
+			</ToolBarContent>
+			<HeaderContent>
+				<MudTh>
+					<MudTableSortLabel T="ValidatorViewModel" SortLabel="MegapoolMinipoolValidatorIndex">Validator Index</MudTableSortLabel>
+				</MudTh>
+				<MudTh>Status</MudTh>
+				<MudTh>Registration Date</MudTh>
+			</HeaderContent>
+			<RowTemplate>
+				<MudTd><MudLink Typo="Typo.body2" Href="@($"validator/{context.MegapoolAddress}/{context.MegapoolIndex}")">Validator #@context.MegapoolIndex</MudLink></MudTd>
+				<MudTd>@context.ValidatorStatus</MudTd>
+				<MudTd>@context.History.First().Timestamp.ToString("G")</MudTd>
+			</RowTemplate>
+			<NoRecordsContent>
+				<MudText>No matching records found</MudText>
+			</NoRecordsContent>
+			<LoadingContent>
+				<MudText>Loading...</MudText>
+			</LoadingContent>
+			<PagerContent>
+				<MudTablePager />
+			</PagerContent>
+		</MudTable>
+	}
+</MudStack>
 
 @code {
 
-	[Parameter] public string? Address { get; set; }
+	[Parameter]
+	public string? Address { get; set; }
 
-	private Shared.Nodes.Node? node;
+	private MudTable<ValidatorViewModel> minipoolTable = null!;
+	private string minipoolSearchString = string.Empty;
+
+	private MudTable<ValidatorViewModel> megapoolTable = null!;
+	private string megapoolSearchString = string.Empty;
+
+	private ValidatorIndexViewModel[] minipoolValidators = [];
+	private ValidatorIndexViewModel[] megapoolValidators = [];
 
 	protected override async Task OnParametersSetAsync()
 	{
 		await base.OnParametersSetAsync();
 
-		node = null;
+		if (!string.IsNullOrWhiteSpace(Address))
+		{
+			ObjectStoreKey = $"nodes/{Address.ToLowerInvariant()}.msgpack";
+		}
+	}
 
-		if (string.IsNullOrWhiteSpace(Address))
+	private void OnMinipoolSearch(string text)
+	{
+		minipoolSearchString = text;
+		minipoolTable.ReloadServerData();
+	}
+
+	private void OnMegapoolSearch(string text)
+	{
+		megapoolSearchString = text;
+		megapoolTable.ReloadServerData();
+	}
+
+	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
+	{
+		minipoolValidators = Snapshot!.Data.MinipoolValidators.Select(x => new ValidatorIndexViewModel
 		{
-			return;
+			MinipoolAddress = "0x" + Convert.ToHexString(x.MinipoolAddress!),
+		}).ToArray();
+
+		megapoolValidators = Snapshot!.Data.MegapoolValidators.Select(x => new ValidatorIndexViewModel
+		{
+			MegapoolAddress = "0x" + Convert.ToHexString(x.MegapoolAddress!),
+			MegapoolIndex = x.MegapoolIndex,
+		}).ToArray();
+
+		return Task.CompletedTask;
+	}
+
+	private async Task<TableData<ValidatorViewModel>> LoadMinipoolValidators(TableState state, CancellationToken token)
+	{
+		await LoadedTask;
+
+		IEnumerable<ValidatorIndexViewModel> items = minipoolValidators;
+
+		if (state.SortLabel is nameof(ValidatorIndexViewModel.MinipoolAddress))
+		{
+			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.MinipoolAddress).ToList() : items.OrderByDescending(x => x.MinipoolAddress).ToList();
 		}
 
-		try
+		if (!string.IsNullOrWhiteSpace(minipoolSearchString) && minipoolSearchString.Length > 1)
 		{
-			var streamAsync = await Http.GetStreamAsync($"https://rocketexplorer.nbg1.your-objectstorage.com/{Configuration.Environment.ToString().ToLowerInvariant()}/nodes/{Address.ToLowerInvariant()}.msgpack");
-			node = MessagePackSerializer.Deserialize<Shared.Nodes.Node>(streamAsync);
+			items = items.Where(x => x.MinipoolAddress!.Contains(minipoolSearchString, StringComparison.OrdinalIgnoreCase)).ToArray();
 		}
-		catch (Exception e)
+
+		int count = items.Count();
+
+		List<Task<ValidatorViewModel>> query = items.Skip(state.Page * state.PageSize).Take(state.PageSize).Select(async x =>
 		{
-			// TODO: Show 404 or similar
+			Shared.Validators.Validator validatorSnapshot = MessagePackSerializer.Deserialize<Shared.Validators.Validator>(await HttpClient.GetStreamAsync(GetObjectStoreUrl(Keys.MinipoolValidator(x.MinipoolAddress!)), token));
+			
+			return new ValidatorViewModel
+			{
+				MinipoolAddress = x.MinipoolAddress,
+				PubKey = validatorSnapshot.PubKey != null ? "0x" + Convert.ToHexString(validatorSnapshot.PubKey) : null,
+				ValidatorStatus = validatorSnapshot.Status,
+				History = validatorSnapshot!.History.Select(x => new ValidatorHistoryViewModel
+				{
+					Timestamp = DateTimeOffset.FromUnixTimeSeconds(x.Timestamp),
+					Status = x.Status,
+				}).ToArray(),
+			};
+		}).ToList();
+
+		ValidatorViewModel[] validators = await Task.WhenAll(query);
+
+		return new TableData<ValidatorViewModel>
+		{
+			TotalItems = count,
+			Items = validators,
+		};
+	}
+
+	private async Task<TableData<ValidatorViewModel>> LoadMegapoolValidators(TableState state, CancellationToken token)
+	{
+		await LoadedTask;
+
+		IEnumerable<ValidatorIndexViewModel> items = megapoolValidators;
+
+		if (state.SortLabel is nameof(ValidatorIndexViewModel.MegapoolIndex))
+		{
+			items = state.SortDirection <= SortDirection.Ascending ? items.OrderBy(x => x.MegapoolIndex).ToList() : items.OrderByDescending(x => x.MegapoolIndex).ToList();
 		}
+
+		if (!string.IsNullOrWhiteSpace(megapoolSearchString) && megapoolSearchString.Length > 1)
+		{
+			// TODO: MinipoolValidatorIndex Search?
+		}
+
+		int count = items.Count();
+
+		List<Task<ValidatorViewModel>> query = items.Skip(state.Page * state.PageSize).Take(state.PageSize).Select(async x =>
+		{
+			Shared.Validators.Validator validatorSnapshot = MessagePackSerializer.Deserialize<Shared.Validators.Validator>(await HttpClient.GetStreamAsync(GetObjectStoreUrl(Keys.MegapoolValidator(x.MegapoolAddress!, x.MegapoolIndex!.Value)), token));
+			
+			return new ValidatorViewModel
+			{
+				MegapoolAddress = x.MegapoolAddress,
+				MegapoolIndex = x.MegapoolIndex,
+				PubKey = validatorSnapshot.PubKey != null ? "0x" + Convert.ToHexString(validatorSnapshot.PubKey) : null,
+				ValidatorStatus = validatorSnapshot.Status,
+				History = validatorSnapshot!.History.Select(x => new ValidatorHistoryViewModel
+				{
+					Timestamp = DateTimeOffset.FromUnixTimeSeconds(x.Timestamp),
+					Status = x.Status,
+				}).ToArray(),
+			};
+		}).ToList();
+
+		ValidatorViewModel[] validators = await Task.WhenAll(query);
+
+		return new TableData<ValidatorViewModel>
+		{
+			TotalItems = count,
+			Items = validators,
+		};
+	}
+
+	public class ValidatorIndexViewModel
+	{
+		public string? MegapoolAddress { get; init; }
+
+		public int? MegapoolIndex { get; set; }
+
+		public string? MinipoolAddress { get; init; }
+	}
+
+	public class ValidatorViewModel
+	{
+		public string? MegapoolAddress { get; init; }
+
+		public int? MegapoolIndex { get; set; }
+
+		public string? MinipoolAddress { get; init; }
+
+		public string? PubKey { get; init; }
+
+		public required ValidatorStatus ValidatorStatus { get; set; }
+
+		public required ValidatorHistoryViewModel[] History { get; init; }
+	}
+
+	public class ValidatorHistoryViewModel
+	{
+		public required DateTimeOffset Timestamp { get; init; }
+
+		public required ValidatorStatus Status { get; init; }
 	}
 
 }

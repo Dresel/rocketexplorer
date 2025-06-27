@@ -1,40 +1,27 @@
+using Microsoft.Extensions.Logging;
+using Polly;
+using RocketExplorer.Ethereum.RocketMinipoolManager;
 using RocketExplorer.Ethereum.RocketNodeManager;
-using RocketExplorer.Shared.Minipools;
-using RocketExplorer.Shared.Nodes;
 
 namespace RocketExplorer.Core.Nodes;
 
 public class NodesSyncContext : ContextBase
 {
-	// TODO: What to persist?
-	// Total megapool minipools count
+	public required ILogger<NodesSyncContext> Logger { get; init; }
 
-	public SortedList<DateOnly, int> DailyDequeued { get; set; } = [];
+	public required NodeInfo Nodes { get; init; }
 
-	public SortedList<DateOnly, int> DailyEnqueued { get; set; } = [];
+	public required AsyncPolicy Policy { get; set; }
 
-	public SortedList<DateOnly, int> DailyRegistrations { get; init; } = [];
+	public required QueueInfo QueueInfo { get; init; }
 
-	public SortedList<DateOnly, int> DailyVoluntaryExits { get; set; } = [];
+	public required RocketMinipoolManagerService RocketMinipoolManager { get; init; }
 
-	public List<MinipoolIndexEntry> ExpressQueue { get; init; } = [];
-
-	public Dictionary<string, Dictionary<int, Minipool>> MegaMinipools { get; init; } =
-		new(StringComparer.OrdinalIgnoreCase);
-
-	public Dictionary<string, string> MegapoolNodeOperatorMap { get; init; } = new(StringComparer.OrdinalIgnoreCase);
-
-	public Dictionary<string, NodeIndexEntry> NodeIndex { get; init; } = new(StringComparer.OrdinalIgnoreCase);
-
-	public Dictionary<string, Node> Nodes { get; init; } = new(StringComparer.OrdinalIgnoreCase);
-
-	public required RocketNodeManagerService RocketNodeManager { get; set; }
+	public required RocketNodeManagerService RocketNodeManager { get; init; }
 
 	public required string[] RocketNodeManagerAddresses { get; init; }
 
-	public List<MinipoolIndexEntry> StandardQueue { get; init; } = [];
+	public required Storage Storage { get; set; }
 
-	public SortedList<DateOnly, int> TotalNodesCount { get; init; } = [];
-
-	public SortedList<DateOnly, int> TotalQueueCount { get; set; } = [];
+	public required ValidatorInfo ValidatorInfo { get; init; }
 }

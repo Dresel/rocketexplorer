@@ -1,0 +1,125 @@
+@page "/validator/{minipoolAddress}"
+@page "/validator/{megapoolAddress}/{megapoolIndex:int}"
+@using Nethereum.Hex.HexConvertors.Extensions
+@using Nethereum.Util
+@using RocketExplorer.Shared.Nodes
+@using RocketExplorer.Shared.Validators
+@inherits PageBase<RocketExplorer.Shared.Validators.Validator>
+
+<PageTitle>Validator</PageTitle>
+@if (Snapshot != null)
+{
+	<MudStack Spacing="6">
+
+		<MudContainer Class="mud-typography-align-center">
+			<MudText Typo="Typo.h4" Align="Align.Center">Validator</MudText>
+
+			@if (AddressUtil.Current.IsValidEthereumAddressHexFormat(MinipoolAddress))
+			{
+				<Address Typo="Typo.body1" Expanded="true" ContractAddress="@MinipoolAddress" AppendEtherscanCodeAnchor="true"></Address>
+			}
+			else if (AddressUtil.Current.IsValidEthereumAddressHexFormat(MegapoolAddress))
+			{
+				<Address Typo="Typo.body1" Expanded="true" ContractAddress="@MegapoolAddress" AppendEtherscanCodeAnchor="true"></Address>
+			}
+			else
+			{
+				<MudText>Invalid address</MudText>
+			}
+
+		</MudContainer>
+
+		<MudGrid>
+			<MudItem lg="6" md="12">
+				
+				@*
+					Node Operator
+					Minipool Address
+					Megapool Address / Megapool MinipoolValidatorIndex
+				*@
+
+				<MudText Class="mb-4" Typo="Typo.h6">Details</MudText>
+				<MudStack Spacing="2" Wrap="Wrap.Wrap" Row="true">
+					<MudItem Class="label">
+						<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Status</MudText>
+					</MudItem>
+					<MudItem>
+						<MudText Typo="Typo.body1">@Snapshot.Data.Status</MudText>
+					</MudItem>
+					<MudFlexBreak />
+					<MudItem Class="label">
+						<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Type</MudText>
+					</MudItem>
+					<MudItem>
+						<MudText Typo="Typo.body1">@Snapshot.Data.Type</MudText>
+					</MudItem>
+					<MudFlexBreak />
+					<MudItem Class="label">
+						<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">PubKey</MudText>
+					</MudItem>
+					<MudItem>
+						@if (Snapshot.Data.PubKey is not null)
+						{
+							<Address ContractAddress="@Snapshot.Data.PubKey.ToHex().ToUpperInvariant()" IsPubKey="true" HrefPlaceholder="https://hoodi.beaconcha.in/validator/{0}"></Address>
+						}
+						else
+						{
+							<MudText Typo="Typo.body1">-</MudText>
+						}
+					</MudItem>
+					<MudFlexBreak />
+					<MudItem Class="label">
+						<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Node Operator Bond</MudText>
+					</MudItem>
+					<MudItem>
+						<MudText Typo="Typo.body1">@Snapshot.Data.Bond ETH</MudText>
+					</MudItem>
+					<MudFlexBreak />
+				</MudStack>
+			</MudItem>
+			<MudItem lg="6" md="12">
+				<MudText Class="mb-4" Typo="Typo.h6">History</MudText>
+				<MudTimeline TimelinePosition="TimelinePosition.Left">
+					@foreach (ValidatorHistory history in Snapshot?.Data.History ?? [])
+					{
+						<MudTimelineItem Color="Color.Default" Variant="Variant.Filled">
+							<ItemContent>
+								<MudText Typo="Typo.button">@history.Status</MudText>
+								<MudText Typo="Typo.body2" Class="mud-text-secondary">@(DateTimeOffset.FromUnixTimeSeconds(history.Timestamp).ToString("G"))</MudText>
+							</ItemContent>
+						</MudTimelineItem>
+					}
+				</MudTimeline>
+			</MudItem>
+		</MudGrid>
+	</MudStack>
+}
+
+@code {
+
+	[Parameter]
+	public string? MinipoolAddress { get; set; }
+
+	[Parameter]
+	public string? MegapoolAddress { get; set; }
+
+	[Parameter]
+	public int? MegapoolIndex { get; set; }
+
+	protected override async Task OnParametersSetAsync()
+	{
+		await base.OnParametersSetAsync();
+
+		if (!string.IsNullOrWhiteSpace(MinipoolAddress))
+		{
+			ObjectStoreKey = Keys.MinipoolValidator(MinipoolAddress);
+		}
+		else if (!string.IsNullOrWhiteSpace(MegapoolAddress) && MegapoolIndex != null)
+		{
+			ObjectStoreKey = Keys.MegapoolValidator(MegapoolAddress, MegapoolIndex.Value);
+		}
+	}
+
+	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+}

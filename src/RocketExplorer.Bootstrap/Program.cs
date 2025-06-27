@@ -15,6 +15,7 @@ using RocketExplorer.Core.Nodes;
 using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Shared;
 using RocketExplorer.Shared.Contracts;
+using RocketExplorer.Shared.Nodes;
 using Serilog;
 using Serilog.Core;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -25,7 +26,7 @@ IHost host = Host.CreateDefaultBuilder(args)
 	{
 		logging.ClearProviders();
 
-		Logger logger = new LoggerConfiguration().MinimumLevel.Debug().WriteTo.Console(theme: AnsiConsoleTheme.Code)
+		Logger logger = new LoggerConfiguration().MinimumLevel.Information().WriteTo.Console(theme: AnsiConsoleTheme.Code)
 			.CreateLogger();
 		logging.AddSerilog(logger);
 	})

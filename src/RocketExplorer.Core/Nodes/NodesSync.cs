@@ -1,69 +1,96 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Contracts;
 using Nethereum.Hex.HexConvertors.Extensions;
-using Nethereum.RPC.Eth.DTOs;
-using Nethereum.Util;
 using Nethereum.Web3;
+using RocketExplorer.Core.Nodes.EventHandlers;
 using RocketExplorer.Ethereum;
-using RocketExplorer.Ethereum.RocketMegapoolDelegate;
 using RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition;
+using RocketExplorer.Ethereum.RocketMinipoolDelegate.ContractDefinition;
+using RocketExplorer.Ethereum.RocketMinipoolManager;
+using RocketExplorer.Ethereum.RocketMinipoolManager.ContractDefinition;
+using RocketExplorer.Ethereum.RocketMinipoolQueue.ContractDefinition;
 using RocketExplorer.Ethereum.RocketNodeManager;
 using RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition;
 using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Shared.Contracts;
-using RocketExplorer.Shared.Minipools;
 using RocketExplorer.Shared.Nodes;
+using RocketExplorer.Shared.Validators;
+using Validator = RocketExplorer.Shared.Validators.Validator;
 
 namespace RocketExplorer.Core.Nodes;
 
-public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<NodesSync> logger)
-	: SyncBase<NodesSyncContext>(options, storage, logger)
+public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFactory loggerFactory)
+	: SyncBase<NodesSyncContext>(options, storage, loggerFactory.CreateLogger<NodesSync>())
 {
+	private readonly ILoggerFactory loggerFactory = loggerFactory;
+
 	protected override async Task HandleBlocksAsync(
 		NodesSyncContext context, long fromBlock, long toBlock, long latestBlock,
 		CancellationToken cancellationToken = default)
 	{
 		IEnumerable<IEventLog> nodeAddedEvents = await context.Web3.FilterAsync(
-			(ulong)fromBlock, (ulong)toBlock, [typeof(NodeRegisteredEventDTO),],
+			fromBlock, toBlock, [typeof(NodeRegisteredEventDTO),],
 			context.RocketNodeManagerAddresses, Policy);
 
 		foreach (IEventLog eventLog in nodeAddedEvents)
 		{
 			await eventLog.WhenIsAsync<NodeRegisteredEventDTO>(
-				(@event, log, innerCancellationToken) => EventAddNewNodeAsync(
-					context, context.RocketNodeManager, @event, innerCancellationToken), cancellationToken);
+				NodeRegisteredEventHandler.HandleAsync, context, cancellationToken);
 		}
 
-		IEnumerable<IEventLog> megapoolEvents = await context.Web3.FilterAsync(
-			(ulong)fromBlock, (ulong)toBlock,
-			[
-				typeof(MegapoolValidatorEnqueuedEventDTO), typeof(MegapoolValidatorAssignedEventDTO),
-				typeof(MegapoolValidatorDequeuedEventDTO),
-			], [], Policy);
+		IEnumerable<IEventLog> minipoolCreatedEvents = await context.Web3.FilterAsync(
+			fromBlock, toBlock, [typeof(MinipoolCreatedEventDTO),],
+			context.ValidatorInfo.RocketMinipoolManagerAddresses, Policy);
 
-		foreach (IEventLog eventLog in megapoolEvents)
+		foreach (IEventLog eventLog in minipoolCreatedEvents)
 		{
+			await eventLog.WhenIsAsync<MinipoolCreatedEventDTO>(
+				MinipoolCreatedEventHandler.HandleAsync, context, cancellationToken);
+		}
+
+		List<IEventLog> validatorEvents = (await context.Web3.FilterAsync(
+			fromBlock, toBlock,
+			[
+				typeof(MegapoolValidatorEnqueuedEventDTO),
+				typeof(MegapoolValidatorAssignedEventDTO),
+				typeof(MegapoolValidatorDequeuedEventDTO),
+				typeof(MinipoolPrestakedEventDTO),
+				typeof(MinipoolEnqueuedEventDTO),
+				typeof(MinipoolDequeuedEventDTO),
+				typeof(StatusUpdatedEventDTO),
+				////typeof(MinipoolVacancyPreparedEventDTO),
+				////typeof(MinipoolPromotedEventDTO),
+				////typeof(MinipoolDestroyedEventDTO), // Process?
+				typeof(EtherWithdrawalProcessedEventDTO), // Exit
+			], [], Policy)).ToList();
+
+		foreach (IEventLog eventLog in validatorEvents)
+		{
+			await eventLog.WhenIsAsync<MinipoolPrestakedEventDTO>(
+				MinipoolEventHandlers.HandleAsync, context, cancellationToken);
+
+			await eventLog.WhenIsAsync<MinipoolEnqueuedEventDTO>(
+				MinipoolEventHandlers.HandleAsync, context, cancellationToken);
+
+			await eventLog.WhenIsAsync<MinipoolDequeuedEventDTO>(
+				MinipoolEventHandlers.HandleAsync, context, cancellationToken);
+
+			await eventLog.WhenIsAsync<EtherWithdrawalProcessedEventDTO>(
+				MinipoolEventHandlers.HandleAsync, context, cancellationToken);
+
+			await eventLog.WhenIsAsync<StatusUpdatedEventDTO>(
+				MinipoolEventHandlers.HandleAsync, context, cancellationToken);
+
 			await eventLog.WhenIsAsync<MegapoolValidatorEnqueuedEventDTO>(
-				(@event, log, innerCancellationToken) => EventAddNewMegapool(
-					context, context.Web3, @event, log, innerCancellationToken), cancellationToken);
+				MegapoolEventHandlers.HandleAsync, context, cancellationToken);
 
 			await eventLog.WhenIsAsync<MegapoolValidatorAssignedEventDTO>(
-				(@event, log, innerCancellationToken) => EventUpdateMegapoolAsync(
-					context, context.Web3, log.Address.ConvertToEthereumChecksumAddress(), (int)@event.ValidatorId,
-					MinipoolStatus.Staking,
-					@event.Time,
-					log, innerCancellationToken), cancellationToken);
+				MegapoolEventHandlers.HandleAsync, context, cancellationToken);
 
 			await eventLog.WhenIsAsync<MegapoolValidatorDequeuedEventDTO>(
-				(@event, log, innerCancellationToken) => EventUpdateMegapoolAsync(
-					context, context.Web3, log.Address.ConvertToEthereumChecksumAddress(), (int)@event.ValidatorId,
-					MinipoolStatus.Dequeued,
-					@event.Time,
-					log, innerCancellationToken), cancellationToken);
+				MegapoolEventHandlers.HandleAsync, context, cancellationToken);
 		}
 	}
 
@@ -87,6 +114,19 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				},
 			};
 
+		Logger.LogInformation("Loading {snapshot}", Keys.ValidatorSnapshot);
+		BlobObject<ValidatorSnapshot> validatorSnapshot =
+			await Storage.ReadAsync<ValidatorSnapshot>(Keys.ValidatorSnapshot, cancellationToken) ??
+			new BlobObject<ValidatorSnapshot>
+			{
+				ProcessedBlockNumber = activationHeight,
+				Data = new ValidatorSnapshot
+				{
+					MinipoolValidatorIndex = [],
+					MegapoolValidatorIndex = [],
+				},
+			};
+
 		Logger.LogInformation("Loading {snapshot}", Keys.QueueSnapshot);
 		BlobObject<QueueSnapshot> queueSnapshot =
 			await Storage.ReadAsync<QueueSnapshot>(Keys.QueueSnapshot, cancellationToken) ??
@@ -106,6 +146,9 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 
 		return new NodesSyncContext
 		{
+			Storage = Storage,
+			Policy = Policy,
+			Logger = this.loggerFactory.CreateLogger<NodesSyncContext>(),
 			Web3 = web3,
 			CurrentBlockHeight = nodesSnapshot.ProcessedBlockNumber,
 			RocketStorage = rocketStorage,
@@ -113,18 +156,49 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 			RocketNodeManager =
 				new RocketNodeManagerService(
 					web3, await Policy.ExecuteAsync(() => rocketStorage.GetAddressQueryAsync("rocketNodeManager"))),
+			RocketMinipoolManager =
+				new RocketMinipoolManagerService(
+					web3, await Policy.ExecuteAsync(() => rocketStorage.GetAddressQueryAsync("rocketMinipoolManager"))),
 			RocketNodeManagerAddresses = contracts["rocketNodeManager"].Versions.Select(x => x.Address).ToArray(),
-			NodeIndex =
-				nodesSnapshot.Data.Index.ToDictionary(
-					x => x.ContractAddress.ToHex(true), x => x, StringComparer.OrdinalIgnoreCase),
-			DailyRegistrations = nodesSnapshot.Data.DailyRegistrations,
-			TotalNodesCount = nodesSnapshot.Data.TotalNodeCount,
-			StandardQueue = queueSnapshot.Data.StandardIndex.ToList(),
-			ExpressQueue = queueSnapshot.Data.ExpressIndex.ToList(),
-			TotalQueueCount = new SortedList<DateOnly, int>(queueSnapshot.Data.TotalQueueCount),
-			DailyEnqueued = queueSnapshot.Data.DailyEnqueued,
-			DailyDequeued = queueSnapshot.Data.DailyDequeued,
-			DailyVoluntaryExits = queueSnapshot.Data.DailyVoluntaryExits,
+			Nodes = new NodeInfo
+			{
+				Data = new NodeInfo.NodeInfoFull
+				{
+					Index = new OrderedDictionary<string, NodeIndexEntry>(
+						nodesSnapshot.Data.Index.Select(x =>
+							new KeyValuePair<string, NodeIndexEntry>(x.ContractAddress.ToHex(true), x)),
+						StringComparer.OrdinalIgnoreCase),
+					TotalNodesCount = nodesSnapshot.Data.TotalNodeCount,
+					DailyRegistrations = nodesSnapshot.Data.DailyRegistrations,
+				},
+			},
+			ValidatorInfo = new ValidatorInfo
+			{
+				RocketMinipoolManagerAddresses =
+					contracts["rocketMinipoolManager"].Versions.Select(x => x.Address).ToArray(),
+				Data = new ValidatorInfo.ValidatorInfoFull
+				{
+					MinipoolValidatorIndex = new OrderedDictionary<string, MinipoolValidatorIndexEntry>(
+						validatorSnapshot.Data.MinipoolValidatorIndex.Select(x =>
+							new KeyValuePair<string, MinipoolValidatorIndexEntry>(x.MinipoolAddress.ToHex(true), x)),
+						StringComparer.OrdinalIgnoreCase),
+					MegapoolValidatorIndex =
+						new OrderedDictionary<(string Address, int Index), MegapoolValidatorIndexEntry>(
+							validatorSnapshot.Data.MegapoolValidatorIndex.Select(x =>
+								new KeyValuePair<(string Address, int Index), MegapoolValidatorIndexEntry>(
+									(x.MegapoolAddress.ToHex(true), x.MegapoolIndex), x)),
+							new MegapoolIndexEqualityComparer()),
+				},
+			},
+			QueueInfo = new QueueInfo
+			{
+				StandardQueue = queueSnapshot.Data.StandardIndex.ToList(),
+				ExpressQueue = queueSnapshot.Data.ExpressIndex.ToList(),
+				TotalQueueCount = new SortedList<DateOnly, int>(queueSnapshot.Data.TotalQueueCount),
+				DailyEnqueued = queueSnapshot.Data.DailyEnqueued,
+				DailyDequeued = queueSnapshot.Data.DailyDequeued,
+				DailyVoluntaryExits = queueSnapshot.Data.DailyVoluntaryExits,
+			},
 		};
 	}
 
@@ -139,9 +213,9 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				ProcessedBlockNumber = context.CurrentBlockHeight,
 				Data = new NodesSnapshot
 				{
-					Index = context.NodeIndex.Values.ToArray(),
-					DailyRegistrations = context.DailyRegistrations,
-					TotalNodeCount = context.TotalNodesCount,
+					Index = context.Nodes.Data.Index.Values.ToArray(),
+					DailyRegistrations = context.Nodes.Data.DailyRegistrations,
+					TotalNodeCount = context.Nodes.Data.TotalNodesCount,
 				},
 			}, cancellationToken: cancellationToken);
 
@@ -153,253 +227,69 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				ProcessedBlockNumber = context.CurrentBlockHeight,
 				Data = new QueueSnapshot
 				{
-					TotalQueueCount = context.TotalQueueCount,
-					DailyEnqueued = context.DailyEnqueued,
-					DailyDequeued = context.DailyDequeued,
-					DailyVoluntaryExits = context.DailyVoluntaryExits,
-					StandardIndex = context.StandardQueue.ToArray(),
-					ExpressIndex = context.ExpressQueue.ToArray(),
+					TotalQueueCount = context.QueueInfo.TotalQueueCount,
+					DailyEnqueued = context.QueueInfo.DailyEnqueued,
+					DailyDequeued = context.QueueInfo.DailyDequeued,
+					DailyVoluntaryExits = context.QueueInfo.DailyVoluntaryExits,
+					StandardIndex = context.QueueInfo.StandardQueue.ToArray(),
+					ExpressIndex = context.QueueInfo.ExpressQueue.ToArray(),
 				},
 			}, cancellationToken: cancellationToken);
 
-		foreach (Node node in context.Nodes.Values)
-		{
-			Logger.LogInformation("Writing {snapshot}", Keys.Node(node.ContractAddress.ToHex(true)));
-			await Storage.WriteAsync(
-				Keys.Node(node.ContractAddress.ToHex(true)), new BlobObject<Node>
+		Logger.LogInformation("Writing {snapshot}", Keys.ValidatorSnapshot);
+		await Storage.WriteAsync(
+			Keys.ValidatorSnapshot,
+			new BlobObject<ValidatorSnapshot>
+			{
+				ProcessedBlockNumber = context.CurrentBlockHeight,
+				Data = new ValidatorSnapshot
 				{
-					ProcessedBlockNumber = context.CurrentBlockHeight,
-					Data = node,
-				}, cancellationToken: cancellationToken);
-		}
+					MinipoolValidatorIndex = context.ValidatorInfo.Data.MinipoolValidatorIndex.Values.ToArray(),
+					MegapoolValidatorIndex = context.ValidatorInfo.Data.MegapoolValidatorIndex.Values.ToArray(),
+				},
+			}, cancellationToken: cancellationToken);
 
-		foreach ((string? megapoolAddress, int megapoolIndex, Minipool? minipool) in
-				context.MegaMinipools.SelectMany(
-					megapool =>
-						megapool.Value.Select(index => (megapool.Key, index.Key, index.Value))))
-		{
-			Logger.LogInformation("Writing {snapshot}", Keys.MegapoolMinipool(megapoolAddress, megapoolIndex));
-			await Storage.WriteAsync(
-				Keys.MegapoolMinipool(megapoolAddress, megapoolIndex), new BlobObject<Minipool>
-				{
-					ProcessedBlockNumber = context.CurrentBlockHeight,
-					Data = minipool,
-				}, cancellationToken: cancellationToken);
-		}
-	}
-
-	private async Task EventAddNewMegapool(
-		NodesSyncContext context, Web3 web3, MegapoolValidatorEnqueuedEventDTO @event, FilterLog log,
-		CancellationToken cancellationToken = default)
-	{
-		string megapoolAddress = log.Address.ConvertToEthereumChecksumAddress();
-		RocketMegapoolDelegateService megapoolDelegate = new(web3, megapoolAddress);
-
-		context.MegapoolNodeOperatorMap.TryGetValue(megapoolAddress, out string? nodeOperatorAddress);
-
-		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
-		{
-			nodeOperatorAddress = await FetchNodeOperatorAddress(
-				context, log, megapoolAddress, megapoolDelegate, cancellationToken);
-
-			if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
+		await Parallel.ForEachAsync(
+			context.Nodes.Partial.Updated.Values, cancellationToken, async (node, innerCancellationToken) =>
 			{
-				return;
-			}
+				Logger.LogInformation("Writing {snapshot}", Keys.Node(node.ContractAddress.ToHex(true)));
+				await Storage.WriteAsync(
+					Keys.Node(node.ContractAddress.ToHex(true)), new BlobObject<Node>
+					{
+						ProcessedBlockNumber = context.CurrentBlockHeight,
+						Data = node,
+					}, cancellationToken: innerCancellationToken);
+			});
 
-			context.MegapoolNodeOperatorMap[megapoolAddress] = nodeOperatorAddress;
-
-			context.NodeIndex[nodeOperatorAddress] = context.NodeIndex[nodeOperatorAddress] with
+		await Parallel.ForEachAsync(
+			context.ValidatorInfo.Partial.UpdatedMegapoolValidators.Select(megapool =>
+				(megapool.Key.Address, megapool.Key.Index, megapool.Value)),
+			cancellationToken, async (validatorEntry, innerCancellationToken) =>
 			{
-				MegapoolAddress = megapoolAddress.HexToByteArray(),
-			};
+				(string megapoolAddress, int megapoolIndex, Validator validator) = validatorEntry;
 
-			context.Nodes[nodeOperatorAddress] = context.Nodes[nodeOperatorAddress] with
+				Logger.LogInformation("Writing {snapshot}", Keys.MegapoolValidator(megapoolAddress, megapoolIndex));
+				await Storage.WriteAsync(
+					Keys.MegapoolValidator(megapoolAddress, megapoolIndex), new BlobObject<Validator>
+					{
+						ProcessedBlockNumber = context.CurrentBlockHeight,
+						Data = validator,
+					}, cancellationToken: innerCancellationToken);
+			});
+
+		await Parallel.ForEachAsync(
+			context.ValidatorInfo.Partial.UpdatedMinipoolValidators, cancellationToken,
+			async (validatorEntry, innerCancellationToken) =>
 			{
-				MegapoolAddress = megapoolAddress.HexToByteArray(),
-			};
-		}
+				(string minipoolAddress, Validator validator) = validatorEntry;
 
-		GetValidatorInfoOutputDTO validatorInfo = await megapoolDelegate.GetValidatorInfoQueryAsync(
-			(uint)@event.ValidatorId, new BlockParameter(log.BlockNumber));
-
-		Minipool minipool = new()
-		{
-			NodeOperatorAddress = nodeOperatorAddress.HexToByteArray(),
-			MegapoolAddress = megapoolAddress.HexToByteArray(),
-			MegapoolIndex = (int)@event.ValidatorId,
-			ExpressTicketUsed = validatorInfo.ReturnValue1.ExpressUsed,
-			PubKey = validatorInfo.ReturnValue1.PubKey,
-			CreationTimestamp = (ulong)@event.Time,
-			Status = MinipoolStatus.InQueue,
-			Bond = 4, // TODO: Saturn2
-			Type = MinipoolType.Megapool,
-		};
-
-		context.MegaMinipools.TryAdd(megapoolAddress, []);
-		context.MegaMinipools[megapoolAddress][minipool.MegapoolIndex.Value] = minipool;
-
-		// TODO: Use list
-		MinipoolIndexEntry entry = new()
-		{
-			CreationTimestamp = (long)minipool.CreationTimestamp,
-			NodeAddress = minipool.NodeOperatorAddress,
-			PubKey = minipool.PubKey,
-			MegapoolAddress = megapoolAddress.HexToByteArray(),
-			MegapoolIndex = minipool.MegapoolIndex,
-		};
-
-		context.Nodes[nodeOperatorAddress].MegaMinipools =
-		[
-			..context.Nodes[nodeOperatorAddress].MegaMinipools, entry,
-		];
-
-		if (!validatorInfo.ReturnValue1.ExpressUsed)
-		{
-			context.StandardQueue.Add(entry);
-		}
-		else
-		{
-			context.ExpressQueue.Add(entry);
-		}
-
-		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)@event.Time).DateTime);
-
-		context.TotalQueueCount[key] = context.TotalQueueCount.GetLatestOrDefault() + 1;
-		context.DailyEnqueued[key] = context.DailyEnqueued.GetValueOrDefault(key) + 1;
-	}
-
-	private async Task EventAddNewNodeAsync(
-		NodesSyncContext context,
-		RocketNodeManagerService latestRocketNodeManager,
-		NodeRegisteredEventDTO @event, CancellationToken cancellationToken = default)
-	{
-		Logger.LogInformation("Node registered {Address}", @event.Node);
-
-		context.NodeIndex[@event.Node] = new NodeIndexEntry
-		{
-			ContractAddress = @event.Node.HexToByteArray(),
-			RegistrationTimestamp = (long)@event.Time,
-		};
-
-		// Fetch latest node details (otherwise we would have to use the current latestRocketNodeManager of log.BlockNumber via contractsSnapshot)
-		GetNodeDetailsOutputDTO? nodeDetails = null;
-
-		try
-		{
-			// TODO: Obsolete, replace
-			// See https://discord.com/channels/405159462932971535/704214664829075506/1365495113383677973
-			nodeDetails =
-				await Policy.ExecuteAsync(() => latestRocketNodeManager.GetNodeDetailsQueryAsync(@event.Node));
-		}
-		catch
-		{
-			Logger.LogWarning("Failed to fetch node details for {Node}", @event.Node);
-		}
-
-		// TODO: Add more details
-		context.Nodes[@event.Node] = new Node
-		{
-			ContractAddress = @event.Node.HexToByteArray(),
-			RegistrationTimestamp = (long)@event.Time,
-			Timezone = nodeDetails?.NodeDetails.TimezoneLocation ?? "Unknown",
-		};
-
-		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)@event.Time).DateTime);
-		context.DailyRegistrations[key] = context.DailyRegistrations.GetValueOrDefault(key) + 1;
-		context.TotalNodesCount[key] = context.TotalNodesCount.GetLatestOrDefault() + 1;
-	}
-
-	private async Task EventUpdateMegapoolAsync(
-		NodesSyncContext context, Web3 web3, string megapoolAddress, int validatorId, MinipoolStatus status,
-		BigInteger eventTime,
-		FilterLog log, CancellationToken cancellationToken)
-	{
-		RocketMegapoolDelegateService megapoolDelegate = new(web3, megapoolAddress);
-
-		context.MegapoolNodeOperatorMap.TryGetValue(megapoolAddress, out string? nodeOperatorAddress);
-
-		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
-		{
-			nodeOperatorAddress = await FetchNodeOperatorAddress(
-				context, log, megapoolAddress, megapoolDelegate, cancellationToken);
-
-			if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
-			{
-				return;
-			}
-
-			context.MegapoolNodeOperatorMap[megapoolAddress] = nodeOperatorAddress;
-		}
-
-		context.MegaMinipools.TryAdd(megapoolAddress, []);
-
-		if (!context.MegaMinipools[megapoolAddress].ContainsKey(validatorId))
-		{
-			context.MegaMinipools[megapoolAddress][validatorId] = (await Storage.ReadAsync<Minipool>(
-					Keys.MegapoolMinipool(megapoolAddress, validatorId), cancellationToken))?.Data ??
-				throw new InvalidOperationException("Cannot read node operator from storage.");
-		}
-
-		context.MegaMinipools[megapoolAddress][validatorId].Status = status;
-
-		if (status == MinipoolStatus.Staking || status == MinipoolStatus.Dequeued)
-		{
-			int h = 0;
-
-			// TODO: Sequence Equal?
-			h += context.StandardQueue.RemoveAll(
-				x =>
-					x.PubKey == context.MegaMinipools[megapoolAddress][validatorId].PubKey);
-			h += context.ExpressQueue.RemoveAll(
-				x =>
-					x.PubKey == context.MegaMinipools[megapoolAddress][validatorId].PubKey);
-
-			Debug.Assert(h == 1, "Only one element should be removed");
-
-			SortedList<DateOnly, int> dictionary =
-				status == MinipoolStatus.Staking ? context.DailyDequeued : context.DailyVoluntaryExits;
-			DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventTime).DateTime);
-			dictionary[key] = dictionary.GetValueOrDefault(key) + 1;
-
-			context.TotalQueueCount[key] = context.TotalQueueCount.GetLatestOrDefault() - 1;
-		}
-	}
-
-	private async Task<string?> FetchNodeOperatorAddress(
-		NodesSyncContext context, FilterLog log, string megapoolAddress,
-		RocketMegapoolDelegateService megapoolDelegate, CancellationToken cancellationToken = default)
-	{
-		string nodeOperatorAddress =
-			await megapoolDelegate.GetNodeAddressQueryAsync(new BlockParameter(log.BlockNumber));
-
-		// If not found might be megapool from different rocket pool version
-		if (!context.NodeIndex.ContainsKey(nodeOperatorAddress))
-		{
-			logger.LogWarning(
-				"Node operator {NodeOperatorAddress} for {Megapool} not found in index.", nodeOperatorAddress,
-				megapoolAddress);
-			return null;
-		}
-
-		// Can happen if the same node operator address is used for multiple rocket pool deployments
-		if (!string.Equals(
-				await context.RocketNodeManager.GetMegapoolAddressQueryAsync(nodeOperatorAddress), megapoolAddress,
-				StringComparison.OrdinalIgnoreCase))
-		{
-			logger.LogWarning(
-				"Node operator {NodeOperatorAddress} found in index but megapool address {Megapool} does not match.",
-				nodeOperatorAddress, megapoolAddress);
-			return null;
-		}
-
-		if (!context.Nodes.ContainsKey(nodeOperatorAddress))
-		{
-			context.Nodes[nodeOperatorAddress] =
-				(await Storage.ReadAsync<Node>(Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
-				throw new InvalidOperationException("Cannot read node operator from storage.");
-		}
-
-		return nodeOperatorAddress;
+				Logger.LogInformation("Writing {snapshot}", Keys.MinipoolValidator(minipoolAddress));
+				await Storage.WriteAsync(
+					Keys.MinipoolValidator(minipoolAddress), new BlobObject<Validator>
+					{
+						ProcessedBlockNumber = context.CurrentBlockHeight,
+						Data = validator,
+					}, cancellationToken: innerCancellationToken);
+			});
 	}
 }

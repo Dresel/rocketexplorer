@@ -86,3 +86,15 @@ mark {
 .footer { margin-bottom: 8px; }
 
 .mud-drawer-open-responsive-md-left .footer { margin-left: var(--mud-drawer-width-left); }
+
+.mud-main-content .label {
+	width: 200px;
+}
+
+@media (max-width: 600px) {
+	.mud-main-content .label {
+		flex-grow: 0;
+		max-width: calc(100%);
+		flex-basis: calc(100%);
+	}
+}

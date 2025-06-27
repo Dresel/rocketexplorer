@@ -111,7 +111,7 @@
 	{
 		await LoadedTask;
 
-		List<RocketPoolContract> items = Snapshot.Contracts.ToList();
+		List<RocketPoolContract> items = Snapshot!.Data.Contracts.ToList();
 
 		if (state.SortLabel is "Name")
 		{
@@ -148,7 +148,7 @@
 	{
 		await LoadedTask;
 
-		List<RocketPoolUpgradeContract> items = Snapshot.UpgradeContracts.ToList();
+		List<RocketPoolUpgradeContract> items = Snapshot!.Data.UpgradeContracts.ToList();
 
 		return new TableData<VersionedRocketPoolUpgradeContractViewModel>
 		{

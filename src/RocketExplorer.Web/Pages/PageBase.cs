@@ -1,13 +1,10 @@
-using MessagePack;
 using Microsoft.AspNetCore.Components;
 
 namespace RocketExplorer.Web.Pages;
 
-public abstract class PageBase<T> : ComponentBase
+public abstract class PageBase<T> : ComponentBase, IDisposable
 {
 	private readonly TaskCompletionSource taskCompletionSource = new();
-
-	private string? eTag;
 
 	[Inject]
 	protected AppState AppState { get; set; } = null!;
@@ -29,9 +26,26 @@ public abstract class PageBase<T> : ComponentBase
 
 	protected string? ObjectStoreKey { get; set; }
 
-	protected string ObjectStoreUrl => $"{Configuration.ObjectStoreBaseUrl}/{ObjectStoreKey}";
+	protected string ObjectStoreUrl =>
+		!string.IsNullOrWhiteSpace(ObjectStoreKey) ? GetObjectStoreUrl(ObjectStoreKey) : string.Empty;
 
-	protected T? Snapshot { get; set; }
+	protected Snapshot<T>? Snapshot { get; set; }
+
+	public void Dispose()
+	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	protected virtual void Dispose(bool disposing)
+	{
+		if (disposing)
+		{
+			AppState.OnAppStateChanged -= OnAppStateChanged;
+		}
+	}
+
+	protected string GetObjectStoreUrl(string key) => $"{Configuration.ObjectStoreBaseUrl}/{key}";
 
 	protected async Task LoadAsync(CancellationToken cancellationToken = default)
 	{
@@ -42,20 +56,13 @@ public abstract class PageBase<T> : ComponentBase
 		}
 
 		// TODO: Polly
-		using HttpRequestMessage snapshotRequest = new(HttpMethod.Head, ObjectStoreUrl);
-		using HttpResponseMessage snapshotResponse = await HttpClient.SendAsync(
-			snapshotRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-		snapshotResponse.EnsureSuccessStatusCode();
+		SnapshotResponse<T> response = await HttpClient.GetSnapshotResponse<T>(ObjectStoreUrl, cancellationToken);
 
-		string? latestETag = snapshotResponse.Headers.ETag?.Tag;
-
-		if (string.IsNullOrWhiteSpace(this.eTag) || string.IsNullOrWhiteSpace(latestETag) || this.eTag != latestETag)
+		// Check manually to avoid additional render cycles
+		if (Snapshot is null || string.IsNullOrWhiteSpace(response.ETag) || Snapshot.ETag != response.ETag)
 		{
-			this.eTag = latestETag;
+			Snapshot = await response.ToSnapshotAsync(cancellationToken);
 
-			Snapshot = MessagePackSerializer.Deserialize<T>(
-				await HttpClient.GetStreamAsync(ObjectStoreUrl, cancellationToken),
-				MessagePackSerializerOptions.Standard);
 			await OnAfterSnapshotLoadedAsync(cancellationToken);
 			this.taskCompletionSource.TrySetResult();
 		}
@@ -78,6 +85,6 @@ public abstract class PageBase<T> : ComponentBase
 
 	protected abstract Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default);
 
-	private void OnAppStateChanged(object? sender, AppState e) =>
+	protected virtual void OnAppStateChanged(object? sender, AppState e) =>
 		LoadAsync().ContinueWith(async _ => await InvokeAsync(StateHasChanged));
 }

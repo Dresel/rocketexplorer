@@ -45,7 +45,16 @@ public class MegapoolEventHandlers
 			x.PubKey.SequenceEqual(
 				context.ValidatorInfo.Partial.UpdatedMegapoolValidators[(megapoolAddress, validatorId)].PubKey ?? []));
 
-		Debug.Assert(h == 1, "Only one element should be removed");
+		try
+		{
+			Debug.Assert(h == 1, "Only one element should be removed");
+		}
+		catch (Exception e)
+		{
+			Console.WriteLine(e);
+			throw;
+		}
+
 
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(time).DateTime);
 		context.QueueInfo.DailyDequeued[key] = context.QueueInfo.DailyDequeued.GetValueOrDefault(key) + 1;
@@ -84,7 +93,15 @@ public class MegapoolEventHandlers
 			x.PubKey.SequenceEqual(
 				context.ValidatorInfo.Partial.UpdatedMegapoolValidators[(megapoolAddress, validatorId)].PubKey ?? []));
 
-		Debug.Assert(h == 1, "Only one element should be removed");
+		try
+		{
+			Debug.Assert(h == 1, "Only one element should be removed");
+		}
+		catch (Exception e)
+		{
+			Console.WriteLine(e);
+			throw;
+		}
 
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(time).DateTime);
 		context.QueueInfo.DailyVoluntaryExits[key] = context.QueueInfo.DailyVoluntaryExits.GetValueOrDefault(key) + 1;
@@ -114,7 +131,8 @@ public class MegapoolEventHandlers
 		}
 
 		RocketMegapoolDelegateService megapoolDelegate = new(context.Web3, megapoolAddress);
-		GetValidatorInfoOutputDTO validatorInfo = await megapoolDelegate.GetValidatorInfoQueryAsync(
+
+		byte[] pubKey = await megapoolDelegate.GetValidatorPubkeyQueryAsync(
 			(uint)eventValidatorId, new BlockParameter(eventLog.Log.BlockNumber));
 
 		MegapoolValidatorIndexEntry entry = new()
@@ -122,7 +140,7 @@ public class MegapoolEventHandlers
 			NodeAddress = nodeOperatorAddress.HexToByteArray(),
 			MegapoolAddress = megapoolAddress.HexToByteArray(),
 			MegapoolIndex = eventValidatorId,
-			PubKey = validatorInfo.ReturnValue1.PubKey,
+			PubKey = pubKey,
 		};
 
 		context.ValidatorInfo.Data.MegapoolValidatorIndex.Add(
@@ -132,6 +150,9 @@ public class MegapoolEventHandlers
 		{
 			MegapoolAddress = megapoolAddress.HexToByteArray(),
 		};
+
+		GetValidatorInfoOutputDTO validatorInfo = await megapoolDelegate.GetValidatorInfoQueryAsync(
+			(uint)eventValidatorId, new BlockParameter(eventLog.Log.BlockNumber));
 
 		Validator validator = new()
 		{

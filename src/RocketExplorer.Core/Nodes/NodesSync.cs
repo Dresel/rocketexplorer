@@ -40,6 +40,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 				NodeRegisteredEventHandler.HandleAsync, context, cancellationToken);
 		}
 
+		return;
 		IEnumerable<IEventLog> minipoolCreatedEvents = await context.Web3.FilterAsync(
 			fromBlock, toBlock, [typeof(MinipoolCreatedEventDTO),],
 			context.ValidatorInfo.RocketMinipoolManagerAddresses, Policy);
@@ -102,7 +103,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 
 		Logger.LogInformation("Loading {snapshot}", Keys.NodesSnapshot);
 		BlobObject<NodesSnapshot> nodesSnapshot =
-			await Storage.ReadAsync<NodesSnapshot>(Keys.NodesSnapshot, cancellationToken) ??
+			//await Storage.ReadAsync<NodesSnapshot>(Keys.NodesSnapshot, cancellationToken) ??
 			new BlobObject<NodesSnapshot>
 			{
 				ProcessedBlockNumber = activationHeight,
@@ -116,7 +117,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 
 		Logger.LogInformation("Loading {snapshot}", Keys.ValidatorSnapshot);
 		BlobObject<ValidatorSnapshot> validatorSnapshot =
-			await Storage.ReadAsync<ValidatorSnapshot>(Keys.ValidatorSnapshot, cancellationToken) ??
+			//await Storage.ReadAsync<ValidatorSnapshot>(Keys.ValidatorSnapshot, cancellationToken) ??
 			new BlobObject<ValidatorSnapshot>
 			{
 				ProcessedBlockNumber = activationHeight,
@@ -129,7 +130,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 
 		Logger.LogInformation("Loading {snapshot}", Keys.QueueSnapshot);
 		BlobObject<QueueSnapshot> queueSnapshot =
-			await Storage.ReadAsync<QueueSnapshot>(Keys.QueueSnapshot, cancellationToken) ??
+			//await Storage.ReadAsync<QueueSnapshot>(Keys.QueueSnapshot, cancellationToken) ??
 			new BlobObject<QueueSnapshot>
 			{
 				ProcessedBlockNumber = activationHeight,

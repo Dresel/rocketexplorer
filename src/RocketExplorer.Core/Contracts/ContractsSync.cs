@@ -56,7 +56,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 		Logger.LogInformation("Loading {snapshot}", ContractsSnapshotKey);
 
 		BlobObject<ContractsSnapshot> snapshot =
-			await Storage.ReadAsync<ContractsSnapshot>(ContractsSnapshotKey, cancellationToken) ??
+			//await Storage.ReadAsync<ContractsSnapshot>(ContractsSnapshotKey, cancellationToken) ??
 			new BlobObject<ContractsSnapshot>
 			{
 				ProcessedBlockNumber = 0,

@@ -33,19 +33,26 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 	{
 		IEnumerable<IEventLog> nodeAddedEvents = await context.Web3.FilterAsync(
 			fromBlock, toBlock, [typeof(ContractAddedEventDTO), typeof(ContractUpgradedEventDTO),],
-			[context.TrustedUpgradeContractAddress,], Policy);
+			context.TrustedUpgradeContractAddress, Policy);
+
+		bool updated = false;
 
 		foreach (IEventLog eventLog in nodeAddedEvents)
 		{
-			await eventLog.WhenIsAsync<ContractAddedEventDTO>(
+			updated |= await eventLog.WhenIsAsync<ContractAddedEventDTO, bool>(
 				(@event, log, _) => ProcessContractAddedEventAsync(
 					context, @event.Name, @event.NewAddress, (long)log.BlockNumber.Value, latestBlock),
 				cancellationToken);
 
-			await eventLog.WhenIsAsync<ContractUpgradedEventDTO>(
+			updated |= await eventLog.WhenIsAsync<ContractUpgradedEventDTO, bool>(
 				(@event, log, _) => ProcessContractAddedEventAsync(
 					context, @event.Name, @event.NewAddress, (long)log.BlockNumber.Value, latestBlock),
 				cancellationToken);
+		}
+
+		if (updated)
+		{
+			await HandleBlocksAsync(context, fromBlock, toBlock, latestBlock, cancellationToken);
 		}
 	}
 
@@ -73,8 +80,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 			CurrentBlockHeight = snapshot.ProcessedBlockNumber,
 			RocketStorage = rocketStorage,
 			Contracts = contracts,
-			TrustedUpgradeContractAddress =
-				await Policy.ExecuteAsync(() => rocketStorage.GetAddressQueryAsync("rocketDAONodeTrustedUpgrade")),
+			TrustedUpgradeContractAddress = snapshot.Data.Contracts.SingleOrDefault(x => x.Name == "rocketDAONodeTrustedUpgrade")?.Versions.Select(x => x.Address).ToList() ?? [],
 			ContextContracts = snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x),
 			ContextUpgradeContracts = snapshot.Data.UpgradeContracts.ToDictionary(x => x.Name, x => x),
 		};
@@ -162,21 +168,19 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 				],
 			};
 
-		await ProcessUpgradeContractAsync(
+		_ = await ProcessUpgradeContractAsync(
 			context, upgradeContract, context.RocketStorage.GetDeployedStatusQueryAsync,
 			"bootstrap", rocketPoolDeployedBlock, latestBlock);
 
 		context.CurrentBlockHeight = rocketPoolDeployedBlock;
 	}
 
-	private async Task ProcessContractAddedEventAsync(
+	private async Task<bool> ProcessContractAddedEventAsync(
 		ContractsSyncContext context,
 		byte[] contractNameHash, string contractAddress, long currentBlock, long latestBlock)
 	{
 		if (context.UpgradeContractsMap.TryGetValue(contractNameHash, out string? upgradeContractName))
 		{
-			Logger.LogInformation("New upgrade contract found {ContractName}", upgradeContractName);
-
 			if (!context.ContextUpgradeContracts.ContainsKey(upgradeContractName))
 			{
 				context.ContextUpgradeContracts[upgradeContractName] =
@@ -186,6 +190,14 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 						Versions = [],
 					};
 			}
+
+			// Already added
+			if (context.ContextUpgradeContracts[upgradeContractName].Versions.Any(x => x.Address == contractAddress))
+			{
+				return false;
+			}
+
+			Logger.LogInformation("New upgrade contract found {ContractName}", upgradeContractName);
 
 			VersionedRocketPoolUpgradeContract upgradeContract = new()
 			{
@@ -205,27 +217,27 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 					],
 				};
 
-			await ProcessUpgradeContractAsync(
+			return await ProcessUpgradeContractAsync(
 				context, upgradeContract,
 				blockParameter => GetExecutedFunction(context.Web3, contractAddress).CallAsync<bool>(blockParameter),
 				upgradeContractName, currentBlock, latestBlock);
 		}
 		else if (context.ContractsMap.TryGetValue(contractNameHash, out string? contractName))
 		{
-			UpdateContractAddressForBlock(
+			return UpdateContractAddressForBlock(
 				context, contractAddress, contractName, "rocketDAONodeTrustedUpgrade", currentBlock);
 		}
 		else
 		{
 			// TODO: Might be an unknown update contract, check for execute first
 			Logger.LogWarning("Unknown contract with address {Address}", contractAddress);
-			UpdateContractAddressForBlock(
+			return UpdateContractAddressForBlock(
 				context, contractAddress, $"unknown ({contractAddress[..6]})",
 				"rocketDAONodeTrustedUpgrade", currentBlock);
 		}
 	}
 
-	private async Task ProcessUpgradeContractAsync(
+	private async Task<bool> ProcessUpgradeContractAsync(
 		ContractsSyncContext context, VersionedRocketPoolUpgradeContract upgradeContract,
 		Func<BlockParameter, Task<bool>> executionFunc, string activationMethod, long activationHeight,
 		long latestBlock)
@@ -238,7 +250,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 		if (executionHeight == null)
 		{
 			Logger.LogInformation("Execution block not found");
-			return;
+			return false;
 		}
 
 		Logger.LogInformation("Executed in block {Block}", executionHeight);
@@ -246,13 +258,17 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 		upgradeContract.ExecutionHeight = (long)executionHeight;
 		upgradeContract.IsExecuted = true;
 
+		bool rocketNodeDaoTrustedUpgradeUpdated = false;
+
 		foreach (string contractName in Ethereum.Contracts.Names)
 		{
-			await TryUpdateContractAddressForBlockAsync(context, contractName, activationMethod, (long)executionHeight);
+			rocketNodeDaoTrustedUpgradeUpdated |= await TryUpdateContractAddressForBlockAsync(context, contractName, activationMethod, (long)executionHeight);
 		}
+
+		return rocketNodeDaoTrustedUpgradeUpdated;
 	}
 
-	private async Task TryUpdateContractAddressForBlockAsync(
+	private async Task<bool> TryUpdateContractAddressForBlockAsync(
 		ContractsSyncContext context, string contractName, string activationMethod, long currentBlock)
 	{
 		string address = await Policy.ExecuteAsync(() =>
@@ -260,19 +276,19 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 
 		if (address is null or "0x0000000000000000000000000000000000000000")
 		{
-			return;
+			return false;
 		}
 
 		if (context.ContextContracts.TryGetValue(contractName, out RocketPoolContract? contract) &&
 			contract.Versions.LastOrDefault()?.Address == address)
 		{
-			return;
+			return false;
 		}
 
-		UpdateContractAddressForBlock(context, address, contractName, activationMethod, currentBlock);
+		return UpdateContractAddressForBlock(context, address, contractName, activationMethod, currentBlock);
 	}
 
-	private void UpdateContractAddressForBlock(
+	private bool UpdateContractAddressForBlock(
 		ContractsSyncContext context, string address, string contractName, string activationMethod,
 		long currentBlock)
 	{
@@ -283,6 +299,12 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 				Name = contractName,
 				Versions = [],
 			};
+		}
+
+		// Already added
+		if (context.ContextContracts[contractName].Versions.Any(x => x.Address == address))
+		{
+			return false;
 		}
 
 		Logger.LogInformation("New Address for {ContractName} found: {Address}", contractName, address);
@@ -300,5 +322,12 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 				},
 			],
 		};
+
+		if (contractName == "rocketDAONodeTrustedUpgrade")
+		{
+			context.TrustedUpgradeContractAddress.Add(address);
+		}
+
+		return contractName == "rocketDAONodeTrustedUpgrade";
 	}
 }

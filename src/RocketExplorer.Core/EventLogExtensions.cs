@@ -29,6 +29,19 @@ public static class EventLogExtensions
 		return Task.CompletedTask;
 	}
 
+	public static Task<TResult?> WhenIsAsync<TEvent, TResult>(
+		this IEventLog eventLog, Func<TEvent, FilterLog, CancellationToken, Task<TResult?>> action,
+		CancellationToken cancellationToken = default)
+		where TEvent : IEventDTO
+	{
+		if (eventLog is EventLog<TEvent> specificEventLog)
+		{
+			return action(specificEventLog.Event, specificEventLog.Log, cancellationToken);
+		}
+
+		return Task.FromResult(default(TResult));
+	}
+
 	public static async Task WhenIsAsync<TEvent>(
 		this IEventLog eventLog, Func<TEvent, FilterLog, CancellationToken, Task>[] actions,
 		CancellationToken cancellationToken = default)

@@ -135,8 +135,12 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 				ProcessedBlockNumber = activationHeight,
 				Data = new QueueSnapshot
 				{
-					StandardIndex = [],
-					ExpressIndex = [],
+					MinipoolHalfQueue = [],
+					MinipoolFullQueue = [],
+					MinipoolVariableQueue = [],
+					MegapoolQueueIndex = 0,
+					MegapoolStandardQueue = [],
+					MegapoolExpressQueue = [],
 					TotalQueueCount = [],
 					DailyEnqueued = [],
 					DailyDequeued = [],
@@ -192,8 +196,12 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 			},
 			QueueInfo = new QueueInfo
 			{
-				StandardQueue = queueSnapshot.Data.StandardIndex.ToList(),
-				ExpressQueue = queueSnapshot.Data.ExpressIndex.ToList(),
+				MinipoolHalfQueue = queueSnapshot.Data.MinipoolHalfQueue.ToList(),
+				MinipoolFullQueue = queueSnapshot.Data.MinipoolFullQueue.ToList(),
+				MinipoolVariableQueue = queueSnapshot.Data.MinipoolVariableQueue.ToList(),
+				MegapoolQueueIndex = queueSnapshot.Data.MegapoolQueueIndex,
+				MegapoolStandardQueue = queueSnapshot.Data.MegapoolStandardQueue.ToList(),
+				MegapoolExpressQueue = queueSnapshot.Data.MegapoolExpressQueue.ToList(),
 				TotalQueueCount = new SortedList<DateOnly, int>(queueSnapshot.Data.TotalQueueCount),
 				DailyEnqueued = queueSnapshot.Data.DailyEnqueued,
 				DailyDequeued = queueSnapshot.Data.DailyDequeued,
@@ -231,8 +239,12 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 					DailyEnqueued = context.QueueInfo.DailyEnqueued,
 					DailyDequeued = context.QueueInfo.DailyDequeued,
 					DailyVoluntaryExits = context.QueueInfo.DailyVoluntaryExits,
-					StandardIndex = context.QueueInfo.StandardQueue.ToArray(),
-					ExpressIndex = context.QueueInfo.ExpressQueue.ToArray(),
+					MinipoolHalfQueue = context.QueueInfo.MinipoolHalfQueue.ToArray(),
+					MinipoolFullQueue = context.QueueInfo.MinipoolFullQueue.ToArray(),
+					MinipoolVariableQueue = context.QueueInfo.MinipoolVariableQueue.ToArray(),
+					MegapoolQueueIndex = context.QueueInfo.MegapoolQueueIndex,
+					MegapoolStandardQueue = context.QueueInfo.MegapoolStandardQueue.ToArray(),
+					MegapoolExpressQueue = context.QueueInfo.MegapoolExpressQueue.ToArray(),
 				},
 			}, cancellationToken: cancellationToken);
 

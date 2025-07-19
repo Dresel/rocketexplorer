@@ -8,20 +8,32 @@ namespace RocketExplorer.Shared.Validators;
 public record class QueueSnapshot
 {
 	[Key(0)]
-	public required MegapoolValidatorIndexEntry[] StandardIndex { get; init; }
+	public required MinipoolValidatorQueueEntry[] MinipoolHalfQueue { get; init; }
 
 	[Key(1)]
-	public required MegapoolValidatorIndexEntry[] ExpressIndex { get; init; }
+	public required MinipoolValidatorQueueEntry[] MinipoolFullQueue { get; init; }
 
 	[Key(2)]
-	public required SortedList<DateOnly, int> TotalQueueCount { get; init; }
+	public required MinipoolValidatorQueueEntry[] MinipoolVariableQueue { get; init; }
 
 	[Key(3)]
-	public required SortedList<DateOnly, int> DailyEnqueued { get; init; }
+	public required int MegapoolQueueIndex { get; init; }
 
 	[Key(4)]
-	public required SortedList<DateOnly, int> DailyDequeued { get; init; }
+	public required MegapoolValidatorQueueEntry[] MegapoolStandardQueue { get; init; }
 
 	[Key(5)]
+	public required MegapoolValidatorQueueEntry[] MegapoolExpressQueue { get; init; }
+
+	[Key(6)]
+	public required SortedList<DateOnly, int> TotalQueueCount { get; init; }
+
+	[Key(7)]
+	public required SortedList<DateOnly, int> DailyEnqueued { get; init; }
+
+	[Key(8)]
+	public required SortedList<DateOnly, int> DailyDequeued { get; init; }
+
+	[Key(9)]
 	public required SortedList<DateOnly, int> DailyVoluntaryExits { get; init; }
 }

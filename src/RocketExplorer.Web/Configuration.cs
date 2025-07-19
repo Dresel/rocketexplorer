@@ -19,8 +19,10 @@ public class Configuration
 
 		Network = Environment switch
 		{
+			Environment.LocalDevnet => Network.Hoodi,
 			Environment.Devnet => Network.Hoodi,
 			Environment.Testnet => Network.Hoodi,
+			Environment.LocalMainnet => Network.Mainnet,
 			Environment.Mainnet => Network.Mainnet,
 			_ => throw new InvalidOperationException("Network is null"),
 		};
@@ -44,6 +46,16 @@ public class Configuration
 	public Network Network { get; }
 
 	// TODO: Load from configuration?
-	public string ObjectStoreBaseUrl =>
-		$"https://rocketexplorer.nbg1.your-objectstorage.com/{Environment.ToString().ToLower()}";
+	public string ObjectStoreBaseUrl => $"https://rocketexplorer.nbg1.your-objectstorage.com/{ObjectStoreBucketName}";
+
+	public string ObjectStoreBucketName =>
+		Environment switch
+		{
+			Environment.LocalDevnet => "local-devnet",
+			Environment.Devnet => "devnet",
+			Environment.Testnet => "testnet",
+			Environment.LocalMainnet => "local-mainnet",
+			Environment.Mainnet => "mainnet",
+			_ => throw new ArgumentOutOfRangeException(),
+		};
 }

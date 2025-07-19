@@ -47,6 +47,58 @@ namespace RocketExplorer.Ethereum.RocketNodeManager
         {
         }
 
+        public virtual Task<string> AddUnclaimedRewardsRequestAsync(AddUnclaimedRewardsFunction addUnclaimedRewardsFunction)
+        {
+             return ContractHandler.SendRequestAsync(addUnclaimedRewardsFunction);
+        }
+
+        public virtual Task<TransactionReceipt> AddUnclaimedRewardsRequestAndWaitForReceiptAsync(AddUnclaimedRewardsFunction addUnclaimedRewardsFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(addUnclaimedRewardsFunction, cancellationToken);
+        }
+
+        public virtual Task<string> AddUnclaimedRewardsRequestAsync(string nodeAddress)
+        {
+            var addUnclaimedRewardsFunction = new AddUnclaimedRewardsFunction();
+                addUnclaimedRewardsFunction.NodeAddress = nodeAddress;
+            
+             return ContractHandler.SendRequestAsync(addUnclaimedRewardsFunction);
+        }
+
+        public virtual Task<TransactionReceipt> AddUnclaimedRewardsRequestAndWaitForReceiptAsync(string nodeAddress, CancellationTokenSource cancellationToken = null)
+        {
+            var addUnclaimedRewardsFunction = new AddUnclaimedRewardsFunction();
+                addUnclaimedRewardsFunction.NodeAddress = nodeAddress;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(addUnclaimedRewardsFunction, cancellationToken);
+        }
+
+        public virtual Task<string> ClaimUnclaimedRewardsRequestAsync(ClaimUnclaimedRewardsFunction claimUnclaimedRewardsFunction)
+        {
+             return ContractHandler.SendRequestAsync(claimUnclaimedRewardsFunction);
+        }
+
+        public virtual Task<TransactionReceipt> ClaimUnclaimedRewardsRequestAndWaitForReceiptAsync(ClaimUnclaimedRewardsFunction claimUnclaimedRewardsFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(claimUnclaimedRewardsFunction, cancellationToken);
+        }
+
+        public virtual Task<string> ClaimUnclaimedRewardsRequestAsync(string nodeAddress)
+        {
+            var claimUnclaimedRewardsFunction = new ClaimUnclaimedRewardsFunction();
+                claimUnclaimedRewardsFunction.NodeAddress = nodeAddress;
+            
+             return ContractHandler.SendRequestAsync(claimUnclaimedRewardsFunction);
+        }
+
+        public virtual Task<TransactionReceipt> ClaimUnclaimedRewardsRequestAndWaitForReceiptAsync(string nodeAddress, CancellationTokenSource cancellationToken = null)
+        {
+            var claimUnclaimedRewardsFunction = new ClaimUnclaimedRewardsFunction();
+                claimUnclaimedRewardsFunction.NodeAddress = nodeAddress;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(claimUnclaimedRewardsFunction, cancellationToken);
+        }
+
         public virtual Task<string> ConfirmRPLWithdrawalAddressRequestAsync(ConfirmRPLWithdrawalAddressFunction confirmRPLWithdrawalAddressFunction)
         {
              return ContractHandler.SendRequestAsync(confirmRPLWithdrawalAddressFunction);
@@ -201,19 +253,6 @@ namespace RocketExplorer.Ethereum.RocketNodeManager
                 getNodeCountPerTimezoneFunction.Limit = limit;
             
             return ContractHandler.QueryDeserializingToObjectAsync<GetNodeCountPerTimezoneFunction, GetNodeCountPerTimezoneOutputDTO>(getNodeCountPerTimezoneFunction, blockParameter);
-        }
-
-        public virtual Task<GetNodeDetailsOutputDTO> GetNodeDetailsQueryAsync(GetNodeDetailsFunction getNodeDetailsFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetNodeDetailsFunction, GetNodeDetailsOutputDTO>(getNodeDetailsFunction, blockParameter);
-        }
-
-        public virtual Task<GetNodeDetailsOutputDTO> GetNodeDetailsQueryAsync(string nodeAddress, BlockParameter blockParameter = null)
-        {
-            var getNodeDetailsFunction = new GetNodeDetailsFunction();
-                getNodeDetailsFunction.NodeAddress = nodeAddress;
-            
-            return ContractHandler.QueryDeserializingToObjectAsync<GetNodeDetailsFunction, GetNodeDetailsOutputDTO>(getNodeDetailsFunction, blockParameter);
         }
 
         public Task<bool> GetNodeExistsQueryAsync(GetNodeExistsFunction getNodeExistsFunction, BlockParameter blockParameter = null)
@@ -383,6 +422,86 @@ namespace RocketExplorer.Ethereum.RocketNodeManager
                 getSmoothingPoolRegistrationStateFunction.NodeAddress = nodeAddress;
             
             return ContractHandler.QueryAsync<GetSmoothingPoolRegistrationStateFunction, bool>(getSmoothingPoolRegistrationStateFunction, blockParameter);
+        }
+
+        public Task<BigInteger> GetUnclaimedRewardsQueryAsync(GetUnclaimedRewardsFunction getUnclaimedRewardsFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetUnclaimedRewardsFunction, BigInteger>(getUnclaimedRewardsFunction, blockParameter);
+        }
+
+        
+        public virtual Task<BigInteger> GetUnclaimedRewardsQueryAsync(string nodeAddress, BlockParameter blockParameter = null)
+        {
+            var getUnclaimedRewardsFunction = new GetUnclaimedRewardsFunction();
+                getUnclaimedRewardsFunction.NodeAddress = nodeAddress;
+            
+            return ContractHandler.QueryAsync<GetUnclaimedRewardsFunction, BigInteger>(getUnclaimedRewardsFunction, blockParameter);
+        }
+
+        public virtual Task<string> InitialiseFeeDistributorRequestAsync(InitialiseFeeDistributorFunction initialiseFeeDistributorFunction)
+        {
+             return ContractHandler.SendRequestAsync(initialiseFeeDistributorFunction);
+        }
+
+        public virtual Task<string> InitialiseFeeDistributorRequestAsync()
+        {
+             return ContractHandler.SendRequestAsync<InitialiseFeeDistributorFunction>();
+        }
+
+        public virtual Task<TransactionReceipt> InitialiseFeeDistributorRequestAndWaitForReceiptAsync(InitialiseFeeDistributorFunction initialiseFeeDistributorFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(initialiseFeeDistributorFunction, cancellationToken);
+        }
+
+        public virtual Task<TransactionReceipt> InitialiseFeeDistributorRequestAndWaitForReceiptAsync(CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync<InitialiseFeeDistributorFunction>(null, cancellationToken);
+        }
+
+        public virtual Task<string> ProvisionExpressTicketsRequestAsync(ProvisionExpressTicketsFunction provisionExpressTicketsFunction)
+        {
+             return ContractHandler.SendRequestAsync(provisionExpressTicketsFunction);
+        }
+
+        public virtual Task<TransactionReceipt> ProvisionExpressTicketsRequestAndWaitForReceiptAsync(ProvisionExpressTicketsFunction provisionExpressTicketsFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(provisionExpressTicketsFunction, cancellationToken);
+        }
+
+        public virtual Task<string> ProvisionExpressTicketsRequestAsync(string nodeAddress)
+        {
+            var provisionExpressTicketsFunction = new ProvisionExpressTicketsFunction();
+                provisionExpressTicketsFunction.NodeAddress = nodeAddress;
+            
+             return ContractHandler.SendRequestAsync(provisionExpressTicketsFunction);
+        }
+
+        public virtual Task<TransactionReceipt> ProvisionExpressTicketsRequestAndWaitForReceiptAsync(string nodeAddress, CancellationTokenSource cancellationToken = null)
+        {
+            var provisionExpressTicketsFunction = new ProvisionExpressTicketsFunction();
+                provisionExpressTicketsFunction.NodeAddress = nodeAddress;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(provisionExpressTicketsFunction, cancellationToken);
+        }
+
+        public virtual Task<string> ReceiveVaultWithdrawalETHRequestAsync(ReceiveVaultWithdrawalETHFunction receiveVaultWithdrawalETHFunction)
+        {
+             return ContractHandler.SendRequestAsync(receiveVaultWithdrawalETHFunction);
+        }
+
+        public virtual Task<string> ReceiveVaultWithdrawalETHRequestAsync()
+        {
+             return ContractHandler.SendRequestAsync<ReceiveVaultWithdrawalETHFunction>();
+        }
+
+        public virtual Task<TransactionReceipt> ReceiveVaultWithdrawalETHRequestAndWaitForReceiptAsync(ReceiveVaultWithdrawalETHFunction receiveVaultWithdrawalETHFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(receiveVaultWithdrawalETHFunction, cancellationToken);
+        }
+
+        public virtual Task<TransactionReceipt> ReceiveVaultWithdrawalETHRequestAndWaitForReceiptAsync(CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync<ReceiveVaultWithdrawalETHFunction>(null, cancellationToken);
         }
 
         public virtual Task<string> RefundExpressTicketRequestAsync(RefundExpressTicketFunction refundExpressTicketFunction)
@@ -614,6 +733,8 @@ namespace RocketExplorer.Ethereum.RocketNodeManager
         {
             return new List<Type>
             {
+                typeof(AddUnclaimedRewardsFunction),
+                typeof(ClaimUnclaimedRewardsFunction),
                 typeof(ConfirmRPLWithdrawalAddressFunction),
                 typeof(DeployMegapoolFunction),
                 typeof(GetAverageNodeFeeFunction),
@@ -624,7 +745,6 @@ namespace RocketExplorer.Ethereum.RocketNodeManager
                 typeof(GetNodeAtFunction),
                 typeof(GetNodeCountFunction),
                 typeof(GetNodeCountPerTimezoneFunction),
-                typeof(GetNodeDetailsFunction),
                 typeof(GetNodeExistsFunction),
                 typeof(GetNodePendingRPLWithdrawalAddressFunction),
                 typeof(GetNodePendingWithdrawalAddressFunction),
@@ -637,6 +757,10 @@ namespace RocketExplorer.Ethereum.RocketNodeManager
                 typeof(GetSmoothingPoolRegisteredNodeCountFunction),
                 typeof(GetSmoothingPoolRegistrationChangedFunction),
                 typeof(GetSmoothingPoolRegistrationStateFunction),
+                typeof(GetUnclaimedRewardsFunction),
+                typeof(InitialiseFeeDistributorFunction),
+                typeof(ProvisionExpressTicketsFunction),
+                typeof(ReceiveVaultWithdrawalETHFunction),
                 typeof(RefundExpressTicketFunction),
                 typeof(RegisterNodeFunction),
                 typeof(SetRPLWithdrawalAddressFunction),
@@ -658,7 +782,9 @@ namespace RocketExplorer.Ethereum.RocketNodeManager
                 typeof(NodeRegisteredEventDTO),
                 typeof(NodeRewardNetworkChangedEventDTO),
                 typeof(NodeSmoothingPoolStateChangedEventDTO),
-                typeof(NodeTimezoneLocationSetEventDTO)
+                typeof(NodeTimezoneLocationSetEventDTO),
+                typeof(NodeUnclaimedRewardsAddedEventDTO),
+                typeof(NodeUnclaimedRewardsClaimedEventDTO)
             };
         }
 

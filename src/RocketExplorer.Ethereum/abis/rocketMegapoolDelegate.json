@@ -5,6 +5,11 @@
 				"internalType": "contract RocketStorageInterface",
 				"name": "_rocketStorageAddress",
 				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_beaconGenesisTime",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "nonpayable",
@@ -65,6 +70,25 @@
 			}
 		],
 		"name": "MegapoolDebtReduced",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
+		"name": "MegapoolPenaltyApplied",
 		"type": "event"
 	},
 	{
@@ -197,7 +221,45 @@
 				"type": "uint256"
 			}
 		],
+		"name": "MegapoolValidatorLocked",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "validatorId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
 		"name": "MegapoolValidatorStaked",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "validatorId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
+		"name": "MegapoolValidatorUnlocked",
 		"type": "event"
 	},
 	{
@@ -329,6 +391,19 @@
 		"type": "function"
 	},
 	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "_validatorId",
+				"type": "uint32"
+			}
+		],
+		"name": "challengeExit",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
 		"inputs": [],
 		"name": "claim",
 		"outputs": [],
@@ -455,6 +530,19 @@
 	},
 	{
 		"inputs": [],
+		"name": "getLockedValidatorCount",
+		"outputs": [
+			{
+				"internalType": "uint32",
+				"name": "",
+				"type": "uint32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
 		"name": "getNodeAddress",
 		"outputs": [
 			{
@@ -557,10 +645,106 @@
 			{
 				"components": [
 					{
-						"internalType": "bytes",
-						"name": "pubKey",
-						"type": "bytes"
+						"internalType": "uint32",
+						"name": "lastAssignmentTime",
+						"type": "uint32"
 					},
+					{
+						"internalType": "uint32",
+						"name": "lastRequestedValue",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "lastRequestedBond",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "depositValue",
+						"type": "uint32"
+					},
+					{
+						"internalType": "bool",
+						"name": "staked",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "exited",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "inQueue",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "inPrestake",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "expressUsed",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "dissolved",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "exiting",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "locked",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint64",
+						"name": "validatorIndex",
+						"type": "uint64"
+					},
+					{
+						"internalType": "uint64",
+						"name": "exitBalance",
+						"type": "uint64"
+					},
+					{
+						"internalType": "uint64",
+						"name": "withdrawableEpoch",
+						"type": "uint64"
+					},
+					{
+						"internalType": "uint64",
+						"name": "lockedSlot",
+						"type": "uint64"
+					}
+				],
+				"internalType": "struct RocketMegapoolStorageLayout.ValidatorInfo",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "_validatorId",
+				"type": "uint32"
+			}
+		],
+		"name": "getValidatorInfoAndPubkey",
+		"outputs": [
+			{
+				"components": [
 					{
 						"internalType": "uint32",
 						"name": "lastAssignmentTime",
@@ -617,6 +801,11 @@
 						"type": "bool"
 					},
 					{
+						"internalType": "bool",
+						"name": "locked",
+						"type": "bool"
+					},
+					{
 						"internalType": "uint64",
 						"name": "validatorIndex",
 						"type": "uint64"
@@ -630,11 +819,40 @@
 						"internalType": "uint64",
 						"name": "withdrawableEpoch",
 						"type": "uint64"
+					},
+					{
+						"internalType": "uint64",
+						"name": "lockedSlot",
+						"type": "uint64"
 					}
 				],
 				"internalType": "struct RocketMegapoolStorageLayout.ValidatorInfo",
-				"name": "",
+				"name": "info",
 				"type": "tuple"
+			},
+			{
+				"internalType": "bytes",
+				"name": "pubkey",
+				"type": "bytes"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "_validatorId",
+				"type": "uint32"
+			}
+		],
+		"name": "getValidatorPubkey",
+		"outputs": [
+			{
+				"internalType": "bytes",
+				"name": "",
+				"type": "bytes"
 			}
 		],
 		"stateMutability": "view",
@@ -697,16 +915,6 @@
 				"internalType": "uint64",
 				"name": "_withdrawableEpoch",
 				"type": "uint64"
-			},
-			{
-				"internalType": "uint64",
-				"name": "_slot",
-				"type": "uint64"
-			},
-			{
-				"internalType": "bytes32[]",
-				"name": "_proof",
-				"type": "bytes32[]"
 			}
 		],
 		"name": "notifyExit",
@@ -723,53 +931,39 @@
 			},
 			{
 				"internalType": "uint64",
-				"name": "_withdrawalSlot",
+				"name": "_amountInGwei",
 				"type": "uint64"
 			},
 			{
-				"internalType": "uint256",
-				"name": "_withdrawalNum",
-				"type": "uint256"
+				"internalType": "address",
+				"name": "_caller",
+				"type": "address"
 			},
 			{
-				"components": [
-					{
-						"internalType": "uint64",
-						"name": "index",
-						"type": "uint64"
-					},
-					{
-						"internalType": "uint64",
-						"name": "validatorIndex",
-						"type": "uint64"
-					},
-					{
-						"internalType": "bytes20",
-						"name": "withdrawalCredentials",
-						"type": "bytes20"
-					},
-					{
-						"internalType": "uint64",
-						"name": "amountInGwei",
-						"type": "uint64"
-					}
-				],
-				"internalType": "struct Withdrawal",
-				"name": "_withdrawal",
-				"type": "tuple"
+				"internalType": "uint64",
+				"name": "_withdrawalSlot",
+				"type": "uint64"
+			}
+		],
+		"name": "notifyFinalBalance",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "_validatorId",
+				"type": "uint32"
 			},
 			{
 				"internalType": "uint64",
 				"name": "_slot",
 				"type": "uint64"
-			},
-			{
-				"internalType": "bytes32[]",
-				"name": "_proof",
-				"type": "bytes32[]"
 			}
 		],
-		"name": "notifyFinalBalance",
+		"name": "notifyNotExit",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -802,36 +996,9 @@
 				"type": "uint32"
 			},
 			{
-				"components": [
-					{
-						"internalType": "uint64",
-						"name": "slot",
-						"type": "uint64"
-					},
-					{
-						"internalType": "uint64",
-						"name": "validatorIndex",
-						"type": "uint64"
-					},
-					{
-						"internalType": "bytes",
-						"name": "pubkey",
-						"type": "bytes"
-					},
-					{
-						"internalType": "bytes32",
-						"name": "withdrawalCredentials",
-						"type": "bytes32"
-					},
-					{
-						"internalType": "bytes32[]",
-						"name": "witnesses",
-						"type": "bytes32[]"
-					}
-				],
-				"internalType": "struct ValidatorProof",
-				"name": "_proof",
-				"type": "tuple"
+				"internalType": "uint64",
+				"name": "_validatorIndex",
+				"type": "uint64"
 			}
 		],
 		"name": "stake",

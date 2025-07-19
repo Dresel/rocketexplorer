@@ -16,8 +16,7 @@ public class ContractsSyncContext : ContextBase
 			new ByteArrayComparer())
 		.AsReadOnly();
 
-	// Assert address of rocketDAONodeTrustedUpgrade does not change (would require an updated filter expression)
-	public required string TrustedUpgradeContractAddress { get; init; }
+	public required List<string> TrustedUpgradeContractAddress { get; init; }
 
 	public ReadOnlyDictionary<byte[], string> UpgradeContractsMap { get; } = new Dictionary<byte[], string>(
 			Ethereum.Contracts.UpgradeContractNames.Select(x => new KeyValuePair<byte[], string>(x.Sha3(), x)),

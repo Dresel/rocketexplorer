@@ -1,10 +1,12 @@
 @page "/queue"
 @using LiveChartsCore.Defaults
+@using Nethereum.Hex.HexConvertors.Extensions
+@using RocketExplorer.Shared.Validators
 @inherits PageBase<RocketExplorer.Shared.Validators.QueueSnapshot>
 
 <PageTitle>Rocket Explorer - Queue</PageTitle>
 <MudStack>
-	<MudText Typo="Typo.h4" Align="Align.Center">Megapool queue over time</MudText>
+	<MudText Typo="Typo.h4" Align="Align.Center">Queue over time</MudText>
 	<MudGrid Justify="Justify.Center">
 		<MudItem>
 			<ChartTotal Title="Total queue length" YAxesName="Nodes" Data="queueTotalData"></ChartTotal>
@@ -13,10 +15,88 @@
 			<ChartDelta Title="Queue Activity" YAxesName="Nodes" Data="queueDeltaData" DataTransform="dataTransform" Series="series" MinLimit="null"></ChartDelta>
 		</MudItem>
 	</MudGrid>
-	@* TODO: MudTable *@
+
+	<MudText Typo="Typo.h4" Align="Align.Center" Class="mt-8">Queue List</MudText>
+	<MudTable Class="mt-0" ServerData="LoadQueue" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
+		<ToolBarContent>
+			<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+				AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+			</MudTextField>
+		</ToolBarContent>
+		<HeaderContent>
+			<MudTh></MudTh>
+			<MudTh>
+				<MudTableSortLabel T="QueueItemViewModel" SortLabel="NodeAddress">Node Address</MudTableSortLabel>
+			</MudTh>
+			<MudTh>
+				<MudTableSortLabel T="QueueItemViewModel" SortLabel="MinipoolAddress">Minipool / Megapool</MudTableSortLabel>
+			</MudTh>
+			<MudTh>
+				<MudTableSortLabel T="QueueItemViewModel" SortLabel="MegapoolAddress">Megapool Index</MudTableSortLabel>
+			</MudTh>
+			<MudTh>
+				<MudTableSortLabel T="QueueItemViewModel" SortLabel="TimeInQueue">Time in Queue</MudTableSortLabel>
+			</MudTh>
+		</HeaderContent>
+		<RowTemplate>
+			<MudTd Style="text-align: right;">
+				@context.Index
+			</MudTd>
+			<MudTd>
+				<Address ContractAddress="@context.NodeOperatorAddress" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
+			</MudTd>
+			<MudTd>
+				@if (!string.IsNullOrWhiteSpace(context.MinipoolAddress))
+				{
+					<Address ContractAddress="@context.MinipoolAddress" HighlightedText="@searchString" HrefPlaceholder="validator/{0}"></Address>
+				}
+				else
+				{
+					<Address Typo="Typo.body2" ContractAddress="@context.MegapoolAddress" HighlightedText="@searchString" AppendEtherscanCodeAnchor="true"></Address>
+				}
+			</MudTd>
+			<MudTd>
+				@if (context.MegapoolAddress != null)
+				{
+					<MudLink Typo="Typo.body2" Href="@($"validator/{context.MegapoolAddress}/{context.MegapoolIndex}")">
+						Validator #@context.MegapoolIndex
+
+						@if (context.Express == true)
+						{
+							<MudIcon Icon="@Icons.Material.Filled.AirplaneTicket" Class="ml-2" Style="vertical-align: text-bottom;" Size="Size.Small" Color="Color.Primary" />
+						}
+					</MudLink>
+				}
+			</MudTd>
+			<MudTd><MudText Typo="Typo.body2">@context.TimeInQueue.ToReadableString()</MudText></MudTd>
+		</RowTemplate>
+		<NoRecordsContent>
+			<MudText>No matching records found</MudText>
+		</NoRecordsContent>
+		<LoadingContent>
+			<MudText>Loading...</MudText>
+		</LoadingContent>
+		<PagerContent>
+			<MudTablePager />
+		</PagerContent>
+	</MudTable>
+	<div class="d-flex justify-center">
+		<MudToggleGroup Size="Size.Small" T="QueueType" Style="text-transform: none;" SelectedClass="mud-toggle-group-selected" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Value="Type" ValueChanged="SetType" CheckMark FixedContent="true">
+			<MudToggleItem Value="QueueType.Unified" Text="Unified" />
+			<MudToggleItem Value="QueueType.Legacy" Text="Legacy" />
+			<MudToggleItem Value="QueueType.Megapool" Text="Megapool" />
+		</MudToggleGroup>
+	</div>
+
 </MudStack>
 
 @code {
+
+	private MudTable<QueueItemViewModel> table = null!;
+	private string? searchString;
+
+	private QueueItemViewModel[] queue = [];
+
 	private SortedList<DateOnly, int>[]? queueTotalData;
 	private SortedList<DateOnly, int>[]? queueDeltaData;
 	private readonly Func<int, int>[] dataTransform = [x => x, x => x * -1, x => x * -1,];
@@ -50,12 +130,171 @@
 		ObjectStoreKey = "queue-snapshot.msgpack";
 	}
 
+	private void OnSearch(string text)
+	{
+		searchString = text;
+		table.ReloadServerData();
+	}
+
+	private async Task<TableData<QueueItemViewModel>> LoadQueue(TableState state, CancellationToken token)
+	{
+		await LoadedTask;
+
+		IEnumerable<QueueItemViewModel> items = queue;
+
+		// // if (state.SortLabel is nameof(QueueItemViewModel.NodeOperatorAddress))
+		// // {
+		// // 	items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.NodeOperatorAddress).ToList() : items.OrderByDescending(x => x.NodeOperatorAddress).ToList();
+		// // }
+
+		// // if (state.SortLabel is nameof(QueueItemViewModel.MinipoolAddress))
+		// // {
+		// // 	items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.MinipoolAddress).ToList() : items.OrderByDescending(x => x.MinipoolAddress).ToList();
+		// // }
+
+		items = Type switch
+		{
+			QueueType.Legacy => items.Where(x => !string.IsNullOrWhiteSpace(x.MinipoolAddress)).ToArray(),
+			QueueType.Megapool => items.Where(x => !string.IsNullOrWhiteSpace(x.MegapoolAddress)).ToArray(),
+			_ => items.ToArray(),
+		};
+
+		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
+		{
+			items = items.Where(x => x.NodeOperatorAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToArray();
+		}
+
+		int count = items.Count();
+		items = items.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList();
+
+		return new TableData<QueueItemViewModel>
+		{
+			TotalItems = count,
+			Items = items,
+		};
+	}
+
 	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
 	{
 		queueTotalData = [Snapshot?.Data.TotalQueueCount ?? [],];
 		queueDeltaData = [Snapshot?.Data.DailyEnqueued ?? [], Snapshot?.Data.DailyDequeued ?? [], Snapshot?.Data.DailyVoluntaryExits ?? [],];
 
+		IEnumerable<MinipoolValidatorQueueEntry> legacyQueue = (Snapshot?.Data.MinipoolHalfQueue ?? []).Concat(Snapshot?.Data.MinipoolFullQueue ?? []).Concat(Snapshot?.Data.MinipoolVariableQueue ?? []);
+
+		QueueItemViewModel[] queueItemViewModels = legacyQueue.Select((entry, index) => new QueueItemViewModel
+		{
+			Index = index + 1,
+			NodeOperatorAddress = entry.NodeAddress.ToHex(true),
+			MinipoolAddress = entry.MinipoolAddress.ToHex(true),
+			PubKey = entry.PubKey?.ToHex(),
+			TimeInQueue = DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(entry.EnqueueTimestamp),
+		}).ToArray();
+
+		int currentIndex = queueItemViewModels.LastOrDefault()?.Index ?? 0;
+		IEnumerable<(MegapoolValidatorQueueEntry Item, bool Express)> megapoolQueue = Zip(Snapshot?.Data.MegapoolStandardQueue.Select(entry => (Item: entry, Express: false)) ?? [], Snapshot?.Data.MegapoolExpressQueue.Select(entry => (Item: entry, Express: true)) ?? [], Snapshot?.Data.MegapoolQueueIndex ?? 0, 2);
+
+		queue = queueItemViewModels.Concat(
+			megapoolQueue.Select((entry, index) => new QueueItemViewModel
+			{
+				Index = currentIndex + index + 1,
+				NodeOperatorAddress = entry.Item.NodeAddress.ToHex(true),
+				MegapoolAddress = entry.Item.MegapoolAddress.ToHex(true),
+				MegapoolIndex = entry.Item.MegapoolIndex,
+				PubKey = entry.Item.PubKey.ToHex(),
+				Express = entry.Express,
+				TimeInQueue = DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(entry.Item.EnqueueTimestamp),
+			})).ToArray();
+
 		return Task.CompletedTask;
 	}
 
+	public class QueueItemViewModel
+	{
+		public int Index { get; init; }
+
+		public string? MegapoolAddress { get; init; }
+
+		public int? MegapoolIndex { get; set; }
+
+		public string? MinipoolAddress { get; init; }
+
+		public string? PubKey { get; init; }
+
+		public bool? Express { get; set; }
+
+		public required TimeSpan TimeInQueue { get; set; }
+
+		public required string NodeOperatorAddress { get; set; }
+	}
+
+	[Parameter]
+	public QueueType Type { get; set; }
+
+	private void SetType(QueueType value)
+	{
+		Type = value;
+
+		table.ReloadServerData();
+	}
+
+	public enum QueueType
+	{
+		Unified,
+
+		Legacy,
+
+		Megapool,
+	}
+
+	public static IEnumerable<T> Zip<T>(
+		IEnumerable<T> normal,
+		IEnumerable<T> express,
+		int index, int rate)
+	{
+		using IEnumerator<T> expressEnumerator = express.GetEnumerator();
+
+		for (int i = index; i % (rate + 1) == 0; i++)
+		{
+			if (expressEnumerator.MoveNext())
+			{
+				yield return expressEnumerator.Current;
+			}
+		}
+
+		using IEnumerator<T> normalEnumerator = normal.GetEnumerator();
+
+		while (true)
+		{
+			if (normalEnumerator.MoveNext())
+			{
+				yield return normalEnumerator.Current;
+			}
+			else
+			{
+				break;
+			}
+
+			for (int i = 0; i < rate; i++)
+			{
+				if (expressEnumerator.MoveNext())
+				{
+					yield return expressEnumerator.Current;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+
+		while (normalEnumerator.MoveNext())
+		{
+			yield return normalEnumerator.Current;
+		}
+
+		while (expressEnumerator.MoveNext())
+		{
+			yield return expressEnumerator.Current;
+		}
+	}
 }

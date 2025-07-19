@@ -22,21 +22,22 @@ public static class NodeRegisteredEventHandler
 				RegistrationTimestamp = (long)@event.Time,
 			});
 
+		// TODO: Removed, replace
 		// Fetch latest node details (otherwise we would have to use the current latestRocketNodeManager of log.BlockNumber via contractsSnapshot)
-		GetNodeDetailsOutputDTO? nodeDetails = null;
+		////GetNodeDetailsOutputDTO? nodeDetails = null;
 
-		try
-		{
-			// TODO: Obsolete, replace
-			// See https://discord.com/channels/405159462932971535/704214664829075506/1365495113383677973
-			nodeDetails =
-				await context.Policy.ExecuteAsync(() =>
-					context.RocketNodeManager.GetNodeDetailsQueryAsync(@event.Node));
-		}
-		catch
-		{
-			context.Logger.LogWarning("Failed to fetch node details for {Node}", @event.Node);
-		}
+		////try
+		////{
+		////	// TODO: Obsolete, replace
+		////	// See https://discord.com/channels/405159462932971535/704214664829075506/1365495113383677973
+		////	nodeDetails =
+		////		await context.Policy.ExecuteAsync(() =>
+		////			context.RocketNodeManager.GetNodeDetailsQueryAsync(@event.Node));
+		////}
+		////catch
+		////{
+		////	context.Logger.LogWarning("Failed to fetch node details for {Node}", @event.Node);
+		////}
 
 		// TODO: Add more details
 		context.Nodes.Partial.Updated.Add(
@@ -44,7 +45,7 @@ public static class NodeRegisteredEventHandler
 			{
 				ContractAddress = @event.Node.HexToByteArray(),
 				RegistrationTimestamp = (long)@event.Time,
-				Timezone = nodeDetails?.NodeDetails.TimezoneLocation ?? "Unknown",
+				Timezone = "Unknown",
 			});
 
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)@event.Time).DateTime);

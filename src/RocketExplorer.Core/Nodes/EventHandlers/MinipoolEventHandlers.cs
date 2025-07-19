@@ -13,33 +13,46 @@ public class MinipoolEventHandlers
 	public static async Task HandleAsync(
 		NodesSyncContext context, EventLog<MinipoolEnqueuedEventDTO> eventLog, CancellationToken cancellationToken)
 	{
-		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(
-			context, new MinipoolUpdatedEvent
-			{
-				Log = eventLog.Log,
-				Time = eventLog.Event.Time,
-				MinipoolAddress = eventLog.Event.Minipool,
-				Status = ValidatorStatus.InQueue,
-			}, cancellationToken);
+		MinipoolUpdatedEvent updatedEvent = new()
+		{
+			Log = eventLog.Log,
+			Time = eventLog.Event.Time,
+			MinipoolAddress = eventLog.Event.Minipool,
+			Status = ValidatorStatus.InQueue,
+		};
+
+		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(context, updatedEvent, cancellationToken);
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
 			return;
 		}
 
-		// TODO: Queue handling
+		MinipoolValidatorIndexEntry indexEntry = context.ValidatorInfo.Data.MinipoolValidatorIndex[updatedEvent.MinipoolAddress];
+		MinipoolValidatorQueueEntry queueEntry = new()
+		{
+			NodeAddress = indexEntry.NodeAddress,
+			MinipoolAddress = indexEntry.MinipoolAddress,
+			PubKey = indexEntry.PubKey,
+			EnqueueTimestamp = (long)eventLog.Event.Time,
+		};
+
 		if ("minipools.available.half".Sha3().SequenceEqual(eventLog.Event.QueueId))
 		{
+			context.QueueInfo.MinipoolHalfQueue.Add(queueEntry);
 		}
 
 		if ("minipools.available.full".Sha3().SequenceEqual(eventLog.Event.QueueId))
 		{
+			context.QueueInfo.MinipoolFullQueue.Add(queueEntry);
 		}
 
 		if ("minipools.available.variable".Sha3().SequenceEqual(eventLog.Event.QueueId))
 		{
+			context.QueueInfo.MinipoolVariableQueue.Add(queueEntry);
 		}
 
+		// TODO: Throw if none
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
 		context.QueueInfo.TotalQueueCount[key] = context.QueueInfo.TotalQueueCount.GetLatestOrDefault() + 1;
 		context.QueueInfo.DailyEnqueued[key] = context.QueueInfo.DailyEnqueued.GetValueOrDefault(key) + 1;
@@ -48,31 +61,52 @@ public class MinipoolEventHandlers
 	public static async Task HandleAsync(
 		NodesSyncContext context, EventLog<MinipoolDequeuedEventDTO> eventLog, CancellationToken cancellationToken)
 	{
-		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(
-			context, new MinipoolUpdatedEvent
-			{
-				Log = eventLog.Log,
-				Time = eventLog.Event.Time,
-				MinipoolAddress = eventLog.Event.Minipool,
-				Status = ValidatorStatus.Dequeued,
-			}, cancellationToken);
+		MinipoolUpdatedEvent updatedEvent = new()
+		{
+			Log = eventLog.Log,
+			Time = eventLog.Event.Time,
+			MinipoolAddress = eventLog.Event.Minipool,
+			Status = ValidatorStatus.Dequeued,
+		};
+
+		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(context, updatedEvent, cancellationToken);
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
 			return;
 		}
 
-		// TODO: Queue handling
 		if ("minipools.available.half".Sha3().SequenceEqual(eventLog.Event.QueueId))
 		{
+			if (!context.QueueInfo.MinipoolHalfQueue[0].MinipoolAddress
+					.SequenceEqual(updatedEvent.MinipoolAddress.HexToByteArray()))
+			{
+				throw new InvalidOperationException("Unexpected minipool address");
+			}
+
+			context.QueueInfo.MinipoolHalfQueue.RemoveAt(0);
 		}
 
 		if ("minipools.available.full".Sha3().SequenceEqual(eventLog.Event.QueueId))
 		{
+			if (!context.QueueInfo.MinipoolFullQueue[0].MinipoolAddress
+					.SequenceEqual(updatedEvent.MinipoolAddress.HexToByteArray()))
+			{
+				throw new InvalidOperationException("Unexpected minipool address");
+			}
+
+			context.QueueInfo.MinipoolFullQueue.RemoveAt(0);
 		}
 
 		if ("minipools.available.variable".Sha3().SequenceEqual(eventLog.Event.QueueId))
 		{
+			if (!context.QueueInfo.MinipoolVariableQueue[0].MinipoolAddress
+					.SequenceEqual(updatedEvent.MinipoolAddress.HexToByteArray()))
+			{
+				throw new InvalidOperationException("Unexpected minipool address");
+			}
+
+			context.QueueInfo.MinipoolVariableQueue.RemoveAt(0);
 		}
 
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);

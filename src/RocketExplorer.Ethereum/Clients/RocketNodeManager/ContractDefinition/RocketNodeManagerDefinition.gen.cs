@@ -156,6 +156,82 @@ namespace RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition
 		"type": "event"
 	},
 	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "node",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
+		"name": "NodeUnclaimedRewardsAdded",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "node",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
+		"name": "NodeUnclaimedRewardsClaimed",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_nodeAddress",
+				"type": "address"
+			}
+		],
+		"name": "addUnclaimedRewards",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_nodeAddress",
+				"type": "address"
+			}
+		],
+		"name": "claimUnclaimedRewards",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "address",
@@ -344,152 +420,6 @@ namespace RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition
 				"internalType": "struct RocketNodeManagerInterface.TimezoneCount[]",
 				"name": "",
 				"type": "tuple[]"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_nodeAddress",
-				"type": "address"
-			}
-		],
-		"name": "getNodeDetails",
-		"outputs": [
-			{
-				"components": [
-					{
-						"internalType": "bool",
-						"name": "exists",
-						"type": "bool"
-					},
-					{
-						"internalType": "uint256",
-						"name": "registrationTime",
-						"type": "uint256"
-					},
-					{
-						"internalType": "string",
-						"name": "timezoneLocation",
-						"type": "string"
-					},
-					{
-						"internalType": "bool",
-						"name": "feeDistributorInitialised",
-						"type": "bool"
-					},
-					{
-						"internalType": "address",
-						"name": "feeDistributorAddress",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "rewardNetwork",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "rplStake",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "effectiveRPLStake",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "minimumRPLStake",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "maximumRPLStake",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "ethMatched",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "ethMatchedLimit",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "minipoolCount",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "balanceETH",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "balanceRETH",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "balanceRPL",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "balanceOldRPL",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "depositCreditBalance",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "distributorBalanceUserETH",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "distributorBalanceNodeETH",
-						"type": "uint256"
-					},
-					{
-						"internalType": "address",
-						"name": "withdrawalAddress",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "pendingWithdrawalAddress",
-						"type": "address"
-					},
-					{
-						"internalType": "bool",
-						"name": "smoothingPoolRegistrationState",
-						"type": "bool"
-					},
-					{
-						"internalType": "uint256",
-						"name": "smoothingPoolRegistrationChanged",
-						"type": "uint256"
-					},
-					{
-						"internalType": "address",
-						"name": "nodeAddress",
-						"type": "address"
-					}
-				],
-				"internalType": "struct NodeDetails",
-				"name": "nodeDetails",
-				"type": "tuple"
 			}
 		],
 		"stateMutability": "view",
@@ -736,6 +666,52 @@ namespace RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition
 				"type": "address"
 			}
 		],
+		"name": "getUnclaimedRewards",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "initialiseFeeDistributor",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_nodeAddress",
+				"type": "address"
+			}
+		],
+		"name": "provisionExpressTickets",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "receiveVaultWithdrawalETH",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_nodeAddress",
+				"type": "address"
+			}
+		],
 		"name": "refundExpressTicket",
 		"outputs": [],
 		"stateMutability": "nonpayable",
@@ -868,6 +844,24 @@ namespace RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition
         public virtual string RocketStorageAddress { get; set; }
     }
 
+    public partial class AddUnclaimedRewardsFunction : AddUnclaimedRewardsFunctionBase { }
+
+    [Function("addUnclaimedRewards")]
+    public class AddUnclaimedRewardsFunctionBase : FunctionMessage
+    {
+        [Parameter("address", "_nodeAddress", 1)]
+        public virtual string NodeAddress { get; set; }
+    }
+
+    public partial class ClaimUnclaimedRewardsFunction : ClaimUnclaimedRewardsFunctionBase { }
+
+    [Function("claimUnclaimedRewards")]
+    public class ClaimUnclaimedRewardsFunctionBase : FunctionMessage
+    {
+        [Parameter("address", "_nodeAddress", 1)]
+        public virtual string NodeAddress { get; set; }
+    }
+
     public partial class ConfirmRPLWithdrawalAddressFunction : ConfirmRPLWithdrawalAddressFunctionBase { }
 
     [Function("confirmRPLWithdrawalAddress")]
@@ -958,15 +952,6 @@ namespace RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition
         public virtual BigInteger Offset { get; set; }
         [Parameter("uint256", "_limit", 2)]
         public virtual BigInteger Limit { get; set; }
-    }
-
-    public partial class GetNodeDetailsFunction : GetNodeDetailsFunctionBase { }
-
-    [Function("getNodeDetails", typeof(GetNodeDetailsOutputDTO))]
-    public class GetNodeDetailsFunctionBase : FunctionMessage
-    {
-        [Parameter("address", "_nodeAddress", 1)]
-        public virtual string NodeAddress { get; set; }
     }
 
     public partial class GetNodeExistsFunction : GetNodeExistsFunctionBase { }
@@ -1077,6 +1062,40 @@ namespace RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition
     {
         [Parameter("address", "_nodeAddress", 1)]
         public virtual string NodeAddress { get; set; }
+    }
+
+    public partial class GetUnclaimedRewardsFunction : GetUnclaimedRewardsFunctionBase { }
+
+    [Function("getUnclaimedRewards", "uint256")]
+    public class GetUnclaimedRewardsFunctionBase : FunctionMessage
+    {
+        [Parameter("address", "_nodeAddress", 1)]
+        public virtual string NodeAddress { get; set; }
+    }
+
+    public partial class InitialiseFeeDistributorFunction : InitialiseFeeDistributorFunctionBase { }
+
+    [Function("initialiseFeeDistributor")]
+    public class InitialiseFeeDistributorFunctionBase : FunctionMessage
+    {
+
+    }
+
+    public partial class ProvisionExpressTicketsFunction : ProvisionExpressTicketsFunctionBase { }
+
+    [Function("provisionExpressTickets")]
+    public class ProvisionExpressTicketsFunctionBase : FunctionMessage
+    {
+        [Parameter("address", "_nodeAddress", 1)]
+        public virtual string NodeAddress { get; set; }
+    }
+
+    public partial class ReceiveVaultWithdrawalETHFunction : ReceiveVaultWithdrawalETHFunctionBase { }
+
+    [Function("receiveVaultWithdrawalETH")]
+    public class ReceiveVaultWithdrawalETHFunctionBase : FunctionMessage
+    {
+
     }
 
     public partial class RefundExpressTicketFunction : RefundExpressTicketFunctionBase { }
@@ -1233,6 +1252,36 @@ namespace RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition
         public virtual BigInteger Time { get; set; }
     }
 
+    public partial class NodeUnclaimedRewardsAddedEventDTO : NodeUnclaimedRewardsAddedEventDTOBase { }
+
+    [Event("NodeUnclaimedRewardsAdded")]
+    public class NodeUnclaimedRewardsAddedEventDTOBase : IEventDTO
+    {
+        [Parameter("address", "node", 1, true )]
+        public virtual string Node { get; set; }
+        [Parameter("uint256", "amount", 2, false )]
+        public virtual BigInteger Amount { get; set; }
+        [Parameter("uint256", "time", 3, false )]
+        public virtual BigInteger Time { get; set; }
+    }
+
+    public partial class NodeUnclaimedRewardsClaimedEventDTO : NodeUnclaimedRewardsClaimedEventDTOBase { }
+
+    [Event("NodeUnclaimedRewardsClaimed")]
+    public class NodeUnclaimedRewardsClaimedEventDTOBase : IEventDTO
+    {
+        [Parameter("address", "node", 1, true )]
+        public virtual string Node { get; set; }
+        [Parameter("uint256", "amount", 2, false )]
+        public virtual BigInteger Amount { get; set; }
+        [Parameter("uint256", "time", 3, false )]
+        public virtual BigInteger Time { get; set; }
+    }
+
+
+
+
+
 
 
 
@@ -1307,15 +1356,6 @@ namespace RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition
     {
         [Parameter("tuple[]", "", 1)]
         public virtual List<TimezoneCount> ReturnValue1 { get; set; }
-    }
-
-    public partial class GetNodeDetailsOutputDTO : GetNodeDetailsOutputDTOBase { }
-
-    [FunctionOutput]
-    public class GetNodeDetailsOutputDTOBase : IFunctionOutputDTO 
-    {
-        [Parameter("tuple", "nodeDetails", 1)]
-        public virtual NodeDetails NodeDetails { get; set; }
     }
 
     public partial class GetNodeExistsOutputDTO : GetNodeExistsOutputDTOBase { }
@@ -1425,6 +1465,21 @@ namespace RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition
         [Parameter("bool", "", 1)]
         public virtual bool ReturnValue1 { get; set; }
     }
+
+    public partial class GetUnclaimedRewardsOutputDTO : GetUnclaimedRewardsOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetUnclaimedRewardsOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint256", "", 1)]
+        public virtual BigInteger ReturnValue1 { get; set; }
+    }
+
+
+
+
+
+
 
 
 

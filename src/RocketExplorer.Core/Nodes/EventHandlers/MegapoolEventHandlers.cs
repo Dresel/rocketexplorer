@@ -38,10 +38,10 @@ public class MegapoolEventHandlers
 
 		int h = 0;
 
-		h += context.QueueInfo.StandardQueue.RemoveAll(x =>
+		h += context.QueueInfo.MegapoolStandardQueue.RemoveAll(x =>
 			x.PubKey.SequenceEqual(
 				context.ValidatorInfo.Partial.UpdatedMegapoolValidators[(megapoolAddress, validatorId)].PubKey ?? []));
-		h += context.QueueInfo.ExpressQueue.RemoveAll(x =>
+		h += context.QueueInfo.MegapoolExpressQueue.RemoveAll(x =>
 			x.PubKey.SequenceEqual(
 				context.ValidatorInfo.Partial.UpdatedMegapoolValidators[(megapoolAddress, validatorId)].PubKey ?? []));
 
@@ -77,10 +77,10 @@ public class MegapoolEventHandlers
 
 		int h = 0;
 
-		h += context.QueueInfo.StandardQueue.RemoveAll(x =>
+		h += context.QueueInfo.MegapoolStandardQueue.RemoveAll(x =>
 			x.PubKey.SequenceEqual(
 				context.ValidatorInfo.Partial.UpdatedMegapoolValidators[(megapoolAddress, validatorId)].PubKey ?? []));
-		h += context.QueueInfo.ExpressQueue.RemoveAll(x =>
+		h += context.QueueInfo.MegapoolExpressQueue.RemoveAll(x =>
 			x.PubKey.SequenceEqual(
 				context.ValidatorInfo.Partial.UpdatedMegapoolValidators[(megapoolAddress, validatorId)].PubKey ?? []));
 
@@ -114,15 +114,18 @@ public class MegapoolEventHandlers
 		}
 
 		RocketMegapoolDelegateService megapoolDelegate = new(context.Web3, megapoolAddress);
-		GetValidatorInfoOutputDTO validatorInfo = await megapoolDelegate.GetValidatorInfoQueryAsync(
+
+		byte[] pubKey = await megapoolDelegate.GetValidatorPubkeyQueryAsync(
 			(uint)eventValidatorId, new BlockParameter(eventLog.Log.BlockNumber));
+
+		Debug.Assert(pubKey.Length > 0, "PubKey should not be empty");
 
 		MegapoolValidatorIndexEntry entry = new()
 		{
 			NodeAddress = nodeOperatorAddress.HexToByteArray(),
 			MegapoolAddress = megapoolAddress.HexToByteArray(),
 			MegapoolIndex = eventValidatorId,
-			PubKey = validatorInfo.ReturnValue1.PubKey,
+			PubKey = pubKey,
 		};
 
 		context.ValidatorInfo.Data.MegapoolValidatorIndex.Add(
@@ -132,6 +135,9 @@ public class MegapoolEventHandlers
 		{
 			MegapoolAddress = megapoolAddress.HexToByteArray(),
 		};
+
+		GetValidatorInfoOutputDTO validatorInfo = await megapoolDelegate.GetValidatorInfoQueryAsync(
+			(uint)eventValidatorId, new BlockParameter(eventLog.Log.BlockNumber));
 
 		Validator validator = new()
 		{
@@ -173,13 +179,24 @@ public class MegapoolEventHandlers
 				],
 			};
 
+		context.QueueInfo.MegapoolQueueIndex++;
+
+		MegapoolValidatorQueueEntry queueEntry = new()
+		{
+			NodeAddress = entry.NodeAddress,
+			MegapoolAddress = entry.MegapoolAddress,
+			MegapoolIndex = entry.MegapoolIndex,
+			PubKey = entry.PubKey,
+			EnqueueTimestamp = (long)eventLog.Event.Time,
+		};
+
 		if (!validatorInfo.ReturnValue1.ExpressUsed)
 		{
-			context.QueueInfo.StandardQueue.Add(entry);
+			context.QueueInfo.MegapoolStandardQueue.Add(queueEntry);
 		}
 		else
 		{
-			context.QueueInfo.ExpressQueue.Add(entry);
+			context.QueueInfo.MegapoolExpressQueue.Add(queueEntry);
 		}
 
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);

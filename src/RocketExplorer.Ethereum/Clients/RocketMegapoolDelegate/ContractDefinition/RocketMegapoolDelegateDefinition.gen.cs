@@ -30,6 +30,11 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 				"internalType": "contract RocketStorageInterface",
 				"name": "_rocketStorageAddress",
 				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_beaconGenesisTime",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "nonpayable",
@@ -90,6 +95,25 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 			}
 		],
 		"name": "MegapoolDebtReduced",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
+		"name": "MegapoolPenaltyApplied",
 		"type": "event"
 	},
 	{
@@ -222,7 +246,45 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 				"type": "uint256"
 			}
 		],
+		"name": "MegapoolValidatorLocked",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "validatorId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
 		"name": "MegapoolValidatorStaked",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "validatorId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
+		"name": "MegapoolValidatorUnlocked",
 		"type": "event"
 	},
 	{
@@ -354,6 +416,19 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 		"type": "function"
 	},
 	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "_validatorId",
+				"type": "uint32"
+			}
+		],
+		"name": "challengeExit",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
 		"inputs": [],
 		"name": "claim",
 		"outputs": [],
@@ -480,6 +555,19 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 	},
 	{
 		"inputs": [],
+		"name": "getLockedValidatorCount",
+		"outputs": [
+			{
+				"internalType": "uint32",
+				"name": "",
+				"type": "uint32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
 		"name": "getNodeAddress",
 		"outputs": [
 			{
@@ -582,10 +670,106 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 			{
 				"components": [
 					{
-						"internalType": "bytes",
-						"name": "pubKey",
-						"type": "bytes"
+						"internalType": "uint32",
+						"name": "lastAssignmentTime",
+						"type": "uint32"
 					},
+					{
+						"internalType": "uint32",
+						"name": "lastRequestedValue",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "lastRequestedBond",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint32",
+						"name": "depositValue",
+						"type": "uint32"
+					},
+					{
+						"internalType": "bool",
+						"name": "staked",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "exited",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "inQueue",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "inPrestake",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "expressUsed",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "dissolved",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "exiting",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "locked",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint64",
+						"name": "validatorIndex",
+						"type": "uint64"
+					},
+					{
+						"internalType": "uint64",
+						"name": "exitBalance",
+						"type": "uint64"
+					},
+					{
+						"internalType": "uint64",
+						"name": "withdrawableEpoch",
+						"type": "uint64"
+					},
+					{
+						"internalType": "uint64",
+						"name": "lockedSlot",
+						"type": "uint64"
+					}
+				],
+				"internalType": "struct RocketMegapoolStorageLayout.ValidatorInfo",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "_validatorId",
+				"type": "uint32"
+			}
+		],
+		"name": "getValidatorInfoAndPubkey",
+		"outputs": [
+			{
+				"components": [
 					{
 						"internalType": "uint32",
 						"name": "lastAssignmentTime",
@@ -642,6 +826,11 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 						"type": "bool"
 					},
 					{
+						"internalType": "bool",
+						"name": "locked",
+						"type": "bool"
+					},
+					{
 						"internalType": "uint64",
 						"name": "validatorIndex",
 						"type": "uint64"
@@ -655,11 +844,40 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 						"internalType": "uint64",
 						"name": "withdrawableEpoch",
 						"type": "uint64"
+					},
+					{
+						"internalType": "uint64",
+						"name": "lockedSlot",
+						"type": "uint64"
 					}
 				],
 				"internalType": "struct RocketMegapoolStorageLayout.ValidatorInfo",
-				"name": "",
+				"name": "info",
 				"type": "tuple"
+			},
+			{
+				"internalType": "bytes",
+				"name": "pubkey",
+				"type": "bytes"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "_validatorId",
+				"type": "uint32"
+			}
+		],
+		"name": "getValidatorPubkey",
+		"outputs": [
+			{
+				"internalType": "bytes",
+				"name": "",
+				"type": "bytes"
 			}
 		],
 		"stateMutability": "view",
@@ -722,16 +940,6 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 				"internalType": "uint64",
 				"name": "_withdrawableEpoch",
 				"type": "uint64"
-			},
-			{
-				"internalType": "uint64",
-				"name": "_slot",
-				"type": "uint64"
-			},
-			{
-				"internalType": "bytes32[]",
-				"name": "_proof",
-				"type": "bytes32[]"
 			}
 		],
 		"name": "notifyExit",
@@ -748,53 +956,39 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 			},
 			{
 				"internalType": "uint64",
-				"name": "_withdrawalSlot",
+				"name": "_amountInGwei",
 				"type": "uint64"
 			},
 			{
-				"internalType": "uint256",
-				"name": "_withdrawalNum",
-				"type": "uint256"
+				"internalType": "address",
+				"name": "_caller",
+				"type": "address"
 			},
 			{
-				"components": [
-					{
-						"internalType": "uint64",
-						"name": "index",
-						"type": "uint64"
-					},
-					{
-						"internalType": "uint64",
-						"name": "validatorIndex",
-						"type": "uint64"
-					},
-					{
-						"internalType": "bytes20",
-						"name": "withdrawalCredentials",
-						"type": "bytes20"
-					},
-					{
-						"internalType": "uint64",
-						"name": "amountInGwei",
-						"type": "uint64"
-					}
-				],
-				"internalType": "struct Withdrawal",
-				"name": "_withdrawal",
-				"type": "tuple"
+				"internalType": "uint64",
+				"name": "_withdrawalSlot",
+				"type": "uint64"
+			}
+		],
+		"name": "notifyFinalBalance",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "_validatorId",
+				"type": "uint32"
 			},
 			{
 				"internalType": "uint64",
 				"name": "_slot",
 				"type": "uint64"
-			},
-			{
-				"internalType": "bytes32[]",
-				"name": "_proof",
-				"type": "bytes32[]"
 			}
 		],
-		"name": "notifyFinalBalance",
+		"name": "notifyNotExit",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -827,36 +1021,9 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 				"type": "uint32"
 			},
 			{
-				"components": [
-					{
-						"internalType": "uint64",
-						"name": "slot",
-						"type": "uint64"
-					},
-					{
-						"internalType": "uint64",
-						"name": "validatorIndex",
-						"type": "uint64"
-					},
-					{
-						"internalType": "bytes",
-						"name": "pubkey",
-						"type": "bytes"
-					},
-					{
-						"internalType": "bytes32",
-						"name": "withdrawalCredentials",
-						"type": "bytes32"
-					},
-					{
-						"internalType": "bytes32[]",
-						"name": "witnesses",
-						"type": "bytes32[]"
-					}
-				],
-				"internalType": "struct ValidatorProof",
-				"name": "_proof",
-				"type": "tuple"
+				"internalType": "uint64",
+				"name": "_validatorIndex",
+				"type": "uint64"
 			}
 		],
 		"name": "stake",
@@ -883,6 +1050,8 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         public RocketMegapoolDelegateDeploymentBase(string byteCode) : base(byteCode) { }
         [Parameter("address", "_rocketStorageAddress", 1)]
         public virtual string RocketStorageAddress { get; set; }
+        [Parameter("uint256", "_beaconGenesisTime", 2)]
+        public virtual BigInteger BeaconGenesisTime { get; set; }
     }
 
     public partial class ApplyPenaltyFunction : ApplyPenaltyFunctionBase { }
@@ -918,6 +1087,15 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
     {
         [Parameter("uint256", "_amount", 1)]
         public virtual BigInteger Amount { get; set; }
+    }
+
+    public partial class ChallengeExitFunction : ChallengeExitFunctionBase { }
+
+    [Function("challengeExit")]
+    public class ChallengeExitFunctionBase : FunctionMessage
+    {
+        [Parameter("uint32", "_validatorId", 1)]
+        public virtual uint ValidatorId { get; set; }
     }
 
     public partial class ClaimFunction : ClaimFunctionBase { }
@@ -1010,6 +1188,14 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 
     }
 
+    public partial class GetLockedValidatorCountFunction : GetLockedValidatorCountFunctionBase { }
+
+    [Function("getLockedValidatorCount", "uint32")]
+    public class GetLockedValidatorCountFunctionBase : FunctionMessage
+    {
+
+    }
+
     public partial class GetNodeAddressFunction : GetNodeAddressFunctionBase { }
 
     [Function("getNodeAddress", "address")]
@@ -1075,6 +1261,24 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         public virtual uint ValidatorId { get; set; }
     }
 
+    public partial class GetValidatorInfoAndPubkeyFunction : GetValidatorInfoAndPubkeyFunctionBase { }
+
+    [Function("getValidatorInfoAndPubkey", typeof(GetValidatorInfoAndPubkeyOutputDTO))]
+    public class GetValidatorInfoAndPubkeyFunctionBase : FunctionMessage
+    {
+        [Parameter("uint32", "_validatorId", 1)]
+        public virtual uint ValidatorId { get; set; }
+    }
+
+    public partial class GetValidatorPubkeyFunction : GetValidatorPubkeyFunctionBase { }
+
+    [Function("getValidatorPubkey", "bytes")]
+    public class GetValidatorPubkeyFunctionBase : FunctionMessage
+    {
+        [Parameter("uint32", "_validatorId", 1)]
+        public virtual uint ValidatorId { get; set; }
+    }
+
     public partial class GetWithdrawalCredentialsFunction : GetWithdrawalCredentialsFunctionBase { }
 
     [Function("getWithdrawalCredentials", "bytes32")]
@@ -1109,10 +1313,6 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         public virtual uint ValidatorId { get; set; }
         [Parameter("uint64", "_withdrawableEpoch", 2)]
         public virtual ulong WithdrawableEpoch { get; set; }
-        [Parameter("uint64", "_slot", 3)]
-        public virtual ulong Slot { get; set; }
-        [Parameter("bytes32[]", "_proof", 4)]
-        public virtual List<byte[]> Proof { get; set; }
     }
 
     public partial class NotifyFinalBalanceFunction : NotifyFinalBalanceFunctionBase { }
@@ -1122,16 +1322,23 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
     {
         [Parameter("uint32", "_validatorId", 1)]
         public virtual uint ValidatorId { get; set; }
-        [Parameter("uint64", "_withdrawalSlot", 2)]
+        [Parameter("uint64", "_amountInGwei", 2)]
+        public virtual ulong AmountInGwei { get; set; }
+        [Parameter("address", "_caller", 3)]
+        public virtual string Caller { get; set; }
+        [Parameter("uint64", "_withdrawalSlot", 4)]
         public virtual ulong WithdrawalSlot { get; set; }
-        [Parameter("uint256", "_withdrawalNum", 3)]
-        public virtual BigInteger WithdrawalNum { get; set; }
-        [Parameter("tuple", "_withdrawal", 4)]
-        public virtual Withdrawal Withdrawal { get; set; }
-        [Parameter("uint64", "_slot", 5)]
+    }
+
+    public partial class NotifyNotExitFunction : NotifyNotExitFunctionBase { }
+
+    [Function("notifyNotExit")]
+    public class NotifyNotExitFunctionBase : FunctionMessage
+    {
+        [Parameter("uint32", "_validatorId", 1)]
+        public virtual uint ValidatorId { get; set; }
+        [Parameter("uint64", "_slot", 2)]
         public virtual ulong Slot { get; set; }
-        [Parameter("bytes32[]", "_proof", 6)]
-        public virtual List<byte[]> Proof { get; set; }
     }
 
     public partial class ReduceBondFunction : ReduceBondFunctionBase { }
@@ -1158,8 +1365,8 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
     {
         [Parameter("uint32", "_validatorId", 1)]
         public virtual uint ValidatorId { get; set; }
-        [Parameter("tuple", "_proof", 2)]
-        public virtual ValidatorProof Proof { get; set; }
+        [Parameter("uint64", "_validatorIndex", 2)]
+        public virtual ulong ValidatorIndex { get; set; }
     }
 
     public partial class VersionFunction : VersionFunctionBase { }
@@ -1196,6 +1403,17 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 
     [Event("MegapoolDebtReduced")]
     public class MegapoolDebtReducedEventDTOBase : IEventDTO
+    {
+        [Parameter("uint256", "amount", 1, false )]
+        public virtual BigInteger Amount { get; set; }
+        [Parameter("uint256", "time", 2, false )]
+        public virtual BigInteger Time { get; set; }
+    }
+
+    public partial class MegapoolPenaltyAppliedEventDTO : MegapoolPenaltyAppliedEventDTOBase { }
+
+    [Event("MegapoolPenaltyApplied")]
+    public class MegapoolPenaltyAppliedEventDTOBase : IEventDTO
     {
         [Parameter("uint256", "amount", 1, false )]
         public virtual BigInteger Amount { get; set; }
@@ -1269,10 +1487,32 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         public virtual BigInteger Time { get; set; }
     }
 
+    public partial class MegapoolValidatorLockedEventDTO : MegapoolValidatorLockedEventDTOBase { }
+
+    [Event("MegapoolValidatorLocked")]
+    public class MegapoolValidatorLockedEventDTOBase : IEventDTO
+    {
+        [Parameter("uint256", "validatorId", 1, true )]
+        public virtual BigInteger ValidatorId { get; set; }
+        [Parameter("uint256", "time", 2, false )]
+        public virtual BigInteger Time { get; set; }
+    }
+
     public partial class MegapoolValidatorStakedEventDTO : MegapoolValidatorStakedEventDTOBase { }
 
     [Event("MegapoolValidatorStaked")]
     public class MegapoolValidatorStakedEventDTOBase : IEventDTO
+    {
+        [Parameter("uint256", "validatorId", 1, true )]
+        public virtual BigInteger ValidatorId { get; set; }
+        [Parameter("uint256", "time", 2, false )]
+        public virtual BigInteger Time { get; set; }
+    }
+
+    public partial class MegapoolValidatorUnlockedEventDTO : MegapoolValidatorUnlockedEventDTOBase { }
+
+    [Event("MegapoolValidatorUnlocked")]
+    public class MegapoolValidatorUnlockedEventDTOBase : IEventDTO
     {
         [Parameter("uint256", "validatorId", 1, true )]
         public virtual BigInteger ValidatorId { get; set; }
@@ -1346,6 +1586,8 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 
 
 
+
+
     public partial class GetActiveValidatorCountOutputDTO : GetActiveValidatorCountOutputDTOBase { }
 
     [FunctionOutput]
@@ -1398,6 +1640,15 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
     {
         [Parameter("uint256", "", 1)]
         public virtual BigInteger ReturnValue1 { get; set; }
+    }
+
+    public partial class GetLockedValidatorCountOutputDTO : GetLockedValidatorCountOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetLockedValidatorCountOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint32", "", 1)]
+        public virtual uint ReturnValue1 { get; set; }
     }
 
     public partial class GetNodeAddressOutputDTO : GetNodeAddressOutputDTOBase { }
@@ -1472,6 +1723,26 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         public virtual ValidatorInfo ReturnValue1 { get; set; }
     }
 
+    public partial class GetValidatorInfoAndPubkeyOutputDTO : GetValidatorInfoAndPubkeyOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetValidatorInfoAndPubkeyOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("tuple", "info", 1)]
+        public virtual ValidatorInfo Info { get; set; }
+        [Parameter("bytes", "pubkey", 2)]
+        public virtual byte[] Pubkey { get; set; }
+    }
+
+    public partial class GetValidatorPubkeyOutputDTO : GetValidatorPubkeyOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetValidatorPubkeyOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bytes", "", 1)]
+        public virtual byte[] ReturnValue1 { get; set; }
+    }
+
     public partial class GetWithdrawalCredentialsOutputDTO : GetWithdrawalCredentialsOutputDTOBase { }
 
     [FunctionOutput]
@@ -1480,6 +1751,8 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         [Parameter("bytes32", "", 1)]
         public virtual byte[] ReturnValue1 { get; set; }
     }
+
+
 
 
 

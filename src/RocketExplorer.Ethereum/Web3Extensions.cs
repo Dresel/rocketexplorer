@@ -61,7 +61,9 @@ public static class Web3Extensions
 					[typeof(FilterLog[]),])?.Invoke(eventType, [logs,]) ??
 			throw new InvalidOperationException("DecodeAllEventsForEvent method not found or null returned")));
 
-		return results.OrderBy(x => (ulong)x.Log.BlockNumber.Value)
-			.ThenBy(x => eventSignatures.IndexOf(x.Log.EventSignature()));
+		return results
+			.OrderBy(x => (long)x.Log.BlockNumber.Value)
+			.ThenBy(x => (long)x.Log.TransactionIndex.Value)
+			.ThenBy(x => (long)x.Log.LogIndex.Value);
 	}
 }

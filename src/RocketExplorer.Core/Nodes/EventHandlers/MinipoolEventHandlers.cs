@@ -28,6 +28,8 @@ public class MinipoolEventHandlers
 			return;
 		}
 
+		context.DashboardInfo.QueueLength++;
+
 		MinipoolValidatorIndexEntry indexEntry = context.ValidatorInfo.Data.MinipoolValidatorIndex[updatedEvent.MinipoolAddress];
 		MinipoolValidatorQueueEntry queueEntry = new()
 		{
@@ -75,6 +77,8 @@ public class MinipoolEventHandlers
 		{
 			return;
 		}
+
+		context.DashboardInfo.QueueLength--;
 
 		if ("minipools.available.half".Sha3().SequenceEqual(eventLog.Event.QueueId))
 		{
@@ -175,7 +179,9 @@ public class MinipoolEventHandlers
 	{
 		string minipoolAddress = eventLog.Log.Address;
 
-		await EventMinipoolValidatorUpdateAsync(
+		ValidatorStatus validatorStatus = eventLog.Event.Status.ToValidatorStatus();
+
+		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(
 			context, new MinipoolUpdatedEvent
 			{
 				Log = eventLog.Log,
@@ -183,6 +189,21 @@ public class MinipoolEventHandlers
 				MinipoolAddress = minipoolAddress,
 				Status = eventLog.Event.Status.ToValidatorStatus(),
 			}, cancellationToken);
+
+		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
+		{
+			return;
+		}
+
+		if (validatorStatus == ValidatorStatus.Staking)
+		{
+			context.DashboardInfo.MinipoolValidatorsStaking++;
+		}
+
+		if (validatorStatus == ValidatorStatus.Exited)
+		{
+			context.DashboardInfo.MinipoolValidatorsStaking--;
+		}
 	}
 
 	private static async Task<string?> EventMinipoolValidatorUpdateAsync(

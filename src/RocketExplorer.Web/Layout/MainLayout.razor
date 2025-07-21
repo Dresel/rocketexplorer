@@ -21,6 +21,9 @@
 		<MudTooltip Text="@(DarkLightModeButtonText)">
 			<MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="() => ThemeService.CycleDarkLightMode()" aria-label="@(DarkLightModeButtonText)" />
 		</MudTooltip>
+		<MudTooltip Text="Open GitHub">
+			<MudIconButton Href="https://github.com/Dresel/rocketexplorer" Target="_blank" Icon="@Icons.Custom.Brands.GitHub" Color="Color.Inherit" aria-label="Open GitHub" />
+		</MudTooltip>
 	</MudAppBar>
 	<MudDrawer @bind-Open="@drawerOpen">
 		<NavMenu />
@@ -62,7 +65,8 @@
 	{
 		uint color = ColorUtils.ArgbFromRgb(255, 110, 48);
 		Scheme<uint> lightScheme = new LightSchemeMapper().Map(CorePalette.Of(color, Style.Vibrant));
-		Scheme<uint> darkScheme = new DarkSchemeMapper().Map(CorePalette.Of(color, Style.Vibrant));
+		Scheme<uint> darkSchemeVibrant = new DarkSchemeMapper().Map(CorePalette.Of(color, Style.Vibrant));
+		Scheme<uint> darkSchemeTonal = new DarkSchemeMapper().Map(CorePalette.Of(color, Style.Spritz));
 
 		CorePalette markPalette = CorePalette.Of(ColorUtils.ArgbFromRgb(255, 235, 59), Style.Vibrant);
 		Scheme<uint> markLightScheme = new LightSchemeMapper().Map(markPalette);
@@ -72,83 +76,102 @@
 		{
 			PaletteLight = new CustomPaletteLight
 			{
-				AppbarBackground = StringUtils.HexFromArgb(lightScheme.Primary),
-				AppbarText = StringUtils.HexFromArgb(lightScheme.OnPrimary),
 				Primary = StringUtils.HexFromArgb(lightScheme.Primary),
+				AppbarText = StringUtils.HexFromArgb(lightScheme.OnPrimary),
+				TextPrimary = StringUtils.HexFromArgb(lightScheme.OnSurface),
+				TextSecondary = StringUtils.HexFromArgb(lightScheme.OnSurfaceVariant),
 				OnPrimary = StringUtils.HexFromArgb(lightScheme.OnPrimary),
-				PrimaryContainer = StringUtils.HexFromArgb(lightScheme.PrimaryContainer),
 				OnPrimaryContainer = StringUtils.HexFromArgb(lightScheme.OnPrimaryContainer),
 				Secondary = StringUtils.HexFromArgb(lightScheme.OnSecondaryContainer),
 				SecondaryContrastText = StringUtils.HexFromArgb(lightScheme.SecondaryContainer),
 				Tertiary = StringUtils.HexFromArgb(markLightScheme.OnPrimaryContainer),
 				TertiaryContrastText = StringUtils.HexFromArgb(markLightScheme.PrimaryContainer),
+
+				AppbarBackground = StringUtils.HexFromArgb(lightScheme.Primary),
+				PrimaryContainer = StringUtils.HexFromArgb(lightScheme.PrimaryContainer),
+				Background = StringUtils.HexFromArgb(lightScheme.Background),
+				DrawerBackground = StringUtils.HexFromArgb(lightScheme.Surface),
+				Surface = StringUtils.HexFromArgb(lightScheme.Surface),
+				Surface3 = StringUtils.HexFromArgb(lightScheme.Surface3),
+
+				LinesDefault = StringUtils.HexFromArgb(lightScheme.Outline),
+				LinesInputs = StringUtils.HexFromArgb(lightScheme.Outline),
+				TableLines = StringUtils.HexFromArgb(lightScheme.Outline),
+				TableHover = StringUtils.HexFromArgb(lightScheme.SurfaceContainerLow),
 			},
 			PaletteDark = new CustomPaletteDark
 			{
-				AppbarBackground = StringUtils.HexFromArgb(darkScheme.Primary),
-				AppbarText = StringUtils.HexFromArgb(darkScheme.OnPrimary),
-				Primary = StringUtils.HexFromArgb(darkScheme.Primary),
-				OnPrimary = StringUtils.HexFromArgb(darkScheme.OnPrimary),
-				PrimaryContainer = StringUtils.HexFromArgb(darkScheme.PrimaryContainer),
-				OnPrimaryContainer = StringUtils.HexFromArgb(darkScheme.OnPrimaryContainer),
-				Secondary = StringUtils.HexFromArgb(darkScheme.OnSecondaryContainer),
-				SecondaryContrastText = StringUtils.HexFromArgb(darkScheme.SecondaryContainer),
+				Primary = StringUtils.HexFromArgb(darkSchemeVibrant.Primary),
+				AppbarText = StringUtils.HexFromArgb(darkSchemeVibrant.OnPrimary),
+				TextPrimary = StringUtils.HexFromArgb(darkSchemeTonal.OnSurface),
+				TextSecondary = StringUtils.HexFromArgb(darkSchemeTonal.OnSurfaceVariant),
+				OnPrimary = StringUtils.HexFromArgb(darkSchemeTonal.OnPrimary),
+				OnPrimaryContainer = StringUtils.HexFromArgb(darkSchemeTonal.OnPrimaryContainer),
+				Secondary = StringUtils.HexFromArgb(darkSchemeTonal.OnSecondaryContainer),
+				SecondaryContrastText = StringUtils.HexFromArgb(darkSchemeTonal.SecondaryContainer),
 				Tertiary = StringUtils.HexFromArgb(markDarkScheme.OnPrimaryContainer),
 				TertiaryContrastText = StringUtils.HexFromArgb(markDarkScheme.PrimaryContainer),
+
+				AppbarBackground = StringUtils.HexFromArgb(darkSchemeVibrant.Primary),
+				PrimaryContainer = StringUtils.HexFromArgb(darkSchemeTonal.PrimaryContainer),
+				Background = StringUtils.HexFromArgb(darkSchemeTonal.Surface),
+				DrawerBackground = StringUtils.HexFromArgb(darkSchemeTonal.Surface1),
+				Surface = StringUtils.HexFromArgb(darkSchemeTonal.Surface),
+				Surface3 = StringUtils.HexFromArgb(darkSchemeTonal.Surface3),
+
+				LinesDefault = StringUtils.HexFromArgb(darkSchemeTonal.Outline),
+				LinesInputs = StringUtils.HexFromArgb(darkSchemeTonal.Outline),
+				TableLines = StringUtils.HexFromArgb(darkSchemeTonal.Outline),
+				TableHover = StringUtils.HexFromArgb(darkSchemeTonal.SurfaceContainerLow),
 			},
 		};
 	}
 
 	private void SetLiveChartsLightTheme()
 	{
-		LiveCharts.DefaultSettings.HasTheme(
-			_ =>
+		LiveCharts.DefaultSettings.HasTheme(_ =>
+		{
+			LiveChartsSettings defaultSettings = new();
+
+			LiveCharts.DefaultSettings.TooltipBackgroundPaint = defaultSettings.TooltipBackgroundPaint;
+			LiveCharts.DefaultSettings.TooltipTextPaint = defaultSettings.TooltipTextPaint;
+			LiveCharts.DefaultSettings.LegendTextPaint = defaultSettings.LegendTextPaint;
+		});
+
+		LiveCharts.DefaultSettings.AddLightTheme(chartsTheme =>
+		{
+			chartsTheme.Colors =
+			[
+				ThemeService.CurrentPalette.Primary.ToLvcColor(),
+				CorePalette.Of(ColorUtils.ArgbFromRgb(156, 39, 176), Style.Vibrant).Primary[40].ToLvcColor(),
+				CorePalette.Of(ColorUtils.ArgbFromRgb(33, 150, 243), Style.Vibrant).Primary[40].ToLvcColor(),
+			];
+			chartsTheme.HasRuleForLineSeries(rule =>
 			{
-				LiveChartsSettings defaultSettings = new();
+				rule.Stroke!.StrokeThickness = 3.0f;
 
-				LiveCharts.DefaultSettings.TooltipBackgroundPaint = defaultSettings.TooltipBackgroundPaint;
-				LiveCharts.DefaultSettings.TooltipTextPaint = defaultSettings.TooltipTextPaint;
-				LiveCharts.DefaultSettings.LegendTextPaint = defaultSettings.LegendTextPaint;
+				rule.GeometrySize = 10;
+				rule.GeometryStroke!.StrokeThickness = 3.0f;
 			});
-
-		LiveCharts.DefaultSettings.AddLightTheme(
-			chartsTheme =>
-			{
-				chartsTheme.Colors =
-				[
-					ThemeService.CurrentPalette.Primary.ToLvcColor(),
-					CorePalette.Of(ColorUtils.ArgbFromRgb(156, 39, 176), Style.Vibrant).Primary[40].ToLvcColor(),
-					CorePalette.Of(ColorUtils.ArgbFromRgb(33, 150, 243), Style.Vibrant).Primary[40].ToLvcColor(),
-				];
-				chartsTheme.HasRuleForLineSeries(
-					rule =>
-					{
-						rule.Stroke!.StrokeThickness = 3.0f;
-
-						rule.GeometrySize = 10;
-						rule.GeometryStroke!.StrokeThickness = 3.0f;
-					});
-			});
+		});
 	}
 
 	private void SetLiveChartsDarkTheme() =>
-		LiveCharts.DefaultSettings.AddDarkTheme(
-			chartsTheme =>
+		LiveCharts.DefaultSettings.AddDarkTheme(chartsTheme =>
+		{
+			chartsTheme.Colors =
+			[
+				ThemeService.CurrentPalette.Primary.ToLvcColor(),
+				CorePalette.Of(ColorUtils.ArgbFromRgb(156, 39, 176), Style.Vibrant).Primary[80].ToLvcColor(),
+				CorePalette.Of(ColorUtils.ArgbFromRgb(33, 150, 243), Style.Vibrant).Primary[80].ToLvcColor(),
+			];
+			chartsTheme.HasRuleForLineSeries(rule =>
 			{
-				chartsTheme.Colors =
-				[
-					ThemeService.CurrentPalette.Primary.ToLvcColor(),
-					CorePalette.Of(ColorUtils.ArgbFromRgb(156, 39, 176), Style.Vibrant).Primary[80].ToLvcColor(),
-					CorePalette.Of(ColorUtils.ArgbFromRgb(33, 150, 243), Style.Vibrant).Primary[80].ToLvcColor(),
-				];
-				chartsTheme.HasRuleForLineSeries(
-					rule =>
-					{
-						rule.Stroke!.StrokeThickness = 3.0f;
+				rule.Stroke!.StrokeThickness = 3.0f;
 
-						rule.GeometrySize = 10;
-						rule.GeometryStroke!.StrokeThickness = 3.0f;
-					});
+				rule.GeometrySize = 10;
+				rule.GeometryStroke!.StrokeThickness = 3.0f;
 			});
+		});
 
 }

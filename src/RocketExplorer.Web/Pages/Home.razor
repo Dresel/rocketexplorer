@@ -1,4 +1,70 @@
 @page "/"
 
+@inherits PageBase<RocketExplorer.Shared.DashboardSnapshot>
+
 <PageTitle>Rocket Explorer - Home</PageTitle>
-<MudText>Welcome to Rocket Explorer.</MudText>
+
+<MudStack Spacing="3">
+
+	<h1>Welcome to Rocket Explorer</h1>
+
+	<MudText>
+		Rocket Explorer is an open-source community project for analyzing and visualizing the decentralized <MudLink Href="https://rocketpool.net" Target="_blank">Rocket Pool</MudLink> network.
+	</MudText>
+
+	<MudText>
+		It is inspired by <b>rocketscan.io</b>, which is no longer actively maintained, and builds on ideas shared by the Rocket Pool community.
+		The project offers insight into the Rocket Pool network, with a focus on the upcoming Saturn release, which builds on the <MudLink Href="https://rpl.rehab" Target="_blank">tokenomics rework</MudLink>.
+	</MudText>
+
+	<MudText>
+		For questions, feedback, or suggestions, feel free to join the discussion on <MudLink Href="https://discord.gg/rocketpool" Target="_blank">Discord <MudIcon Icon="@Icons.Custom.Brands.Discord" Color="Color.Primary" Style="vertical-align: text-bottom" /></MudLink>
+	</MudText>
+
+	<MudText>
+		The information displayed on Rocket Explorer is provided for informational purposes only.<br />
+		While efforts are made to ensure accuracy, data may be incomplete, outdated, or subject to change.
+	</MudText>
+
+	<h1>Dashboard</h1>
+
+	<MudGrid>
+		<MudItem xs="12" sm="6" lg="4">
+			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-3)">
+				<MudText Typo="Typo.h6" Align="Align.Center">Total node operators</MudText>
+				<MudText Typo="Typo.h2" Align="Align.Center">@Snapshot?.Data.NodeOperators</MudText>
+			</MudPaper>
+		</MudItem>
+		<MudItem xs="12" sm="6" lg="4">
+			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-3)">
+				<MudText Typo="Typo.h6" Align="Align.Center">Queue Length</MudText>
+				<MudText Typo="Typo.h2" Align="Align.Center">@Snapshot?.Data.QueueLength</MudText>
+			</MudPaper>
+		</MudItem>
+		<MudItem xs="12" sm="6" lg="4">
+			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-3)">
+				<MudText Typo="Typo.h6" Align="Align.Center">Staking minipool validators</MudText>
+				<MudText Typo="Typo.h2" Align="Align.Center">@Snapshot?.Data.MinipoolValidatorsStaking</MudText>
+			</MudPaper>
+		</MudItem>
+		<MudItem xs="12" sm="6" lg="4">
+			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-3)">
+				<MudText Typo="Typo.h6" Align="Align.Center">Staking megapool validators</MudText>
+				<MudText Typo="Typo.h2" Align="Align.Center">@Snapshot?.Data.MegapoolValidatorsStaking</MudText>
+			</MudPaper>
+		</MudItem>
+	</MudGrid>
+</MudStack>
+
+@code
+{
+	protected override async Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
+
+		ObjectStoreKey = "dashboard-snapshot.msgpack";
+	}
+
+	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
+		=> Task.CompletedTask;
+}

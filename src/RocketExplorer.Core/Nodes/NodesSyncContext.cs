@@ -7,6 +7,8 @@ namespace RocketExplorer.Core.Nodes;
 
 public class NodesSyncContext : ContextBase
 {
+	public required DashboardInfo DashboardInfo { get; init; }
+
 	public required ILogger<NodesSyncContext> Logger { get; init; }
 
 	public required NodeInfo Nodes { get; init; }

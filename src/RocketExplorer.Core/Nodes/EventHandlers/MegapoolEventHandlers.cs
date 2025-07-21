@@ -28,13 +28,15 @@ public class MegapoolEventHandlers
 				Time = time,
 				MegapoolAddress = megapoolAddress,
 				ValidatorId = validatorId,
-				Status = ValidatorStatus.Staking,
+				Status = ValidatorStatus.PreLaunch,
 			}, cancellationToken);
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
 			return;
 		}
+
+		context.DashboardInfo.QueueLength--;
 
 		int h = 0;
 
@@ -50,6 +52,104 @@ public class MegapoolEventHandlers
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(time).DateTime);
 		context.QueueInfo.DailyDequeued[key] = context.QueueInfo.DailyDequeued.GetValueOrDefault(key) + 1;
 		context.QueueInfo.TotalQueueCount[key] = context.QueueInfo.TotalQueueCount.GetLatestOrDefault() - 1;
+	}
+
+	public static async Task HandleAsync(
+		NodesSyncContext context, EventLog<MegapoolValidatorStakedEventDTO> eventLog,
+		CancellationToken cancellationToken = default)
+	{
+		string megapoolAddress = eventLog.Log.Address;
+		int validatorId = (int)eventLog.Event.ValidatorId;
+		long time = (long)eventLog.Event.Time;
+
+		string? nodeOperatorAddress = await EventMegapoolValidatorUpdateAsync(
+			context, new MegapoolUpdatedEvent
+			{
+				Log = eventLog.Log,
+				Time = time,
+				MegapoolAddress = megapoolAddress,
+				ValidatorId = validatorId,
+				Status = ValidatorStatus.Staking,
+			}, cancellationToken);
+
+		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
+		{
+			return;
+		}
+
+		context.DashboardInfo.MegapoolValidatorsStaking++;
+	}
+
+	public static async Task HandleAsync(
+		NodesSyncContext context, EventLog<MegapoolValidatorDissolvedEventDTO> eventLog,
+		CancellationToken cancellationToken = default)
+	{
+		string megapoolAddress = eventLog.Log.Address;
+		int validatorId = (int)eventLog.Event.ValidatorId;
+		long time = (long)eventLog.Event.Time;
+
+		string? nodeOperatorAddress = await EventMegapoolValidatorUpdateAsync(
+			context, new MegapoolUpdatedEvent
+			{
+				Log = eventLog.Log,
+				Time = time,
+				MegapoolAddress = megapoolAddress,
+				ValidatorId = validatorId,
+				Status = ValidatorStatus.Dissolved,
+			}, cancellationToken);
+
+		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
+		{
+		}
+	}
+
+	public static async Task HandleAsync(
+		NodesSyncContext context, EventLog<MegapoolValidatorExitingEventDTO> eventLog,
+		CancellationToken cancellationToken = default)
+	{
+		string megapoolAddress = eventLog.Log.Address;
+		int validatorId = (int)eventLog.Event.ValidatorId;
+		long time = (long)eventLog.Event.Time;
+
+		string? nodeOperatorAddress = await EventMegapoolValidatorUpdateAsync(
+			context, new MegapoolUpdatedEvent
+			{
+				Log = eventLog.Log,
+				Time = time,
+				MegapoolAddress = megapoolAddress,
+				ValidatorId = validatorId,
+				Status = ValidatorStatus.Exiting,
+			}, cancellationToken);
+
+		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
+		{
+			return;
+		}
+
+		context.DashboardInfo.MegapoolValidatorsStaking--;
+	}
+
+	public static async Task HandleAsync(
+		NodesSyncContext context, EventLog<MegapoolValidatorExitedEventDTO> eventLog,
+		CancellationToken cancellationToken = default)
+	{
+		string megapoolAddress = eventLog.Log.Address;
+		int validatorId = (int)eventLog.Event.ValidatorId;
+		long time = (long)eventLog.Event.Time;
+
+		string? nodeOperatorAddress = await EventMegapoolValidatorUpdateAsync(
+			context, new MegapoolUpdatedEvent
+			{
+				Log = eventLog.Log,
+				Time = time,
+				MegapoolAddress = megapoolAddress,
+				ValidatorId = validatorId,
+				Status = ValidatorStatus.Exited,
+			}, cancellationToken);
+
+		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
+		{
+		}
 	}
 
 	public static async Task HandleAsync(
@@ -74,6 +174,8 @@ public class MegapoolEventHandlers
 		{
 			return;
 		}
+
+		context.DashboardInfo.QueueLength--;
 
 		int h = 0;
 
@@ -112,6 +214,8 @@ public class MegapoolEventHandlers
 		{
 			return;
 		}
+
+		context.DashboardInfo.QueueLength++;
 
 		RocketMegapoolDelegateService megapoolDelegate = new(context.Web3, megapoolAddress);
 

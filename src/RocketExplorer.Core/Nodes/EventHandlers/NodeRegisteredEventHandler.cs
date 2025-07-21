@@ -15,6 +15,8 @@ public static class NodeRegisteredEventHandler
 
 		context.Logger.LogInformation("Node registered {Address}", @event.Node);
 
+		context.DashboardInfo.NodeOperators++;
+
 		context.Nodes.Data.Index.Add(
 			@event.Node, new NodeIndexEntry
 			{

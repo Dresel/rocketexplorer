@@ -14,6 +14,7 @@ using RocketExplorer.Ethereum.RocketMinipoolQueue.ContractDefinition;
 using RocketExplorer.Ethereum.RocketNodeManager;
 using RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition;
 using RocketExplorer.Ethereum.RocketStorage;
+using RocketExplorer.Shared;
 using RocketExplorer.Shared.Contracts;
 using RocketExplorer.Shared.Nodes;
 using RocketExplorer.Shared.Validators;
@@ -54,15 +55,19 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 			fromBlock, toBlock,
 			[
 				typeof(MegapoolValidatorEnqueuedEventDTO),
-				typeof(MegapoolValidatorAssignedEventDTO),
 				typeof(MegapoolValidatorDequeuedEventDTO),
+				typeof(MegapoolValidatorAssignedEventDTO),
+				typeof(MegapoolValidatorDissolvedEventDTO),
+				typeof(MegapoolValidatorStakedEventDTO),
+				typeof(MegapoolValidatorExitingEventDTO),
+				typeof(MegapoolValidatorExitedEventDTO),
 				typeof(MinipoolPrestakedEventDTO),
 				typeof(MinipoolEnqueuedEventDTO),
 				typeof(MinipoolDequeuedEventDTO),
 				typeof(StatusUpdatedEventDTO),
 				////typeof(MinipoolVacancyPreparedEventDTO),
 				////typeof(MinipoolPromotedEventDTO),
-				////typeof(MinipoolDestroyedEventDTO), // Process?
+				////typeof(MinipoolDestroyedEventDTO),
 				typeof(EtherWithdrawalProcessedEventDTO), // Exit
 			], [], Policy)).ToList();
 
@@ -86,10 +91,22 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 			await eventLog.WhenIsAsync<MegapoolValidatorEnqueuedEventDTO>(
 				MegapoolEventHandlers.HandleAsync, context, cancellationToken);
 
+			await eventLog.WhenIsAsync<MegapoolValidatorDequeuedEventDTO>(
+				MegapoolEventHandlers.HandleAsync, context, cancellationToken);
+
 			await eventLog.WhenIsAsync<MegapoolValidatorAssignedEventDTO>(
 				MegapoolEventHandlers.HandleAsync, context, cancellationToken);
 
-			await eventLog.WhenIsAsync<MegapoolValidatorDequeuedEventDTO>(
+			await eventLog.WhenIsAsync<MegapoolValidatorDissolvedEventDTO>(
+				MegapoolEventHandlers.HandleAsync, context, cancellationToken);
+
+			await eventLog.WhenIsAsync<MegapoolValidatorStakedEventDTO>(
+				MegapoolEventHandlers.HandleAsync, context, cancellationToken);
+
+			await eventLog.WhenIsAsync<MegapoolValidatorExitingEventDTO>(
+				MegapoolEventHandlers.HandleAsync, context, cancellationToken);
+
+			await eventLog.WhenIsAsync<MegapoolValidatorExitedEventDTO>(
 				MegapoolEventHandlers.HandleAsync, context, cancellationToken);
 		}
 	}
@@ -99,6 +116,21 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 		CancellationToken cancellationToken = default)
 	{
 		long activationHeight = contracts["rocketStorage"].Versions.Single().ActivationHeight;
+
+		Logger.LogInformation("Loading {snapshot}", Keys.DashboardSnapshot);
+		BlobObject<DashboardSnapshot> dashboardSnapshot =
+			await Storage.ReadAsync<DashboardSnapshot>(Keys.DashboardSnapshot, cancellationToken) ??
+			new()
+			{
+				ProcessedBlockNumber = activationHeight,
+				Data = new DashboardSnapshot
+				{
+					NodeOperators = 0,
+					MinipoolValidatorsStaking = 0,
+					MegapoolValidatorsStaking = 0,
+					QueueLength = 0,
+				},
+			};
 
 		Logger.LogInformation("Loading {snapshot}", Keys.NodesSnapshot);
 		BlobObject<NodesSnapshot> nodesSnapshot =
@@ -164,6 +196,13 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 				new RocketMinipoolManagerService(
 					web3, await Policy.ExecuteAsync(() => rocketStorage.GetAddressQueryAsync("rocketMinipoolManager"))),
 			RocketNodeManagerAddresses = contracts["rocketNodeManager"].Versions.Select(x => x.Address).ToArray(),
+			DashboardInfo = new DashboardInfo
+			{
+				NodeOperators = dashboardSnapshot.Data.NodeOperators,
+				MinipoolValidatorsStaking = dashboardSnapshot.Data.MinipoolValidatorsStaking,
+				MegapoolValidatorsStaking = dashboardSnapshot.Data.MegapoolValidatorsStaking,
+				QueueLength = dashboardSnapshot.Data.QueueLength,
+			},
 			Nodes = new NodeInfo
 			{
 				Data = new NodeInfo.NodeInfoFull
@@ -213,6 +252,21 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILoggerFa
 	protected override async Task SaveContextAsync(
 		NodesSyncContext context, CancellationToken cancellationToken = default)
 	{
+		Logger.LogInformation("Writing {snapshot}", Keys.DashboardSnapshot);
+		await Storage.WriteAsync(
+			Keys.DashboardSnapshot,
+			new BlobObject<DashboardSnapshot>
+			{
+				ProcessedBlockNumber = context.CurrentBlockHeight,
+				Data = new DashboardSnapshot
+				{
+					NodeOperators = context.DashboardInfo.NodeOperators,
+					MinipoolValidatorsStaking = context.DashboardInfo.MinipoolValidatorsStaking,
+					MegapoolValidatorsStaking = context.DashboardInfo.MegapoolValidatorsStaking,
+					QueueLength = context.DashboardInfo.QueueLength,
+				},
+			}, cancellationToken: cancellationToken);
+
 		Logger.LogInformation("Writing {snapshot}", Keys.NodesSnapshot);
 		await Storage.WriteAsync(
 			Keys.NodesSnapshot,

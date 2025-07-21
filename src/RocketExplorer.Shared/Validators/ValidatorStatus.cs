@@ -8,11 +8,13 @@ public enum ValidatorStatus : byte
 
 	PreStaked,
 
-	PreLaunch,
+	PreLaunch, // Assigned
 
 	Dissolved,
 
 	Staking,
+
+	Exiting,
 
 	Exited, // EtherWithdrawalProcessed, Finalised = true
 

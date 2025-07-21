@@ -10,4 +10,6 @@ public class CustomPaletteDark : PaletteDark
 	public MudColor OnPrimaryContainer { get; set; } = new();
 
 	public MudColor PrimaryContainer { get; set; } = new();
+
+	public MudColor Surface3 { get; set; } = new();
 }

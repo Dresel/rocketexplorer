@@ -28,4 +28,12 @@ public static class PaletteExtensions
 			CustomPaletteDark customPaletteDark => customPaletteDark.PrimaryContainer,
 			_ => new MudColor(),
 		};
+
+	public static MudColor Surface3(this Palette palette) =>
+		palette switch
+		{
+			CustomPaletteLight customPaletteLight => customPaletteLight.Surface3,
+			CustomPaletteDark customPaletteDark => customPaletteDark.Surface3,
+			_ => new MudColor(),
+		};
 }

@@ -39,5 +39,7 @@ public class CustomThemeProvider : MudThemeProvider
 		theme.AppendLine($"--mud-palette-on-primary: {palette.OnPrimary()};");
 		theme.AppendLine($"--mud-palette-primary-container: {palette.PrimaryContainer()};");
 		theme.AppendLine($"--mud-palette-on-primary-container: {palette.OnPrimaryContainer()};");
+
+		theme.AppendLine($"--mud-palette-surface-3: {palette.Surface3()};");
 	}
 }

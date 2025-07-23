@@ -30,8 +30,6 @@ public partial class MainLayout : LayoutComponentBase, IDisposable
 	[Inject]
 	public HttpClient HttpClient { get; set; } = null!;
 
-	public bool IsDarkMode { get; set; }
-
 	[Inject]
 	public ThemeService ThemeService { get; set; } = null!;
 
@@ -86,7 +84,50 @@ public partial class MainLayout : LayoutComponentBase, IDisposable
 		SetLiveChartsTheme();
 
 		LiveCharts.DefaultSettings.HasGlobalSKTypeface(
-			SKTypeface.FromStream(new MemoryStream(await HttpClient.GetByteArrayAsync("fonts/roboto.ttf"))));
+			SKTypeface.FromStream(new MemoryStream(await HttpClient.GetByteArrayAsync("fonts/Manrope.ttf"))));
+	}
+
+	private Typography CreateTypography()
+	{
+		string[]? headlineFontFamily = ["Mona Sans", "Helvetica", "Arial", "sans-serif",];
+
+		return new Typography
+		{
+			Default =
+			{
+				FontFamily = ["Manrope", "Helvetica", "Arial", "sans-serif",],
+			},
+			H1 =
+			{
+				FontFamily = headlineFontFamily,
+				FontSize = "clamp(1.5rem, 5vw, 4rem)",
+			},
+			H2 =
+			{
+				FontFamily = headlineFontFamily,
+				FontSize = "clamp(1.375rem, 4vw, 3rem)",
+			},
+			H3 =
+			{
+				FontFamily = headlineFontFamily,
+				FontSize = "clamp(1.25rem, 3.5vw, 2.25rem)",
+			},
+			H4 =
+			{
+				FontFamily = headlineFontFamily,
+				FontSize = "clamp(1.125rem, 3vw, 1.75rem)",
+			},
+			H5 =
+			{
+				FontFamily = headlineFontFamily,
+				FontSize = "clamp(1rem, 2.5vw, 1.5rem)",
+			},
+			H6 =
+			{
+				FontFamily = headlineFontFamily,
+				FontSize = "clamp(0.875rem, 2vw, 1.25rem)",
+			},
+		};
 	}
 
 	private async Task LoadAsync(CancellationToken cancellationToken = default)

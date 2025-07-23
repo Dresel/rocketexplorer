@@ -1,4 +1,7 @@
 {
+	"mimeTypes": {
+		".ttf": "font/ttf"
+	},
 	"navigationFallback": {
 		"rewrite": "/index.html"
 	}

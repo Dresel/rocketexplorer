@@ -5,8 +5,7 @@
 
 <PageTitle>Rocket Explorer - Contracts</PageTitle>
 <MudStack>
-	<MudText Typo="Typo.h6">Contracts</MudText>
-
+	<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">Contracts</MudText>
 	<MudTable ServerData="LoadContracts" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary"
 		GroupBy="@groupContractsDefinition"
 		GroupHeaderClass="table-group-header"
@@ -51,8 +50,7 @@
 		</PagerContent>
 	</MudTable>
 
-	<MudText Typo="Typo.h6">Upgrade contract addresses</MudText>
-
+	<MudText Typo="Typo.h2" Class="mud-typography-h3 mt-8" Align="Align.Center">Upgrade contract addresses</MudText>
 	<MudTable ServerData="LoadUpgradeContracts" Dense="true" Hover="true" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
 		<HeaderContent>
 			<MudTh>Name</MudTh>

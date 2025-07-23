@@ -10,9 +10,8 @@
 @if (Snapshot != null)
 {
 	<MudStack Spacing="6">
-
 		<MudContainer Class="mud-typography-align-center">
-			<MudText Typo="Typo.h4" Align="Align.Center">Validator</MudText>
+			<MudText Typo="Typo.h1" Class="mud-typography-h4" Align="Align.Center">Validator</MudText>
 
 			@if (AddressUtil.Current.IsValidEthereumAddressHexFormat(MinipoolAddress))
 			{
@@ -38,7 +37,7 @@
 					Megapool Address / Megapool MinipoolValidatorIndex
 				*@
 
-				<MudText Class="mb-4" Typo="Typo.h6">Details</MudText>
+				<div Class="mud-typography-h6 mb-4">Details</div>
 				<MudStack Spacing="2" Wrap="Wrap.Wrap" Row="true">
 					<MudItem Class="label">
 						<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Status</MudText>
@@ -78,7 +77,7 @@
 				</MudStack>
 			</MudItem>
 			<MudItem lg="6" md="12">
-				<MudText Class="mb-4" Typo="Typo.h6">History</MudText>
+				<div Class="mud-typography-h6 mb-4">History</div>
 				<MudTimeline TimelinePosition="TimelinePosition.Left">
 					@foreach (ValidatorHistory history in Snapshot?.Data.History ?? [])
 					{

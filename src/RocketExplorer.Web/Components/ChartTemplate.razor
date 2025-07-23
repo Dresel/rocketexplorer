@@ -1,13 +1,13 @@
-<MudText Typo="Typo.h6" Align="Align.Center">
+<div class="mud-typography-h6 mud-typography-align-center">
 	@Title <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowLeft" Class="@ExpandableButtonClass" Size="Size.Medium" Color="Color.Primary" OnClick="ToggleExpanded" />
-</MudText>
+</div>
 <MudText Typo="Typo.subtitle2" Align="Align.Center">@TimeRange</MudText>
 
 <div class="@(Expanded ? "chart-double" : "chart-single")">
 	@ChildContent
 </div>
 <div class="d-flex justify-center">
-	<MudToggleGroup Size="Size.Small" T="ChartAggregation" Style="text-transform: none;" SelectedClass="mud-toggle-group-selected" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Value="Aggregation" ValueChanged="SetAggregation" CheckMark FixedContent="true">
+	<MudToggleGroup Size="Size.Small" T="ChartAggregation" SelectionMode="SelectionMode.SingleSelection" Color="Color.Secondary" Value="Aggregation" ValueChanged="SetAggregation" CheckMark FixedContent="true">
 		<MudToggleItem Value="ChartAggregation.Daily" Text="Daily" />
 		<MudToggleItem Value="ChartAggregation.Monthly" Text="Monthly" />
 		<MudToggleItem Value="ChartAggregation.Yearly" Text="Yearly" />

@@ -4,7 +4,7 @@
 
 <PageTitle>Rocket Explorer - Nodes</PageTitle>
 <MudStack>
-	<MudText Typo="Typo.h4" Align="Align.Center">Node operators over time</MudText>
+	<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">Node operators over time</MudText>
 	<MudGrid Justify="Justify.Center">
 		<MudItem>
 			<ChartTotal Title="Total operators" YAxesName="Nodes" Data="nodesTotalData" MinLimit="null"></ChartTotal>
@@ -13,7 +13,7 @@
 			<ChartDelta Title="New operators" YAxesName="Nodes" Data="nodesDeltaData"></ChartDelta>
 		</MudItem>
 	</MudGrid>
-	<MudText Typo="Typo.h4" Align="Align.Center" Class="mt-8">Node list</MudText>
+	<MudText Typo="Typo.h2" Class="mud-typography-h3 mt-8" Align="Align.Center">Node list</MudText>
 	<MudTable Class="mt-0" ServerData="LoadNodes" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
 		<ToolBarContent>
 			<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"

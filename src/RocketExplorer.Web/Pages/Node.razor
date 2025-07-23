@@ -7,7 +7,7 @@
 <PageTitle>Node @Address</PageTitle>
 <MudStack Spacing="6">
 	<MudContainer Class="mud-typography-align-center">
-		<MudText Typo="Typo.h4" Align="Align.Center">Node Operator</MudText>
+		<MudText Typo="Typo.h1" Class="mud-typography-h4" Align="Align.Center">Node Operator</MudText>
 		<Address Typo="Typo.body1" Expanded="true" ContractAddress="@Address" AppendEtherscanCodeAnchor="true"></Address>
 	</MudContainer>
 	@if (Snapshot == null)
@@ -46,7 +46,7 @@
 			</MudItem>
 		</MudStack>
 
-		<MudText Typo="Typo.h6" Align="Align.Center">@Snapshot.Data.MinipoolValidators.Count() Minipool Validators</MudText>
+		<div class="mud-typography-h6 mud-typography-align-center">@Snapshot.Data.MinipoolValidators.Count() Minipool Validators</div>
 
 		<MudTable Class="mt-0" ServerData="LoadMinipoolValidators" Dense="true" Hover="true" @ref="minipoolTable" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
 			<ToolBarContent>
@@ -79,7 +79,7 @@
 			</PagerContent>
 		</MudTable>
 
-		<MudText Typo="Typo.h6" Align="Align.Center">@Snapshot.Data.MegapoolValidators.Count() Megapool Validators</MudText>
+		<div class="mud-typography-h6 mud-typography-align-center">@Snapshot.Data.MegapoolValidators.Count() Megapool Validators</div>
 
 		<MudTable Class="mt-0" ServerData="LoadMegapoolValidators" Dense="true" Hover="true" @ref="megapoolTable" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
 			<ToolBarContent>

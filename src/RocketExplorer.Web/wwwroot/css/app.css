@@ -1,5 +1,5 @@
 html, body {
-	font-family: 'Roboto', 'Helvetica', 'Arial', 'sans-serif';
+	font-family: 'Manrope', 'Helvetica', 'Arial', 'sans-serif';
 	-webkit-text-size-adjust: 100%;
 }
 
@@ -62,9 +62,25 @@ mark {
 
 .mud-toggle-group * { text-transform: none; }
 
-.mud-toggle-group-selected {
-	background-color: var(--mud-palette-primary-hover) !important;
-	color: var(--mud-palette-primary) !important;
+.mud-toggle-group.mud-border-secondary {
+	border-color: var(--mud-palette-lines-default) !important;
+}
+
+.mud-toggle-item.mud-button-filled.mud-button-filled-secondary {
+	background-color: var(--mud-palette-secondary-container) !important;
+	color: var(--mud-palette-on-secondary-container) !important;
+	--mud-ripple-color: var(--mud-palette-on-secondary-container) !important;
+	border-color: var(--mud-palette-lines-default) !important;
+}
+
+.mud-toggle-item.mud-button-outlined.mud-button-outlined-secondary {
+	color: var(--mud-palette-on-surface-variant) !important;
+	--mud-ripple-color: var(--mud-palette-on-secondary-container) !important;
+	border-color: var(--mud-palette-lines-default) !important;
+}
+
+.mud-toggle-item.mud-button-filled.mud-button-filled-secondary:hover {
+	background-color: var(--mud-palette-secondary-container-hover) !important;
 }
 
 .table-group-header { background-color: var(--mud-palette-primary-container); }

@@ -6,7 +6,7 @@
 
 <MudStack Spacing="3">
 
-	<h1>Welcome to Rocket Explorer</h1>
+	<MudText Typo="Typo.h1">Welcome to Rocket Explorer</MudText>
 
 	<MudText>
 		Rocket Explorer is an open-source community project for analyzing and visualizing the decentralized <MudLink Href="https://rocketpool.net" Target="_blank">Rocket Pool</MudLink> network.
@@ -26,31 +26,31 @@
 		While efforts are made to ensure accuracy, data may be incomplete, outdated, or subject to change.
 	</MudText>
 
-	<h1>Dashboard</h1>
+	<MudText Typo="Typo.h2" Class="mud-typography-h3 mt-8">Dashboard</MudText>
 
 	<MudGrid>
 		<MudItem xs="12" sm="6" lg="4">
-			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-3)">
-				<MudText Typo="Typo.h6" Align="Align.Center">Total node operators</MudText>
-				<MudText Typo="Typo.h2" Align="Align.Center">@Snapshot?.Data.NodeOperators</MudText>
+			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
+				<div class="mud-typography-h6 mud-typography-align-center">Total node operators</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@Snapshot?.Data.NodeOperators</div>
 			</MudPaper>
 		</MudItem>
 		<MudItem xs="12" sm="6" lg="4">
-			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-3)">
-				<MudText Typo="Typo.h6" Align="Align.Center">Queue Length</MudText>
-				<MudText Typo="Typo.h2" Align="Align.Center">@Snapshot?.Data.QueueLength</MudText>
+			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
+				<div class="mud-typography-h6 mud-typography-align-center">Queue Length</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@Snapshot?.Data.QueueLength</div>
 			</MudPaper>
 		</MudItem>
 		<MudItem xs="12" sm="6" lg="4">
-			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-3)">
-				<MudText Typo="Typo.h6" Align="Align.Center">Staking minipool validators</MudText>
-				<MudText Typo="Typo.h2" Align="Align.Center">@Snapshot?.Data.MinipoolValidatorsStaking</MudText>
+			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
+				<div class="mud-typography-h6 mud-typography-align-center">Staking minipool validators</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@Snapshot?.Data.MinipoolValidatorsStaking</div>
 			</MudPaper>
 		</MudItem>
 		<MudItem xs="12" sm="6" lg="4">
-			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-3)">
-				<MudText Typo="Typo.h6" Align="Align.Center">Staking megapool validators</MudText>
-				<MudText Typo="Typo.h2" Align="Align.Center">@Snapshot?.Data.MegapoolValidatorsStaking</MudText>
+			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
+				<div class="mud-typography-h6 mud-typography-align-center">Staking megapool validators</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@Snapshot?.Data.MegapoolValidatorsStaking</div>
 			</MudPaper>
 		</MudItem>
 	</MudGrid>

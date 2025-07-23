@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text;
 using MudBlazor;
 using MudBlazor.State;
+using MudBlazor.Utilities;
 
 namespace RocketExplorer.Web.Theming;
 
@@ -29,17 +30,28 @@ public class CustomThemeProvider : MudThemeProvider
 
 		Palette palette = isDarkModeState.Value ? mudTheme.PaletteDark : mudTheme.PaletteLight;
 
-		theme.AppendLine($"--mark-color: {palette.Tertiary};");
+		theme.AppendLine($"--mud-palette-primary-hover: {palette.ToHover(x => new MudColor(255, 255, 255, 0))};");
+		theme.AppendLine($"--mud-palette-surface-hover: {palette.ToHover(x => x.Surface)};");
 
-		theme.AppendLine($"--mark-color: {palette.Tertiary};");
-		theme.AppendLine($"--mark-background-color: {palette.TertiaryContrastText};");
+		theme.AppendLine($"--mark-color: {palette.TertiaryContrastText};");
+		theme.AppendLine($"--mark-background-color: {palette.Tertiary};");
 
-		theme.AppendLine($"--mark-color: {palette.Tertiary};");
-
-		theme.AppendLine($"--mud-palette-on-primary: {palette.OnPrimary()};");
 		theme.AppendLine($"--mud-palette-primary-container: {palette.PrimaryContainer()};");
 		theme.AppendLine($"--mud-palette-on-primary-container: {palette.OnPrimaryContainer()};");
+		theme.AppendLine($"--mud-palette-on-primary-container-hover: {palette.ToHover(x => x.PrimaryContainer())};");
 
-		theme.AppendLine($"--mud-palette-surface-3: {palette.Surface3()};");
+		theme.AppendLine($"--mud-palette-secondary-container: {palette.SecondaryContainer()};");
+		theme.AppendLine($"--mud-palette-on-secondary-container: {palette.OnSecondaryContainer()};");
+		theme.AppendLine($"--mud-palette-secondary-container-hover: {palette.ToHover(x => x.SecondaryContainer())};");
+
+		theme.AppendLine($"--mud-palette-surface-variant: {palette.SurfaceVariant()};");
+		theme.AppendLine($"--mud-palette-on-surface-variant: {palette.OnSurfaceVariant()};");
+		theme.AppendLine($"--mud-palette-surface-variant-hover: {palette.ToHover(x => x.SurfaceVariant())};");
+
+		theme.AppendLine($"--mud-palette-surface-container-lowest: {palette.SurfaceContainerLowest()};");
+		theme.AppendLine($"--mud-palette-surface-container-low: {palette.SurfaceContainerLow()};");
+		theme.AppendLine($"--mud-palette-surface-container: {palette.SurfaceContainer()};");
+		theme.AppendLine($"--mud-palette-surface-container-high: {palette.SurfaceContainerHigh()};");
+		theme.AppendLine($"--mud-palette-surface-container-highest: {palette.SurfaceContainerHighest()};");
 	}
 }

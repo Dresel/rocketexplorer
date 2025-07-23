@@ -6,7 +6,7 @@
 
 <PageTitle>Rocket Explorer - Queue</PageTitle>
 <MudStack>
-	<MudText Typo="Typo.h4" Align="Align.Center">Queue over time</MudText>
+	<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">Queue over time</MudText>
 	<MudGrid Justify="Justify.Center">
 		<MudItem>
 			<ChartTotal Title="Total queue length" YAxesName="Nodes" Data="queueTotalData"></ChartTotal>
@@ -15,8 +15,7 @@
 			<ChartDelta Title="Queue Activity" YAxesName="Nodes" Data="queueDeltaData" DataTransform="dataTransform" Series="series" MinLimit="null"></ChartDelta>
 		</MudItem>
 	</MudGrid>
-
-	<MudText Typo="Typo.h4" Align="Align.Center" Class="mt-8">Queue List</MudText>
+	<MudText Typo="Typo.h2" Align="Align.Center" Class="mud-typography-h3 mt-8">List</MudText>
 	<MudTable Class="mt-0" ServerData="LoadQueue" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
 		<ToolBarContent>
 			<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
@@ -81,7 +80,7 @@
 		</PagerContent>
 	</MudTable>
 	<div class="d-flex justify-center">
-		<MudToggleGroup Size="Size.Small" T="QueueType" Style="text-transform: none;" SelectedClass="mud-toggle-group-selected" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Value="Type" ValueChanged="SetType" CheckMark FixedContent="true">
+		<MudToggleGroup Size="Size.Small" T="QueueType" SelectionMode="SelectionMode.SingleSelection" Color="Color.Secondary" Value="Type" ValueChanged="SetType" CheckMark FixedContent="true">
 			<MudToggleItem Value="QueueType.Unified" Text="Unified" />
 			<MudToggleItem Value="QueueType.Legacy" Text="Legacy" />
 			<MudToggleItem Value="QueueType.Megapool" Text="Megapool" />

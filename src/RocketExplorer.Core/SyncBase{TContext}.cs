@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Web3;
 using Polly.Retry;
+using RocketExplorer.Core.Nodes;
 using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Shared.Contracts;
 
@@ -23,9 +24,10 @@ public abstract class SyncBase<TContext>(IOptions<SyncOptions> options, Storage 
 
 	public async Task HandleBlocksAsync(
 		Web3 web3, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts,
+		DashboardInfo dashboardInfo,
 		long latestBlock, CancellationToken cancellationToken = default)
 	{
-		TContext context = await LoadContextAsync(web3, rocketStorage, contracts, cancellationToken);
+		TContext context = await LoadContextAsync(web3, rocketStorage, contracts, dashboardInfo, cancellationToken);
 
 		if (context.CurrentBlockHeight == latestBlock)
 		{
@@ -52,14 +54,17 @@ public abstract class SyncBase<TContext>(IOptions<SyncOptions> options, Storage 
 		await SaveContextAsync(context, cancellationToken);
 	}
 
-	protected virtual Task BeforeHandleBlocksAsync(TContext context, long latestBlock, CancellationToken cancellationToken) =>
+	protected virtual Task BeforeHandleBlocksAsync(
+		TContext context, long latestBlock, CancellationToken cancellationToken) =>
 		Task.CompletedTask;
 
 	protected abstract Task HandleBlocksAsync(
-		TContext context, long fromBlock, long toBlock, long latestBlock, CancellationToken cancellationToken = default);
+		TContext context, long fromBlock, long toBlock, long latestBlock,
+		CancellationToken cancellationToken = default);
 
 	protected abstract Task<TContext> LoadContextAsync(
 		Web3 web3, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts,
+		DashboardInfo dashboardInfo,
 		CancellationToken cancellationToken = default);
 
 	protected abstract Task SaveContextAsync(TContext context, CancellationToken cancellationToken = default);

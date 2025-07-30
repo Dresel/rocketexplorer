@@ -11,3 +11,6 @@ dotnet tool run Nethereum.Generator.Console generate from-abi -abi abis\rocketMi
 dotnet tool run Nethereum.Generator.Console generate from-abi -abi abis\rocketMinipoolQueue.json -o ./Clients -cn RocketMinipoolQueue -ns RocketExplorer.Ethereum -sf true
 dotnet tool run Nethereum.Generator.Console generate from-abi -abi abis\rocketNodeManager.json -o ./Clients -cn RocketNodeManager -ns RocketExplorer.Ethereum -sf true
 dotnet tool run Nethereum.Generator.Console generate from-abi -abi abis\rocketMegapoolDelegate.json -o ./Clients -cn RocketMegapoolDelegate -ns RocketExplorer.Ethereum -sf true
+dotnet tool run Nethereum.Generator.Console generate from-abi -abi abis\rocketTokenRPLOld.json -o ./Clients -cn RocketTokenRPLOld -ns RocketExplorer.Ethereum -sf true
+dotnet tool run Nethereum.Generator.Console generate from-abi -abi abis\rocketTokenRPL.json -o ./Clients -cn RocketTokenRPL -ns RocketExplorer.Ethereum -sf true
+dotnet tool run Nethereum.Generator.Console generate from-abi -abi abis\rocketTokenRETH.json -o ./Clients -cn RocketTokenRETH -ns RocketExplorer.Ethereum -sf true

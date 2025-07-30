@@ -8,7 +8,7 @@ namespace RocketExplorer.Core.Nodes.EventHandlers;
 
 public static class NodeRegisteredEventHandler
 {
-	public static async Task HandleAsync(
+	public static Task HandleAsync(
 		this NodesSyncContext context, EventLog<NodeRegisteredEventDTO> eventLog, CancellationToken cancellationToken)
 	{
 		NodeRegisteredEventDTO @event = eventLog.Event;
@@ -52,6 +52,8 @@ public static class NodeRegisteredEventHandler
 
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)@event.Time).DateTime);
 		context.Nodes.Data.DailyRegistrations[key] = context.Nodes.Data.DailyRegistrations.GetValueOrDefault(key) + 1;
-		context.Nodes.Data.TotalNodesCount[key] = context.Nodes.Data.TotalNodesCount.GetLatestOrDefault() + 1;
+		context.Nodes.Data.TotalNodesCount[key] = context.Nodes.Data.TotalNodesCount.GetLatestValueOrDefault() + 1;
+
+		return Task.CompletedTask;
 	}
 }

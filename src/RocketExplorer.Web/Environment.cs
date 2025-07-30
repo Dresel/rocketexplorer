@@ -6,6 +6,8 @@ public enum Environment
 
 	Devnet,
 
+	LocalTestnet,
+
 	Testnet,
 
 	LocalMainnet,

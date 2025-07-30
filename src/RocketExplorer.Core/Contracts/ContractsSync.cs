@@ -4,18 +4,18 @@ using Microsoft.Extensions.Options;
 using Nethereum.Contracts;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Web3;
+using RocketExplorer.Core.Nodes;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade.ContractDefinition;
 using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Shared.Contracts;
+using RocketExplorer.Shared.Nodes;
 
 namespace RocketExplorer.Core.Contracts;
 
 public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogger<ContractsSync> logger)
 	: SyncBase<ContractsSyncContext>(options, storage, logger)
 {
-	public const string ContractsSnapshotKey = "contracts-snapshot.msgpack";
-
 	protected override async Task BeforeHandleBlocksAsync(
 		ContractsSyncContext context, long latestBlock, CancellationToken cancellationToken)
 	{
@@ -57,13 +57,13 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 	}
 
 	protected override async Task<ContractsSyncContext> LoadContextAsync(
-		Web3 web3, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts,
+		Web3 web3, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts, DashboardInfo dashboardInfo,
 		CancellationToken cancellationToken = default)
 	{
-		Logger.LogInformation("Loading {snapshot}", ContractsSnapshotKey);
+		Logger.LogInformation("Loading {snapshot}", Keys.ContractsSnapshotKey);
 
 		BlobObject<ContractsSnapshot> snapshot =
-			await Storage.ReadAsync<ContractsSnapshot>(ContractsSnapshotKey, cancellationToken) ??
+			await Storage.ReadAsync<ContractsSnapshot>(Keys.ContractsSnapshotKey, cancellationToken) ??
 			new BlobObject<ContractsSnapshot>
 			{
 				ProcessedBlockNumber = 0,
@@ -76,10 +76,14 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 
 		return new ContractsSyncContext
 		{
+			Storage = Storage,
+			Policy = Policy,
+			Logger = Logger,
 			Web3 = web3,
 			CurrentBlockHeight = snapshot.ProcessedBlockNumber,
 			RocketStorage = rocketStorage,
 			Contracts = contracts,
+			DashboardInfo = dashboardInfo,
 			TrustedUpgradeContractAddress = snapshot.Data.Contracts.SingleOrDefault(x => x.Name == "rocketDAONodeTrustedUpgrade")?.Versions.Select(x => x.Address).ToList() ?? [],
 			ContextContracts = snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x),
 			ContextUpgradeContracts = snapshot.Data.UpgradeContracts.ToDictionary(x => x.Name, x => x),
@@ -89,10 +93,10 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 	protected override async Task SaveContextAsync(
 		ContractsSyncContext context, CancellationToken cancellationToken = default)
 	{
-		Logger.LogInformation("Writing {snapshot}", ContractsSnapshotKey);
+		Logger.LogInformation("Writing {snapshot}", Keys.ContractsSnapshotKey);
 
 		await Storage.WriteAsync(
-			ContractsSnapshotKey,
+			Keys.ContractsSnapshotKey,
 			new BlobObject<ContractsSnapshot>
 			{
 				ProcessedBlockNumber = context.CurrentBlockHeight,

@@ -21,6 +21,7 @@ public class Configuration
 		{
 			Environment.LocalDevnet => Network.Hoodi,
 			Environment.Devnet => Network.Hoodi,
+			Environment.LocalTestnet => Network.Hoodi,
 			Environment.Testnet => Network.Hoodi,
 			Environment.LocalMainnet => Network.Mainnet,
 			Environment.Mainnet => Network.Mainnet,
@@ -53,6 +54,7 @@ public class Configuration
 		{
 			Environment.LocalDevnet => "local-devnet",
 			Environment.Devnet => "devnet",
+			Environment.LocalTestnet => "local-testnet",
 			Environment.Testnet => "testnet",
 			Environment.LocalMainnet => "local-mainnet",
 			Environment.Mainnet => "mainnet",

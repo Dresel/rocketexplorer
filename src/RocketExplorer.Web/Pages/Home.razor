@@ -1,5 +1,5 @@
 @page "/"
-
+@using Nethereum.Util
 @inherits PageBase<RocketExplorer.Shared.DashboardSnapshot>
 
 <PageTitle>Rocket Explorer - Home</PageTitle>
@@ -29,6 +29,18 @@
 	<MudText Typo="Typo.h2" Class="mud-typography-h3 mt-8">Dashboard</MudText>
 
 	<MudGrid>
+		<MudItem xs="12" sm="6" lg="4">
+			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
+				<div class="mud-typography-h6 mud-typography-align-center">RETH Supply</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@UnitConversion.Convert.FromWei(Snapshot?.Data.RETHTotalSupply ?? 0, 18).ToString("N2")</div>
+			</MudPaper>
+		</MudItem>
+		<MudItem xs="12" sm="6" lg="4">
+			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
+				<div class="mud-typography-h6 mud-typography-align-center">RPL Supply</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@UnitConversion.Convert.FromWei(Snapshot?.Data.RPLTotalSupply ?? 0, 18).ToString("N2")</div>
+			</MudPaper>
+		</MudItem>
 		<MudItem xs="12" sm="6" lg="4">
 			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
 				<div class="mud-typography-h6 mud-typography-align-center">Total node operators</div>

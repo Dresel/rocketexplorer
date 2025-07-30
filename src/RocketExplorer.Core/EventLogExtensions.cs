@@ -56,9 +56,9 @@ public static class EventLogExtensions
 		}
 	}
 
-	public static Task WhenIsAsync<TEvent>(
-		this IEventLog eventLog, Func<NodesSyncContext, EventLog<TEvent>, CancellationToken, Task> action,
-		NodesSyncContext context, CancellationToken cancellationToken = default)
+	public static Task WhenIsAsync<TEvent, TContext>(
+		this IEventLog eventLog, Func<TContext, EventLog<TEvent>, CancellationToken, Task> action,
+		TContext context, CancellationToken cancellationToken = default)
 		where TEvent : IEventDTO
 	{
 		if (eventLog is EventLog<TEvent> specificEventLog)

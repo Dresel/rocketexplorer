@@ -4,6 +4,8 @@ namespace RocketExplorer.Shared.Nodes;
 
 public static class Keys
 {
+	public const string ContractsSnapshotKey = "contracts-snapshot.msgpack";
+
 	public const string DashboardSnapshot = "dashboard-snapshot.msgpack";
 
 	public const string NodesSnapshot = "nodes-snapshot.msgpack";
@@ -11,6 +13,8 @@ public static class Keys
 	public const string QueueSnapshot = "queue-snapshot.msgpack";
 
 	public const string SnapshotMetadata = "snapshot-metadata.msgpack";
+
+	public const string TokensSnapshot = "tokens-snapshot.msgpack";
 
 	public const string ValidatorSnapshot = "validator-snapshot.msgpack";
 

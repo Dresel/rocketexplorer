@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using RocketExplorer.Core;
 using RocketExplorer.Core.Contracts;
 using RocketExplorer.Core.Nodes;
+using RocketExplorer.Core.Tokens;
 
 IHostBuilder builder = new HostBuilder()
 	.ConfigureFunctionsWorkerDefaults()
@@ -32,6 +33,7 @@ IHostBuilder builder = new HostBuilder()
 		services.Configure<SyncOptions>(context.Configuration.GetSection(environment));
 
 		services.AddTransient<ContractsSync>();
+		services.AddTransient<TokensSync>();
 		services.AddTransient<NodesSync>();
 
 		services.AddTransient<Storage>();

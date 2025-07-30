@@ -4,16 +4,24 @@ using System.Net;
 using Amazon.S3;
 using Amazon.S3.Model;
 using MessagePack;
+using MessagePack.Resolvers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using RocketExplorer.Shared;
 
 namespace RocketExplorer.Core;
 
 public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILogger<Storage> logger)
 {
 	private readonly string bucketName = "rocketexplorer";
+
 	private readonly ILogger<Storage> logger = logger;
+
+	private readonly IFormatterResolver messagePackResolver =
+		CompositeResolver.Create(BigIntegerResolver.Instance, StandardResolver.Instance);
+
 	private readonly SyncOptions options = options.Value;
+
 	private readonly AmazonS3Client s3Client = s3Client;
 
 	////public async Task WriteCorsConfigurationAsync(CancellationToken cancellationToken = default)
@@ -65,7 +73,7 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 			this.logger.LogDebug($"GetObject took {stopwatch.ElapsedMilliseconds}ms for {memoryStream.Length} bytes");
 
 			T data = MessagePackSerializer.Deserialize<T>(
-				memoryStream.ToArray(), MessagePackSerializerOptions.Standard);
+				memoryStream.ToArray(), MessagePackSerializerOptions.Standard.WithResolver(this.messagePackResolver));
 
 			return new BlobObject<T>
 			{
@@ -82,7 +90,7 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 	public async Task WriteAsync<T>(
 		string key, BlobObject<T> snapshot, int maxAge = 60, CancellationToken cancellationToken = default)
 	{
-		byte[] data = MessagePackSerializer.Serialize(snapshot.Data, MessagePackSerializerOptions.Standard);
+		byte[] data = MessagePackSerializer.Serialize(snapshot.Data, MessagePackSerializerOptions.Standard.WithResolver(this.messagePackResolver));
 		using MemoryStream memoryStream = new(data);
 
 		Stopwatch stopwatch = Stopwatch.StartNew();

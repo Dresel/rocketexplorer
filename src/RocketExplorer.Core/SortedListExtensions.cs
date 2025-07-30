@@ -11,7 +11,7 @@ public static class SortedListExtensions
 		}
 	}
 
-	public static TValue? GetLatestOrDefault<TKey, TValue>(this SortedList<TKey, TValue> sortedList)
+	public static TValue? GetLatestValueOrDefault<TKey, TValue>(this SortedList<TKey, TValue> sortedList)
 		where TKey : notnull
 	{
 		if (sortedList.Count == 0)

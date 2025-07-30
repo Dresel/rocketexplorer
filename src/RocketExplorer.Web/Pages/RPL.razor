@@ -1,0 +1,151 @@
+@page "/rpl"
+@using System.Numerics
+@using LiveChartsCore.Defaults
+@using Nethereum.Util
+@inherits PageBase<RocketExplorer.Shared.Tokens.TokensSnapshot>
+
+<PageTitle>Rocket Explorer - RPL</PageTitle>
+<MudStack>
+	<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">RPL</MudText>
+	<MudGrid Justify="Justify.Center">
+		<MudItem>
+			<ChartTotal Title="Supply" YAxesName="RPL" Data="supplyTotal" MinLimit="null"></ChartTotal>
+		</MudItem>
+		<MudItem>
+			<ChartDelta Title="Mints & Burns" YAxesName="RPL" Data="mintsAndBurns" DataTransform="dataTransform" Series="series" MinLimit="null"></ChartDelta>
+		</MudItem>
+	</MudGrid>
+	<MudText Typo="Typo.h2" Class="mud-typography-h3 mt-8" Align="Align.Center">Holders</MudText>
+	<MudContainer MaxWidth="MaxWidth.Medium">
+	<MudTable Class="mt-0" ServerData="LoadHolders" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
+		<ToolBarContent>
+			<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+				AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+			</MudTextField>
+		</ToolBarContent>
+		<HeaderContent>
+			<MudTh>
+				<MudTableSortLabel T="HolderViewModel" SortLabel="@nameof(HolderViewModel.Address)">Holder Address</MudTableSortLabel>
+			</MudTh>
+			<MudTh>
+				<MudTableSortLabel T="HolderViewModel" SortLabel="@nameof(HolderViewModel.Balance)" InitialDirection="SortDirection.Descending">Amount</MudTableSortLabel>
+			</MudTh>
+		</HeaderContent>
+		<RowTemplate>
+			<MudTd>
+				<Address ContractAddress="@context.Address" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
+			</MudTd>
+			<MudTd Style="text-align:right">@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") RPL</MudTd>
+		</RowTemplate>
+		<NoRecordsContent>
+			<MudText>No matching records found</MudText>
+		</NoRecordsContent>
+		<LoadingContent>
+			<MudText>Loading...</MudText>
+		</LoadingContent>
+		<PagerContent>
+			<MudTablePager />
+		</PagerContent>
+	</MudTable>
+	</MudContainer>
+</MudStack>
+
+@code {
+
+	private MudTable<HolderViewModel> table = null!;
+	private string? searchString;
+
+	private HolderViewModel[] holders = null!;
+
+	private SortedList<DateOnly, int>[]? supplyTotal;
+	private SortedList<DateOnly, int>[]? mintsAndBurns;
+
+	private readonly Func<int, int>[] dataTransform = [x => x, x => x * -1];
+
+	private readonly ISeries[] series =
+	[
+		new ColumnSeries<DateTimePoint>
+		{
+			Name = "Mints",
+			Padding = 3,
+			MaxBarWidth = 20,
+		},
+		new ColumnSeries<DateTimePoint>
+		{
+			Name = "Burns",
+			Padding = 3,
+			MaxBarWidth = 20,
+		},
+	];
+
+	protected override async Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
+
+		ObjectStoreKey = "tokens-snapshot.msgpack";
+	}
+
+	private void OnSearch(string text)
+	{
+		searchString = text;
+		table.ReloadServerData();
+	}
+
+	private async Task<TableData<HolderViewModel>> LoadHolders(TableState state, CancellationToken token)
+	{
+		await LoadedTask;
+
+		IEnumerable<HolderViewModel> items = holders;
+
+		if (state.SortLabel is nameof(HolderViewModel.Address))
+		{
+			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.Address).ToList() : items.OrderByDescending(x => x.Address).ToList();
+		}
+
+		if (state.SortLabel is nameof(HolderViewModel.Balance))
+		{
+			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.Balance).ToList() : items.OrderByDescending(x => x.Balance).ToList();
+		}
+
+		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
+		{
+			items = items.Where(x => x.Address.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToArray();
+		}
+
+		int count = items.Count();
+		items = items.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList();
+
+		return new TableData<HolderViewModel>
+		{
+			TotalItems = count,
+			Items = items,
+		};
+	}
+
+	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
+	{
+		mintsAndBurns =
+		[
+			new SortedList<DateOnly, int>(Snapshot?.Data.RPL.MintsPerDay.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot?.Data.RPL.BurnsPerDay.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+		];
+
+		holders = Snapshot!.Data.RPL.Holders.Select(x => new HolderViewModel
+		{
+			Address = "0x" + Convert.ToHexString(x.Address),
+			Balance = x.Balance,
+		}).ToArray();
+
+		supplyTotal = [new SortedList<DateOnly, int>(Snapshot?.Data.RPL.SupplyTotal.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),];
+
+		return Task.CompletedTask;
+	}
+
+	public class HolderViewModel
+	{
+		public required string Address { get; init; }
+
+		public required BigInteger Balance { get; init; }
+	}
+
+}

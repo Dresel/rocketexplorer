@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace RocketExplorer.Core.Nodes;
 
 public class DashboardInfo
@@ -9,4 +11,12 @@ public class DashboardInfo
 	public required int NodeOperators { get; set; }
 
 	public required int QueueLength { get; set; }
+
+	public required BigInteger RETHSupplyTotal { get; set; }
+
+	public required BigInteger RPLOldSupplyTotal { get; set; }
+
+	public required BigInteger RPLSupplyTotal { get; set; }
+
+	public required BigInteger RPLSwappedTotal { get; set; }
 }

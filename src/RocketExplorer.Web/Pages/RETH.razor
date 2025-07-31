@@ -33,7 +33,7 @@
 		</HeaderContent>
 		<RowTemplate>
 			<MudTd>
-				<Address ContractAddress="@context.Address" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
+				<Address ContractAddress="@context.Address" HighlightedText="@searchString"></Address>
 			</MudTd>
 			<MudTd Style="text-align:right">@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") RETH</MudTd>
 		</RowTemplate>

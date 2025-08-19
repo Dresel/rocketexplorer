@@ -97,7 +97,7 @@ public class SyncFunction
 			MinipoolValidatorsStaking = dashboardSnapshot.Data.MinipoolValidatorsStaking,
 			MegapoolValidatorsStaking = dashboardSnapshot.Data.MegapoolValidatorsStaking,
 			QueueLength = dashboardSnapshot.Data.QueueLength,
-			RPLLegacyStakedTotal = dashboardSnapshot.Data.QueueLength,
+			RPLLegacyStakedTotal = dashboardSnapshot.Data.RPLLegacyStakedTotal,
 			RPLMegapoolStakedTotal = dashboardSnapshot.Data.RPLMegapoolStakedTotal,
 		};
 

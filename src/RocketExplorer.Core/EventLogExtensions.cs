@@ -1,7 +1,6 @@
 using Nethereum.ABI.FunctionEncoding.Attributes;
 using Nethereum.Contracts;
 using Nethereum.RPC.Eth.DTOs;
-using RocketExplorer.Core.Nodes;
 
 namespace RocketExplorer.Core;
 
@@ -13,6 +12,17 @@ public static class EventLogExtensions
 		if (eventLog is EventLog<TEvent> specificEventLog)
 		{
 			action(specificEventLog.Event, specificEventLog.Log);
+		}
+	}
+
+	public static void WhenIs<TEvent, TContext>(
+		this IEventLog eventLog, Action<TContext, EventLog<TEvent>> action,
+		TContext context)
+		where TEvent : IEventDTO
+	{
+		if (eventLog is EventLog<TEvent> specificEventLog)
+		{
+			action(context, specificEventLog);
 		}
 	}
 

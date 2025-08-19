@@ -19,14 +19,20 @@ public record class DashboardSnapshot
 	public required BigInteger RPLSwapped { get; set; }
 
 	[Key(4)]
-	public required int NodeOperators { get; init; }
+	public required BigInteger RPLLegacyStakedTotal { get; init; }
 
 	[Key(5)]
-	public required int MinipoolValidatorsStaking { get; init; }
+	public required BigInteger RPLMegapoolStakedTotal { get; init; }
 
 	[Key(6)]
-	public required int MegapoolValidatorsStaking { get; init; }
+	public required int NodeOperators { get; init; }
 
 	[Key(7)]
+	public required int MinipoolValidatorsStaking { get; init; }
+
+	[Key(8)]
+	public required int MegapoolValidatorsStaking { get; init; }
+
+	[Key(9)]
 	public required int QueueLength { get; init; }
 }

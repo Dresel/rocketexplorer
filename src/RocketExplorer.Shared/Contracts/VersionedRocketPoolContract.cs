@@ -13,4 +13,7 @@ public record class VersionedRocketPoolContract
 
 	[Key(2)]
 	public required string Address { get; init; }
+
+	[Key(3)]
+	public required byte? Version { get; set; }
 }

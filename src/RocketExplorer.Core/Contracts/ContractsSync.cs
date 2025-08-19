@@ -128,6 +128,23 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 		return executedFunction;
 	}
 
+	private static Function GetVersionFunction(Web3 web3, string address)
+	{
+		string versionAbi = @"[
+			{
+				'inputs': [],
+				'name': 'version',
+				'outputs': [{ 'internalType': 'uint8', 'name': '', 'type': 'uint8' }],
+				'stateMutability': 'view',
+				'type': 'function'
+			}
+		]";
+
+		Contract? contract = web3.Eth.GetContract(versionAbi, address);
+		Function? versionFunction = contract.GetFunction("version");
+		return versionFunction;
+	}
+
 	private async Task ContinueProcessingUpgradeContractsAsync(ContractsSyncContext context, long latestBlock)
 	{
 		foreach (var pair in context.ContextUpgradeContracts.SelectMany(
@@ -228,14 +245,14 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 		}
 		else if (context.ContractsMap.TryGetValue(contractNameHash, out string? contractName))
 		{
-			return UpdateContractAddressForBlock(
+			return await UpdateContractAddressForBlockAsync(
 				context, contractAddress, contractName, "rocketDAONodeTrustedUpgrade", currentBlock);
 		}
 		else
 		{
 			// TODO: Might be an unknown update contract, check for execute first
 			Logger.LogWarning("Unknown contract with address {Address}", contractAddress);
-			return UpdateContractAddressForBlock(
+			return await UpdateContractAddressForBlockAsync(
 				context, contractAddress, $"unknown ({contractAddress[..6]})",
 				"rocketDAONodeTrustedUpgrade", currentBlock);
 		}
@@ -289,10 +306,10 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 			return false;
 		}
 
-		return UpdateContractAddressForBlock(context, address, contractName, activationMethod, currentBlock);
+		return await UpdateContractAddressForBlockAsync(context, address, contractName, activationMethod, currentBlock);
 	}
 
-	private bool UpdateContractAddressForBlock(
+	private async Task<bool> UpdateContractAddressForBlockAsync(
 		ContractsSyncContext context, string address, string contractName, string activationMethod,
 		long currentBlock)
 	{
@@ -313,6 +330,18 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 
 		Logger.LogInformation("New Address for {ContractName} found: {Address}", contractName, address);
 
+		byte? version = null;
+
+		try
+		{
+			version = await GetVersionFunction(context.Web3, address)
+				.CallAsync<byte>(BlockParameter.CreateLatest());
+		}
+		catch
+		{
+			logger.LogInformation("No version for {ContractName} found", contractName);
+		}
+
 		context.ContextContracts[contractName] = context.ContextContracts[contractName] with
 		{
 			Versions =
@@ -323,6 +352,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 					ActivationHeight = currentBlock,
 					ActivationMethod = activationMethod,
 					Address = address,
+					Version = version,
 				},
 			],
 		};

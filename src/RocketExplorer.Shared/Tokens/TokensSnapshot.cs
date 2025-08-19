@@ -10,7 +10,7 @@ public record class TokensSnapshot
 	public required Token RPLOld { get; init; }
 
 	[Key(1)]
-	public required Token RPL { get; init; }
+	public required RPLToken RPL { get; init; }
 
 	[Key(2)]
 	public required Token RETH { get; init; }
@@ -19,5 +19,5 @@ public record class TokensSnapshot
 	public required SortedList<DateOnly, BigInteger> RPLSwappedTotal { get; init; }
 
 	[Key(4)]
-	public required SortedList<DateOnly, BigInteger> RPLSwappedPerDay { get; init; }
+	public required SortedList<DateOnly, BigInteger> RPLSwappedDaily { get; init; }
 }

@@ -17,7 +17,7 @@
 			</MudTextField>
 		</ToolBarContent>
 		<GroupHeaderTemplate>
-			<MudTh Style="font-weight: 500;" colspan="4">
+			<MudTh Style="font-weight: 500;" colspan="5">
 				<MudHighlighter Text="@context.Key?.ToString()" HighlightedText="@searchString" />
 			</MudTh>
 		</GroupHeaderTemplate>
@@ -28,6 +28,7 @@
 			<MudTh>Address</MudTh>
 			<MudTh>Activation Method</MudTh>
 			<MudTh>Activation Height</MudTh>
+			<MudTh>Version</MudTh>
 		</HeaderContent>
 		<RowTemplate>
 			<MudTd></MudTd>
@@ -38,6 +39,7 @@
 				<MudHighlighter Text="@context.ActivationMethod" HighlightedText="@searchString" />
 			</MudTd>
 			<MudTd>@context.ActivationHeight</MudTd>
+			<MudTd>@(context.Version?.ToString() ?? "-")</MudTd>
 		</RowTemplate>
 		<NoRecordsContent>
 			<MudText>No matching records found</MudText>
@@ -135,6 +137,7 @@
 				(contract, version) => new VersionedRocketPoolContractViewModel
 				{
 					Address = version.Address,
+					Version = version.Version,
 					ActivationHeight = version.ActivationHeight,
 					ActivationMethod = version.ActivationMethod,
 					ContractName = contract.Name,
@@ -176,6 +179,8 @@
 		public required string ActivationMethod { get; set; }
 
 		public required string Address { get; init; }
+
+		public required byte? Version { get; init; }
 	}
 
 	public class VersionedRocketPoolUpgradeContractViewModel

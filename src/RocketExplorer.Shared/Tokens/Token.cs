@@ -13,8 +13,8 @@ public record class Token
 	public required SortedList<DateOnly, BigInteger> SupplyTotal { get; init; }
 
 	[Key(2)]
-	public required SortedList<DateOnly, BigInteger> MintsPerDay { get; init; }
+	public required SortedList<DateOnly, BigInteger> MintsDaily { get; init; }
 
 	[Key(3)]
-	public required SortedList<DateOnly, BigInteger> BurnsPerDay { get; init; }
+	public required SortedList<DateOnly, BigInteger> BurnsDaily { get; init; }
 }

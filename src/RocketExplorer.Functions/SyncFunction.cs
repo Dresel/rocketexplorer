@@ -19,11 +19,11 @@ namespace RocketExplorer.Functions;
 public class SyncFunction
 {
 	private readonly ContractsSync contracts;
-	private readonly TokensSync tokens;
 	private readonly ILogger logger;
 	private readonly NodesSync nodes;
 	private readonly SyncOptions options;
 	private readonly Storage storage;
+	private readonly TokensSync tokens;
 
 	public SyncFunction(
 		IOptions<SyncOptions> options, Storage storage, ContractsSync contracts, TokensSync tokens, NodesSync nodes,
@@ -42,18 +42,19 @@ public class SyncFunction
 	{
 		Web3 web3;
 
-		if (!string.IsNullOrWhiteSpace(options.RpcBasicAuthUsername) &&
-			!string.IsNullOrWhiteSpace(options.RpcBasicAuthPassword))
+		if (!string.IsNullOrWhiteSpace(this.options.RpcBasicAuthUsername) &&
+			!string.IsNullOrWhiteSpace(this.options.RpcBasicAuthPassword))
 		{
-			logger.LogInformation("Using BasicAuth...");
+			this.logger.LogInformation("Using BasicAuth...");
 
-			byte[] byteArray = Encoding.ASCII.GetBytes($"{options.RpcBasicAuthUsername}:{options.RpcBasicAuthPassword}");
+			byte[] byteArray = Encoding.ASCII.GetBytes(
+				$"{this.options.RpcBasicAuthUsername}:{this.options.RpcBasicAuthPassword}");
 			AuthenticationHeaderValue authenticationHeaderValue = new("Basic", Convert.ToBase64String(byteArray));
-			web3 = new Web3(options.RPCUrl, authenticationHeader: authenticationHeaderValue);
+			web3 = new Web3(this.options.RPCUrl, authenticationHeader: authenticationHeaderValue);
 		}
 		else
 		{
-			web3 = new Web3(options.RPCUrl);
+			web3 = new Web3(this.options.RPCUrl);
 		}
 
 		BlockWithTransactions latestBlock =
@@ -64,10 +65,10 @@ public class SyncFunction
 
 		////await storage.WriteCorsConfigurationAsync();
 
-		logger.LogInformation("Loading {snapshot}", Keys.DashboardSnapshot);
+		this.logger.LogInformation("Loading {snapshot}", Keys.DashboardSnapshot);
 
 		BlobObject<DashboardSnapshot> dashboardSnapshot =
-			await storage.ReadAsync<DashboardSnapshot>(Keys.DashboardSnapshot) ??
+			await this.storage.ReadAsync<DashboardSnapshot>(Keys.DashboardSnapshot) ??
 			new BlobObject<DashboardSnapshot>
 			{
 				ProcessedBlockNumber = (long)latestBlock.Number.Value,
@@ -96,26 +97,28 @@ public class SyncFunction
 			MinipoolValidatorsStaking = dashboardSnapshot.Data.MinipoolValidatorsStaking,
 			MegapoolValidatorsStaking = dashboardSnapshot.Data.MegapoolValidatorsStaking,
 			QueueLength = dashboardSnapshot.Data.QueueLength,
+			RPLLegacyStakedTotal = dashboardSnapshot.Data.QueueLength,
+			RPLMegapoolStakedTotal = dashboardSnapshot.Data.RPLMegapoolStakedTotal,
 		};
 
-		await contracts.HandleBlocksAsync(
+		await this.contracts.HandleBlocksAsync(
 			web3, rocketStorage, new Dictionary<string, RocketPoolContract>().AsReadOnly(), dashboardInfo,
 			(long)latestBlock.Number.Value);
 
 		BlobObject<ContractsSnapshot> snapshot =
-			await storage.ReadAsync<ContractsSnapshot>(Keys.ContractsSnapshotKey) ??
+			await this.storage.ReadAsync<ContractsSnapshot>(Keys.ContractsSnapshotKey) ??
 			throw new InvalidOperationException("Cannot read contracts snapshot from storage.");
 
-		await tokens.HandleBlocksAsync(
+		await this.tokens.HandleBlocksAsync(
 			web3, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
 			dashboardInfo, (long)latestBlock.Number.Value);
 
-		await nodes.HandleBlocksAsync(
+		await this.nodes.HandleBlocksAsync(
 			web3, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
 			dashboardInfo, (long)latestBlock.Number.Value);
 
-		logger.LogInformation("Writing {snapshot}", Keys.DashboardSnapshot);
-		await storage.WriteAsync(
+		this.logger.LogInformation("Writing {snapshot}", Keys.DashboardSnapshot);
+		await this.storage.WriteAsync(
 			Keys.DashboardSnapshot,
 			new BlobObject<DashboardSnapshot>
 			{
@@ -130,11 +133,13 @@ public class SyncFunction
 					MinipoolValidatorsStaking = dashboardInfo.MinipoolValidatorsStaking,
 					MegapoolValidatorsStaking = dashboardInfo.MegapoolValidatorsStaking,
 					QueueLength = dashboardInfo.QueueLength,
+					RPLLegacyStakedTotal = dashboardInfo.RPLLegacyStakedTotal,
+					RPLMegapoolStakedTotal = dashboardInfo.RPLMegapoolStakedTotal,
 				},
 			});
 
-		logger.LogInformation("Writing {snapshot}", Keys.SnapshotMetadata);
-		await storage.WriteAsync(
+		this.logger.LogInformation("Writing {snapshot}", Keys.SnapshotMetadata);
+		await this.storage.WriteAsync(
 			Keys.SnapshotMetadata, new BlobObject<SnapshotMetadata>
 			{
 				ProcessedBlockNumber = (long)latestBlock.Number.Value,

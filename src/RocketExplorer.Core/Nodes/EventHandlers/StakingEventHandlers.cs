@@ -1,4 +1,3 @@
-using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Nethereum.Contracts;
 using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;

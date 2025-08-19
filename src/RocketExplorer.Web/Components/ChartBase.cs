@@ -68,20 +68,29 @@ public class ChartBase : ComponentBase
 			switch (Aggregation)
 			{
 				case ChartAggregation.Yearly:
-					dateTimeAxis.CustomSeparators = Enumerable.Range(2020, DateTime.Now.Year - 2020 + 1)
-						.Select(y => (double)new DateTime(y, 7, 1).Ticks)
+					DateTime[] customSeparators = Enumerable.Range(2020, DateTime.Now.Year - 2020 + 1)
+						.Select(y => new DateTime(y, 7, 1))
 						.ToArray();
+					dateTimeAxis.CustomSeparators = customSeparators.Select(x => (double)x.Ticks).ToArray();
+
+					if (this.GetType() == typeof(ChartDelta) && Data?.Sum(x => x.Count) == 0)
+					{
+						dateTimeAxis.MinLimit = customSeparators.Last().AddMonths(-6).Ticks;
+						dateTimeAxis.MaxLimit = customSeparators.Last().AddMonths(6).Ticks;
+					}
+
 					break;
 
 				case ChartAggregation.Monthly:
-					target = DateOnly.FromDateTime(DateTime.Now).AddMonths(Expanded ? -36 : -12);
-					dateTimeAxis.MinLimit = new DateTime(target.Year, target.Month, 16).AddDays(-15).Ticks;
+					target = DateOnly.FromDateTime(DateTime.Today).AddMonths(Expanded ? -36 : -12);
+					dateTimeAxis.MinLimit = new DateTime(target.Year, target.Month, 1).Ticks;
+					dateTimeAxis.MaxLimit = new DateTime(DateTime.Now.Year, DateTime.Now.Month + 1, 1).Ticks;
 					break;
 
 				case ChartAggregation.Daily:
 					target = DateOnly.FromDateTime(DateTime.Now).AddDays(Expanded ? -42 : -14);
 					dateTimeAxis.MinLimit = new DateTime(target.Year, target.Month, target.Day).AddDays(-0.5).Ticks;
-					dateTimeAxis.MaxLimit = DateTime.Now.Ticks;
+					dateTimeAxis.MaxLimit = DateTime.Today.AddDays(0.5).Ticks;
 					break;
 			}
 

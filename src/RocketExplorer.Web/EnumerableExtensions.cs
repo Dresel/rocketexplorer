@@ -101,7 +101,8 @@ public static class EnumerableExtensions
 	}
 
 	public static IEnumerable<DateTimePoint> PrepareDelta(
-		this ICollection<KeyValuePair<DateOnly, int>> data, Func<int, int>? dataTransform, ChartAggregation aggregation, DateOnly start)
+		this ICollection<KeyValuePair<DateOnly, int>> data, Func<int, int>? dataTransform, ChartAggregation aggregation,
+		DateOnly start)
 	{
 		// Assuming data.Max(x => x.Key) <= DateTime.Now
 		DateOnly end = DateOnly.FromDateTime(DateTime.Now);
@@ -115,9 +116,10 @@ public static class EnumerableExtensions
 
 		IEnumerable<KeyValuePair<DateOnly, int>> keyValuePairs = data.Skip(Math.Max(0, startIndex));
 
-		return keyValuePairs.GroupBy(aggregation).Select(
-			x =>
-				new DateTimePoint(new DateTime(x.Key.Year, x.Key.Month, x.Key.Day), x.Sum(x => dataTransform?.Invoke(x.Value) ?? x.Value)));
+		return keyValuePairs.GroupBy(aggregation).Select(x =>
+			new DateTimePoint(
+				new DateTime(x.Key.Year, x.Key.Month, x.Key.Day),
+				x.Sum(x => dataTransform?.Invoke(x.Value) ?? x.Value)));
 	}
 
 	public static IEnumerable<DateTimePoint> PrepareTotal(
@@ -154,8 +156,7 @@ public static class EnumerableExtensions
 				new KeyValuePair<DateOnly, int>(end, endIndex - 1 >= 0 ? data.ElementAt(endIndex - 1).Value : 0));
 		}
 
-		return keyValuePairs.FillGaps().GroupBy(aggregation).Select(
-			x =>
-				new DateTimePoint(new DateTime(x.Key.Year, x.Key.Month, x.Key.Day), x.Max(x => x.Value)));
+		return keyValuePairs.FillGaps().GroupBy(aggregation).Select(x =>
+			new DateTimePoint(new DateTime(x.Key.Year, x.Key.Month, x.Key.Day), x.Max(x => x.Value)));
 	}
 }

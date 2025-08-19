@@ -77,6 +77,8 @@ public class SyncFunction
 					RPLTotalSupply = 0,
 					RETHTotalSupply = 0,
 					RPLSwapped = 0,
+					RPLLegacyStakedTotal = 0,
+					RPLMegapoolStakedTotal = 0,
 					NodeOperators = 0,
 					MinipoolValidatorsStaking = 0,
 					MegapoolValidatorsStaking = 0,

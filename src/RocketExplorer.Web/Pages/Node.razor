@@ -44,6 +44,20 @@
 					<MudText Typo="Typo.body1">-</MudText>
 				}
 			</MudItem>
+			<MudFlexBreak />
+			<MudItem Class="label">
+				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Staked Legacy RPL</MudText>
+			</MudItem>
+			<MudItem>
+				<MudText Typo="Typo.body1">@Snapshot.Data.RPLLegacyStaked</MudText>
+			</MudItem>
+			<MudFlexBreak />
+			<MudItem Class="label">
+				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Staked Megapool RPL</MudText>
+			</MudItem>
+			<MudItem>
+				<MudText Typo="Typo.body1">@Snapshot.Data.RPLMegapoolStaked</MudText>
+			</MudItem>
 		</MudStack>
 
 		<div class="mud-typography-h6 mud-typography-align-center">@Snapshot.Data.MinipoolValidators.Count() Minipool Validators</div>

@@ -3,9 +3,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Contracts;
 using Nethereum.Hex.HexConvertors.Extensions;
+using Nethereum.Util;
 using Nethereum.Web3;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Ethereum;
+using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
 using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Ethereum.RocketTokenRPL.ContractDefinition;
 using RocketExplorer.Shared.Contracts;
@@ -54,6 +56,42 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 			await eventLog.WhenIsAsync<TransferEventDTO, TokensSyncContext>(
 				TokenEventHandlers.HandleRETHAsync, context, cancellationToken);
 		}
+
+		IEnumerable<IEventLog> preSaturn1StakingEvents = await context.Web3.FilterAsync(
+			fromBlock, toBlock, [
+				typeof(RPLLegacyStakedEventDto),
+				typeof(RPLOrRPLLegacyWithdrawnEventDTO),
+			],
+			context.PreSaturn1RocketNodeStakingAddresses, Policy);
+
+		foreach (IEventLog eventLog in preSaturn1StakingEvents)
+		{
+			eventLog.WhenIs<RPLLegacyStakedEventDto, TokensSyncContext>(
+				StakingEventHandlers.HandleRPLLegacyStaked, context);
+
+			eventLog.WhenIs<RPLOrRPLLegacyWithdrawnEventDTO, TokensSyncContext>(
+				StakingEventHandlers.HandleRPLLegacyUnstaked, context);
+		}
+
+		IEnumerable<IEventLog> postSaturn1StakingEvents = await context.Web3.FilterAsync(
+			fromBlock, toBlock, [
+				typeof(RPLLegacyWithdrawnEventDTO),
+				typeof(RPLStakedEventDTO),
+				typeof(RPLUnstakedEventDTO),
+			],
+			context.PostSaturn1RocketNodeStakingAddresses, Policy);
+
+		foreach (IEventLog eventLog in postSaturn1StakingEvents)
+		{
+			eventLog.WhenIs<RPLLegacyWithdrawnEventDTO, TokensSyncContext>(
+				StakingEventHandlers.HandleRPLLegacyUnstaked, context);
+
+			eventLog.WhenIs<RPLStakedEventDTO, TokensSyncContext>(
+				StakingEventHandlers.HandleRPLMegapoolStaked, context);
+
+			eventLog.WhenIs<RPLUnstakedEventDTO, TokensSyncContext>(
+				StakingEventHandlers.HandleRPLMegapoolUnstaked, context);
+		}
 	}
 
 	protected override async Task<TokensSyncContext> LoadContextAsync(
@@ -74,25 +112,31 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 					{
 						Holders = [],
 						SupplyTotal = [],
-						MintsPerDay = [],
-						BurnsPerDay = [],
+						MintsDaily = [],
+						BurnsDaily = [],
 					},
-					RPL = new Token
+					RPL = new RPLToken
 					{
 						Holders = [],
 						SupplyTotal = [],
-						MintsPerDay = [],
-						BurnsPerDay = [],
+						MintsDaily = [],
+						BurnsDaily = [],
+						LegacyStakedDaily = [],
+						LegacyUnstakedDaily = [],
+						LegacyStakedTotal = [],
+						MegapoolStakedDaily = [],
+						MegapoolUnstakedDaily = [],
+						MegapoolStakedTotal = [],
 					},
 					RETH = new Token
 					{
 						Holders = [],
 						SupplyTotal = [],
-						MintsPerDay = [],
-						BurnsPerDay = [],
+						MintsDaily = [],
+						BurnsDaily = [],
 					},
 					RPLSwappedTotal = [],
-					RPLSwappedPerDay = [],
+					RPLSwappedDaily = [],
 				},
 			};
 
@@ -106,31 +150,41 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 			CurrentBlockHeight = snapshot.ProcessedBlockNumber,
 			RocketStorage = rocketStorage,
 			Contracts = contracts,
+			PreSaturn1RocketNodeStakingAddresses = contracts["rocketNodeStaking"].Versions.Where(x => x.Version <= 6)
+				.Select(x => x.Address).Concat([AddressUtil.ZERO_ADDRESS]).ToArray(),
+			PostSaturn1RocketNodeStakingAddresses = contracts["rocketNodeStaking"].Versions.Where(x => x.Version > 6)
+				.Select(x => x.Address).Concat([AddressUtil.ZERO_ADDRESS]).ToArray(),
 			RPLOldTokenInfo = new TokenInfo
 			{
 				Holders = snapshot.Data.RPLOld.Holders.ToDictionary(
 					x => x.Address.ToHex(true), x => x.Balance, StringComparer.OrdinalIgnoreCase),
 				SupplyTotal = snapshot.Data.RPLOld.SupplyTotal,
-				MintsPerDay = snapshot.Data.RPLOld.MintsPerDay,
-				BurnsPerDay = snapshot.Data.RPLOld.BurnsPerDay,
+				MintsDaily = snapshot.Data.RPLOld.MintsDaily,
+				BurnsDaily = snapshot.Data.RPLOld.BurnsDaily,
 			},
 			RPLTokenInfo = new RPLTokenInfo
 			{
 				Holders = snapshot.Data.RPL.Holders.ToDictionary(
 					x => x.Address.ToHex(true), x => x.Balance, StringComparer.OrdinalIgnoreCase),
 				SupplyTotal = snapshot.Data.RPL.SupplyTotal,
-				MintsPerDay = snapshot.Data.RPL.MintsPerDay,
-				BurnsPerDay = snapshot.Data.RPL.BurnsPerDay,
+				MintsDaily = snapshot.Data.RPL.MintsDaily,
+				BurnsDaily = snapshot.Data.RPL.BurnsDaily,
 				SwappedTotal = snapshot.Data.RPLSwappedTotal,
-				SwappedDaily = snapshot.Data.RPLSwappedPerDay,
+				SwappedDaily = snapshot.Data.RPLSwappedDaily,
+				LegacyStakedDaily = snapshot.Data.RPL.LegacyStakedDaily,
+				LegacyUnstakedDaily = snapshot.Data.RPL.LegacyUnstakedDaily,
+				LegacyStakedTotal = snapshot.Data.RPL.LegacyStakedTotal,
+				MegapoolStakedDaily = snapshot.Data.RPL.MegapoolStakedDaily,
+				MegapoolUnstakedDaily = snapshot.Data.RPL.MegapoolUnstakedDaily,
+				MegapoolStakedTotal = snapshot.Data.RPL.MegapoolStakedTotal,
 			},
 			RETHTokenInfo = new TokenInfo
 			{
 				Holders = snapshot.Data.RETH.Holders.ToDictionary(
 					x => x.Address.ToHex(true), x => x.Balance, StringComparer.OrdinalIgnoreCase),
 				SupplyTotal = snapshot.Data.RETH.SupplyTotal,
-				MintsPerDay = snapshot.Data.RETH.MintsPerDay,
-				BurnsPerDay = snapshot.Data.RETH.BurnsPerDay,
+				MintsDaily = snapshot.Data.RETH.MintsDaily,
+				BurnsDaily = snapshot.Data.RETH.BurnsDaily,
 			},
 		};
 	}
@@ -155,10 +209,10 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 							Balance = x.Value,
 						}).ToArray(),
 						SupplyTotal = context.RPLOldTokenInfo.SupplyTotal,
-						MintsPerDay = context.RPLOldTokenInfo.MintsPerDay,
-						BurnsPerDay = context.RPLOldTokenInfo.BurnsPerDay,
+						MintsDaily = context.RPLOldTokenInfo.MintsDaily,
+						BurnsDaily = context.RPLOldTokenInfo.BurnsDaily,
 					},
-					RPL = new Token
+					RPL = new RPLToken
 					{
 						Holders = context.RPLTokenInfo.Holders.Select(x => new HolderEntry
 						{
@@ -166,8 +220,14 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 							Balance = x.Value,
 						}).ToArray(),
 						SupplyTotal = context.RPLTokenInfo.SupplyTotal,
-						MintsPerDay = context.RPLTokenInfo.MintsPerDay,
-						BurnsPerDay = context.RPLTokenInfo.BurnsPerDay,
+						MintsDaily = context.RPLTokenInfo.MintsDaily,
+						BurnsDaily = context.RPLTokenInfo.BurnsDaily,
+						LegacyStakedDaily = context.RPLTokenInfo.LegacyStakedDaily,
+						LegacyUnstakedDaily = context.RPLTokenInfo.LegacyUnstakedDaily,
+						LegacyStakedTotal = context.RPLTokenInfo.LegacyStakedTotal,
+						MegapoolStakedDaily = context.RPLTokenInfo.MegapoolStakedDaily,
+						MegapoolUnstakedDaily = context.RPLTokenInfo.MegapoolUnstakedDaily,
+						MegapoolStakedTotal = context.RPLTokenInfo.MegapoolStakedTotal,
 					},
 					RETH = new Token
 					{
@@ -177,11 +237,11 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 							Balance = x.Value,
 						}).ToArray(),
 						SupplyTotal = context.RETHTokenInfo.SupplyTotal,
-						MintsPerDay = context.RETHTokenInfo.MintsPerDay,
-						BurnsPerDay = context.RETHTokenInfo.BurnsPerDay,
+						MintsDaily = context.RETHTokenInfo.MintsDaily,
+						BurnsDaily = context.RETHTokenInfo.BurnsDaily,
 					},
 					RPLSwappedTotal = context.RPLTokenInfo.SwappedTotal,
-					RPLSwappedPerDay = context.RPLTokenInfo.SwappedDaily,
+					RPLSwappedDaily = context.RPLTokenInfo.SwappedDaily,
 				},
 			}, cancellationToken: cancellationToken);
 	}

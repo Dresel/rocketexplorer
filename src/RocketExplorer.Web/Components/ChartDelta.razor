@@ -1,3 +1,4 @@
+@using System.Runtime.InteropServices.JavaScript
 @using LiveChartsCore.Defaults
 @inherits ChartBase
 
@@ -39,7 +40,7 @@
 		switch (Aggregation)
 		{
 			case ChartAggregation.Yearly:
-				target = Data?.Sum(x => x.Count) > 0 ? Data.Min(data => data.Min(x => x.Key)) : new DateOnly(2020, 1, 1);
+				target = Data?.Sum(x => x.Count) > 0 ? Data.Where(data => data.Count > 0).Min(data => data.Min(x => x.Key)) : new DateOnly(2020, 1, 1);
 				break;
 
 			case ChartAggregation.Monthly:

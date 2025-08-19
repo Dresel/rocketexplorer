@@ -126,8 +126,8 @@
 	{
 		mintsAndBurns =
 		[
-			new SortedList<DateOnly, int>(Snapshot?.Data.RETH.MintsPerDay.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
-			new SortedList<DateOnly, int>(Snapshot?.Data.RETH.BurnsPerDay.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot?.Data.RETH.MintsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot?.Data.RETH.BurnsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
 		];
 
 		holders = Snapshot!.Data.RETH.Holders.Select(x => new HolderViewModel

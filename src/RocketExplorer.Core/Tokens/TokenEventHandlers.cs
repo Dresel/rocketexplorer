@@ -65,7 +65,7 @@ public class TokenEventHandlers
 			DateOnly key =
 				DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)block.Timestamp.Value).DateTime);
 
-			tokenInfo.MintsPerDay[key] = tokenInfo.MintsPerDay.GetValueOrDefault(key) + eventLog.Event.Value;
+			tokenInfo.MintsDaily[key] = tokenInfo.MintsDaily.GetValueOrDefault(key) + eventLog.Event.Value;
 			tokenInfo.SupplyTotal[key] = tokenInfo.SupplyTotal.GetLatestValueOrDefault() + eventLog.Event.Value;
 		}
 
@@ -81,7 +81,7 @@ public class TokenEventHandlers
 			DateOnly key =
 				DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)block.Timestamp.Value).DateTime);
 
-			tokenInfo.BurnsPerDay[key] = tokenInfo.BurnsPerDay.GetValueOrDefault(key) + eventLog.Event.Value;
+			tokenInfo.BurnsDaily[key] = tokenInfo.BurnsDaily.GetValueOrDefault(key) + eventLog.Event.Value;
 			tokenInfo.SupplyTotal[key] = tokenInfo.SupplyTotal.GetLatestValueOrDefault() - eventLog.Event.Value;
 		}
 	}

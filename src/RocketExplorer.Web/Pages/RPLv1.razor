@@ -1,12 +1,12 @@
-@page "/rpl"
+@page "/rpl-v1"
 @using System.Numerics
 @using LiveChartsCore.Defaults
 @using Nethereum.Util
 @inherits PageBase<RocketExplorer.Shared.Tokens.TokensSnapshot>
 
-<PageTitle>Rocket Explorer - RPL</PageTitle>
+<PageTitle>Rocket Explorer - RPLv1</PageTitle>
 <MudStack>
-	<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">RPL</MudText>
+	<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">RPL v1</MudText>
 	<MudGrid Justify="Justify.Center">
 		<MudItem>
 			<ChartTotal Title="Supply" YAxesName="RPL" Data="supplyTotal" MinLimit="null"></ChartTotal>
@@ -15,6 +15,7 @@
 			<ChartDelta Title="Mints & Burns" YAxesName="RPL" Data="mintsAndBurns" DataTransform="dataTransform" Series="series" MinLimit="null"></ChartDelta>
 		</MudItem>
 	</MudGrid>
+
 	<MudText Typo="Typo.h2" Class="mud-typography-h3 mt-8" Align="Align.Center">Holders</MudText>
 	<MudContainer MaxWidth="MaxWidth.Medium">
 	<MudTable Class="mt-0" ServerData="LoadHolders" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
@@ -126,17 +127,17 @@
 	{
 		mintsAndBurns =
 		[
-			new SortedList<DateOnly, int>(Snapshot?.Data.RPL.MintsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
-			new SortedList<DateOnly, int>(Snapshot?.Data.RPL.BurnsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot?.Data.RPLOld.MintsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot?.Data.RPLOld.BurnsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
 		];
 
-		holders = Snapshot!.Data.RPL.Holders.Select(x => new HolderViewModel
+		holders = Snapshot!.Data.RPLOld.Holders.Select(x => new HolderViewModel
 		{
 			Address = "0x" + Convert.ToHexString(x.Address),
 			Balance = x.Balance,
 		}).ToArray();
 
-		supplyTotal = [new SortedList<DateOnly, int>(Snapshot?.Data.RPL.SupplyTotal.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),];
+		supplyTotal = [new SortedList<DateOnly, int>(Snapshot?.Data.RPLOld.SupplyTotal.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),];
 
 		return Task.CompletedTask;
 	}

@@ -1,0 +1,100 @@
+@page "/rpl-staked"
+@using System.Numerics
+@using LiveChartsCore.Defaults
+@inherits PageBase<RocketExplorer.Shared.Tokens.TokensSnapshot>
+
+<PageTitle>Rocket Explorer - Staked RPL</PageTitle>
+<MudStack>
+	<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">Staked RPL</MudText>
+
+	<MudText Typo="Typo.h2" Class="mud-typography-h6" Align="Align.Center">Legacy RPL</MudText>
+	<MudGrid Justify="Justify.Center">
+		<MudItem>
+			<ChartTotal Title="Total staked" YAxesName="RPL" Data="rplLegacyTotalStaked" MinLimit="null"></ChartTotal>
+		</MudItem>
+		<MudItem>
+			<ChartDelta Title="Staked & unstaked" YAxesName="RPL" Data="rplLegacyStakedAndUnstaked" DataTransform="dataTransform" Series="seriesStakedAndUnstaked" MinLimit="null"></ChartDelta>
+		</MudItem>
+	</MudGrid>
+
+	<MudText Typo="Typo.h2" Class="mud-typography-h6" Align="Align.Center">Megapool RPL</MudText>
+	<MudGrid Justify="Justify.Center">
+		<MudItem>
+			<ChartTotal Title="Total staked" YAxesName="RPL" Data="rplMegapoolTotalStaked" MinLimit="null"></ChartTotal>
+		</MudItem>
+		<MudItem>
+			<ChartDelta Title="Staked & unstaked" YAxesName="RPL" Data="rplMegapoolStakedAndUnstaked" DataTransform="dataTransform" Series="seriesStakedAndUnstaked2" MinLimit="null"></ChartDelta>
+		</MudItem>
+	</MudGrid>
+</MudStack>
+
+@code {
+
+	private SortedList<DateOnly, int>[]? rplLegacyTotalStaked;
+	private SortedList<DateOnly, int>[]? rplLegacyStakedAndUnstaked;
+
+	private SortedList<DateOnly, int>[]? rplMegapoolTotalStaked;
+	private SortedList<DateOnly, int>[]? rplMegapoolStakedAndUnstaked;
+
+	private readonly Func<int, int>[] dataTransform = [x => x, x => x * -1,];
+
+	private readonly ISeries[] seriesStakedAndUnstaked =
+	[
+		new ColumnSeries<DateTimePoint>
+		{
+			Name = "Staked",
+			Padding = 3,
+			MaxBarWidth = 20,
+		},
+		new ColumnSeries<DateTimePoint>
+		{
+			Name = "Unstaked",
+			Padding = 3,
+			MaxBarWidth = 20,
+		},
+	];
+
+	private readonly ISeries[] seriesStakedAndUnstaked2 =
+	[
+		new ColumnSeries<DateTimePoint>
+		{
+			Name = "Staked",
+			Padding = 3,
+			MaxBarWidth = 20,
+		},
+		new ColumnSeries<DateTimePoint>
+		{
+			Name = "Unstaked",
+			Padding = 3,
+			MaxBarWidth = 20,
+		},
+	];
+
+	protected override async Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
+
+		ObjectStoreKey = "tokens-snapshot.msgpack";
+	}
+
+	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
+	{
+		rplLegacyStakedAndUnstaked =
+		[
+			new SortedList<DateOnly, int>(Snapshot?.Data.RPL.LegacyStakedDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot?.Data.RPL.LegacyUnstakedDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+		];
+
+		rplMegapoolStakedAndUnstaked =
+		[
+			new SortedList<DateOnly, int>(Snapshot?.Data.RPL.MegapoolStakedDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot?.Data.RPL.MegapoolUnstakedDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+		];
+
+		rplLegacyTotalStaked = [new SortedList<DateOnly, int>(Snapshot?.Data.RPL.LegacyStakedTotal.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),];
+		rplMegapoolTotalStaked = [new SortedList<DateOnly, int>(Snapshot?.Data.RPL.MegapoolStakedTotal.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),];
+
+		return Task.CompletedTask;
+	}
+
+}

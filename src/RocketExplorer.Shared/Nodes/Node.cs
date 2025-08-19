@@ -1,3 +1,4 @@
+using System.Numerics;
 using MessagePack;
 using RocketExplorer.Shared.Validators;
 
@@ -23,4 +24,10 @@ public record class Node
 
 	[Key(6)]
 	public required string Timezone { get; set; }
+
+	[Key(7)]
+	public BigInteger RPLLegacyStaked { get; set; } = 0;
+
+	[Key(8)]
+	public BigInteger RPLMegapoolStaked { get; set; } = 0;
 }

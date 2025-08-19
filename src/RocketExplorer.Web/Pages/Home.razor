@@ -1,5 +1,4 @@
 @page "/"
-@using Nethereum.Util
 @inherits PageBase<RocketExplorer.Shared.DashboardSnapshot>
 
 <PageTitle>Rocket Explorer - Home</PageTitle>
@@ -32,37 +31,57 @@
 		<MudItem xs="12" sm="6" lg="4">
 			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
 				<div class="mud-typography-h6 mud-typography-align-center">RETH Supply</div>
-				<div class="mud-typography-h2 mud-typography-align-center">@UnitConversion.Convert.FromWei(Snapshot?.Data.RETHTotalSupply ?? 0, 18).ToString("N2")</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@(Snapshot?.Data.RETHTotalSupply.Normalize().ToString("N2") ?? "-")</div>
 			</MudPaper>
 		</MudItem>
 		<MudItem xs="12" sm="6" lg="4">
 			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
 				<div class="mud-typography-h6 mud-typography-align-center">RPL Supply</div>
-				<div class="mud-typography-h2 mud-typography-align-center">@UnitConversion.Convert.FromWei(Snapshot?.Data.RPLTotalSupply ?? 0, 18).ToString("N2")</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@(Snapshot?.Data.RPLTotalSupply.Normalize().ToString("N2") ?? "-")</div>
 			</MudPaper>
 		</MudItem>
+		<MudFlexBreak></MudFlexBreak>
+		<MudItem xs="12" sm="6" lg="4">
+			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
+				<div class="mud-typography-h6 mud-typography-align-center">Legacy RPL staked</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@(Snapshot?.Data.RPLLegacyStakedTotal.Normalize().ToString("N2") ?? "-")</div>
+			</MudPaper>
+		</MudItem>
+		<MudItem xs="12" sm="6" lg="4">
+			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
+				<div class="mud-typography-h6 mud-typography-align-center">Megapool RPL staked</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@(Snapshot?.Data.RPLMegapoolStakedTotal.Normalize().ToString("N2") ?? "-")</div>
+			</MudPaper>
+		</MudItem>
+		<MudItem xs="12" sm="6" lg="4">
+			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
+				<div class="mud-typography-h6 mud-typography-align-center">Total RPL staked</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@((Snapshot?.Data.RPLLegacyStakedTotal + Snapshot?.Data.RPLMegapoolStakedTotal)?.Normalize().ToString("N2") ?? "-")</div>
+			</MudPaper>
+		</MudItem>
+		<MudFlexBreak></MudFlexBreak>
 		<MudItem xs="12" sm="6" lg="4">
 			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
 				<div class="mud-typography-h6 mud-typography-align-center">Total node operators</div>
-				<div class="mud-typography-h2 mud-typography-align-center">@Snapshot?.Data.NodeOperators</div>
-			</MudPaper>
-		</MudItem>
-		<MudItem xs="12" sm="6" lg="4">
-			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
-				<div class="mud-typography-h6 mud-typography-align-center">Queue Length</div>
-				<div class="mud-typography-h2 mud-typography-align-center">@Snapshot?.Data.QueueLength</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@(Snapshot?.Data.NodeOperators.ToString() ?? "-")</div>
 			</MudPaper>
 		</MudItem>
 		<MudItem xs="12" sm="6" lg="4">
 			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
 				<div class="mud-typography-h6 mud-typography-align-center">Staking minipool validators</div>
-				<div class="mud-typography-h2 mud-typography-align-center">@Snapshot?.Data.MinipoolValidatorsStaking</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@(Snapshot?.Data.MinipoolValidatorsStaking.ToString() ?? "-")</div>
 			</MudPaper>
 		</MudItem>
 		<MudItem xs="12" sm="6" lg="4">
 			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
 				<div class="mud-typography-h6 mud-typography-align-center">Staking megapool validators</div>
-				<div class="mud-typography-h2 mud-typography-align-center">@Snapshot?.Data.MegapoolValidatorsStaking</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@(Snapshot?.Data.MegapoolValidatorsStaking.ToString() ?? "-")</div>
+			</MudPaper>
+		</MudItem>
+		<MudItem xs="12" sm="6" lg="4">
+			<MudPaper Elevation="0" Class="pa-8" Style="background-color: var(--mud-palette-surface-container)">
+				<div class="mud-typography-h6 mud-typography-align-center">Queue Length</div>
+				<div class="mud-typography-h2 mud-typography-align-center">@(Snapshot?.Data.QueueLength.ToString() ?? "-")</div>
 			</MudPaper>
 		</MudItem>
 	</MudGrid>

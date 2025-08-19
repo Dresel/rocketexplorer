@@ -108,6 +108,8 @@ BlobObject<DashboardSnapshot> dashboardSnapshot =
 			RPLTotalSupply = 0,
 			RETHTotalSupply = 0,
 			RPLSwapped = 0,
+			RPLLegacyStakedTotal = 0,
+			RPLMegapoolStakedTotal = 0,
 			NodeOperators = 0,
 			MinipoolValidatorsStaking = 0,
 			MegapoolValidatorsStaking = 0,
@@ -125,6 +127,8 @@ DashboardInfo dashboardInfo = new()
 	MinipoolValidatorsStaking = dashboardSnapshot.Data.MinipoolValidatorsStaking,
 	MegapoolValidatorsStaking = dashboardSnapshot.Data.MegapoolValidatorsStaking,
 	QueueLength = dashboardSnapshot.Data.QueueLength,
+	RPLLegacyStakedTotal = dashboardSnapshot.Data.RPLLegacyStakedTotal,
+	RPLMegapoolStakedTotal = dashboardSnapshot.Data.RPLMegapoolStakedTotal,
 };
 
 ContractsSync contracts = host.Services.GetRequiredService<ContractsSync>();
@@ -158,6 +162,8 @@ await storage.WriteAsync(
 			RPLTotalSupply = dashboardInfo.RPLSupplyTotal,
 			RETHTotalSupply = dashboardInfo.RETHSupplyTotal,
 			RPLSwapped = dashboardInfo.RPLSwappedTotal,
+			RPLLegacyStakedTotal = dashboardInfo.RPLLegacyStakedTotal,
+			RPLMegapoolStakedTotal = dashboardInfo.RPLMegapoolStakedTotal,
 			NodeOperators = dashboardInfo.NodeOperators,
 			MinipoolValidatorsStaking = dashboardInfo.MinipoolValidatorsStaking,
 			MegapoolValidatorsStaking = dashboardInfo.MegapoolValidatorsStaking,

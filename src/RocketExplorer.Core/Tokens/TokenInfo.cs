@@ -7,9 +7,9 @@ public class TokenInfo
 {
 	public required Dictionary<string, BigInteger> Holders { get; init; }
 
-	public required SortedList<DateOnly, BigInteger> MintsPerDay { get; init; }
+	public required SortedList<DateOnly, BigInteger> MintsDaily { get; init; }
 
-	public required SortedList<DateOnly, BigInteger> BurnsPerDay { get; init; }
+	public required SortedList<DateOnly, BigInteger> BurnsDaily { get; init; }
 
 	public required SortedList<DateOnly, BigInteger> SupplyTotal { get; init; }
 }

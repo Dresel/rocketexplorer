@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Contracts;
 using Nethereum.Hex.HexConvertors.Extensions;
+using Nethereum.Util;
 using Nethereum.Web3;
 using RocketExplorer.Core.Nodes.EventHandlers;
 using RocketExplorer.Ethereum;
@@ -13,8 +14,8 @@ using RocketExplorer.Ethereum.RocketMinipoolManager.ContractDefinition;
 using RocketExplorer.Ethereum.RocketMinipoolQueue.ContractDefinition;
 using RocketExplorer.Ethereum.RocketNodeManager;
 using RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition;
+using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
 using RocketExplorer.Ethereum.RocketStorage;
-using RocketExplorer.Shared;
 using RocketExplorer.Shared.Contracts;
 using RocketExplorer.Shared.Nodes;
 using RocketExplorer.Shared.Validators;
@@ -37,6 +38,42 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		{
 			await eventLog.WhenIsAsync<NodeRegisteredEventDTO, NodesSyncContext>(
 				NodeRegisteredEventHandler.HandleAsync, context, cancellationToken);
+		}
+
+		IEnumerable<IEventLog> preSaturn1StakingEvents = await context.Web3.FilterAsync(
+			fromBlock, toBlock, [
+				typeof(RPLLegacyStakedEventDto),
+				typeof(RPLOrRPLLegacyWithdrawnEventDTO),
+			],
+			context.PreSaturn1RocketNodeStakingAddresses, Policy);
+
+		foreach (IEventLog eventLog in preSaturn1StakingEvents)
+		{
+			await eventLog.WhenIsAsync<RPLLegacyStakedEventDto, NodesSyncContext>(
+				StakingEventHandlers.HandleRPLLegacyStakedAsync, context, cancellationToken);
+
+			await eventLog.WhenIsAsync<RPLOrRPLLegacyWithdrawnEventDTO, NodesSyncContext>(
+				StakingEventHandlers.HandleRPLLegacyUnstakedAsync, context, cancellationToken);
+		}
+
+		IEnumerable<IEventLog> postSaturn1StakingEvents = await context.Web3.FilterAsync(
+			fromBlock, toBlock, [
+				typeof(RPLLegacyWithdrawnEventDTO),
+				typeof(RPLStakedEventDTO),
+				typeof(RPLUnstakedEventDTO),
+			],
+			context.PostSaturn1RocketNodeStakingAddresses, Policy);
+
+		foreach (IEventLog eventLog in postSaturn1StakingEvents)
+		{
+			await eventLog.WhenIsAsync<RPLLegacyWithdrawnEventDTO, NodesSyncContext>(
+				StakingEventHandlers.HandleRPLLegacyUnstakedAsync, context, cancellationToken);
+
+			await eventLog.WhenIsAsync<RPLStakedEventDTO, NodesSyncContext>(
+				StakingEventHandlers.HandleRPLMegapoolStakedAsync, context, cancellationToken);
+
+			await eventLog.WhenIsAsync<RPLUnstakedEventDTO, NodesSyncContext>(
+				StakingEventHandlers.HandleRPLMegapoolUnstakedAsync, context, cancellationToken);
 		}
 
 		IEnumerable<IEventLog> minipoolCreatedEvents = await context.Web3.FilterAsync(
@@ -110,7 +147,8 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 	}
 
 	protected override async Task<NodesSyncContext> LoadContextAsync(
-		Web3 web3, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts, DashboardInfo dashboardInfo,
+		Web3 web3, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts,
+		DashboardInfo dashboardInfo,
 		CancellationToken cancellationToken = default)
 	{
 		long activationHeight = contracts["rocketStorage"].Versions.Single().ActivationHeight;
@@ -179,6 +217,10 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				new RocketMinipoolManagerService(
 					web3, await Policy.ExecuteAsync(() => rocketStorage.GetAddressQueryAsync("rocketMinipoolManager"))),
 			RocketNodeManagerAddresses = contracts["rocketNodeManager"].Versions.Select(x => x.Address).ToArray(),
+			PreSaturn1RocketNodeStakingAddresses = contracts["rocketNodeStaking"].Versions.Where(x => x.Version <= 6)
+				.Select(x => x.Address).Concat([AddressUtil.ZERO_ADDRESS]).ToArray(),
+			PostSaturn1RocketNodeStakingAddresses = contracts["rocketNodeStaking"].Versions.Where(x => x.Version > 6)
+				.Select(x => x.Address).Concat([AddressUtil.ZERO_ADDRESS]).ToArray(),
 			DashboardInfo = dashboardInfo,
 			Nodes = new NodeInfo
 			{

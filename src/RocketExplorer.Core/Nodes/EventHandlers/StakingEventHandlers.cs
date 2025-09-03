@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Nethereum.Contracts;
 using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
+using RocketExplorer.Shared;
 using RocketExplorer.Shared.Nodes;
 
 namespace RocketExplorer.Core.Nodes.EventHandlers;
@@ -33,7 +34,7 @@ public class StakingEventHandlers
 			return;
 		}
 
-		context.Nodes.Partial.Updated[nodeOperatorAddress].RPLLegacyStaked -= eventLog.Event.Amount;
+		context.Nodes.Partial.Updated[nodeOperatorAddress].RPLLegacyStaked += eventLog.Event.Amount;
 		context.DashboardInfo.RPLLegacyStakedTotal -= eventLog.Event.Amount;
 	}
 

@@ -1,9 +1,12 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Components;
 
 namespace RocketExplorer.Web.Pages;
 
 public abstract class PageBase<T> : ComponentBase, IDisposable
 {
+	private readonly SemaphoreSlim semaphore = new(1, 1);
+
 	private readonly TaskCompletionSource taskCompletionSource = new();
 
 	[Inject]
@@ -11,6 +14,8 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 
 	[Inject]
 	protected Configuration Configuration { get; set; } = null!;
+
+	protected int DeserializeElapsedMilliseconds { get; private set; }
 
 	[Inject]
 	protected HttpClient HttpClient { get; set; } = null!;
@@ -55,16 +60,28 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 			return;
 		}
 
-		// TODO: Polly
-		SnapshotResponse<T> response = await HttpClient.GetSnapshotResponse<T>(ObjectStoreUrl, cancellationToken);
+		await this.semaphore.WaitAsync(cancellationToken);
 
-		// Check manually to avoid additional render cycles
-		if (Snapshot is null || string.IsNullOrWhiteSpace(response.ETag) || Snapshot.ETag != response.ETag)
+		try
 		{
-			Snapshot = await response.ToSnapshotAsync(cancellationToken);
+			// TODO: Polly
+			SnapshotResponse<T> response = await HttpClient.GetSnapshotResponse<T>(ObjectStoreUrl, cancellationToken);
 
-			await OnAfterSnapshotLoadedAsync(cancellationToken);
-			this.taskCompletionSource.TrySetResult();
+			Stopwatch stopwatch = Stopwatch.StartNew();
+
+			// Check manually to avoid additional render cycles
+			if (Snapshot is null || string.IsNullOrWhiteSpace(response.ETag) || Snapshot.ETag != response.ETag)
+			{
+				Snapshot = await response.ToSnapshotAsync(cancellationToken);
+
+				await OnAfterSnapshotLoadedAsync(cancellationToken);
+				this.taskCompletionSource.TrySetResult();
+				DeserializeElapsedMilliseconds = (int)stopwatch.ElapsedMilliseconds;
+			}
+		}
+		finally
+		{
+			this.semaphore.Release();
 		}
 	}
 

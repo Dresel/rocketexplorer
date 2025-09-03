@@ -7,14 +7,18 @@ namespace RocketExplorer.Shared.Tokens;
 public record class Token
 {
 	[Key(0)]
-	public required HolderEntry[] Holders { get; init; }
+	[MessagePackFormatter(typeof(HexStringWithPrefixFormatter))]
+	public required string Address { get; init; }
 
 	[Key(1)]
-	public required SortedList<DateOnly, BigInteger> SupplyTotal { get; init; }
+	public required HolderEntry[] Holders { get; init; }
 
 	[Key(2)]
-	public required SortedList<DateOnly, BigInteger> MintsDaily { get; init; }
+	public required SortedList<DateOnly, BigInteger> SupplyTotal { get; init; }
 
 	[Key(3)]
+	public required SortedList<DateOnly, BigInteger> MintsDaily { get; init; }
+
+	[Key(4)]
 	public required SortedList<DateOnly, BigInteger> BurnsDaily { get; init; }
 }

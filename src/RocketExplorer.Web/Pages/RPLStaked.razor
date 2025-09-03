@@ -1,7 +1,8 @@
 @page "/rpl-staked"
 @using System.Numerics
 @using LiveChartsCore.Defaults
-@inherits PageBase<RocketExplorer.Shared.Tokens.TokensSnapshot>
+@using RocketExplorer.Shared
+@inherits PageBase<RocketExplorer.Shared.Tokens.StakedRPLSnapshot>
 
 <PageTitle>Rocket Explorer - Staked RPL</PageTitle>
 <MudStack>
@@ -74,25 +75,25 @@
 	{
 		await base.OnInitializedAsync();
 
-		ObjectStoreKey = "tokens-snapshot.msgpack";
+		ObjectStoreKey = Keys.TokensStakedRPLSnapshot;
 	}
 
 	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
 	{
 		rplLegacyStakedAndUnstaked =
 		[
-			new SortedList<DateOnly, int>(Snapshot?.Data.RPL.LegacyStakedDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
-			new SortedList<DateOnly, int>(Snapshot?.Data.RPL.LegacyUnstakedDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot?.Data.LegacyStakedDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot?.Data.LegacyUnstakedDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
 		];
 
 		rplMegapoolStakedAndUnstaked =
 		[
-			new SortedList<DateOnly, int>(Snapshot?.Data.RPL.MegapoolStakedDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
-			new SortedList<DateOnly, int>(Snapshot?.Data.RPL.MegapoolUnstakedDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot?.Data.MegapoolStakedDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot?.Data.MegapoolUnstakedDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
 		];
 
-		rplLegacyTotalStaked = [new SortedList<DateOnly, int>(Snapshot?.Data.RPL.LegacyStakedTotal.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),];
-		rplMegapoolTotalStaked = [new SortedList<DateOnly, int>(Snapshot?.Data.RPL.MegapoolStakedTotal.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),];
+		rplLegacyTotalStaked = [new SortedList<DateOnly, int>(Snapshot?.Data.LegacyStakedTotal.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),];
+		rplMegapoolTotalStaked = [new SortedList<DateOnly, int>(Snapshot?.Data.MegapoolStakedTotal.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),];
 
 		return Task.CompletedTask;
 	}

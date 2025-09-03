@@ -16,6 +16,7 @@ using RocketExplorer.Ethereum.RocketNodeManager;
 using RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition;
 using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
 using RocketExplorer.Ethereum.RocketStorage;
+using RocketExplorer.Shared;
 using RocketExplorer.Shared.Contracts;
 using RocketExplorer.Shared.Nodes;
 using RocketExplorer.Shared.Validators;

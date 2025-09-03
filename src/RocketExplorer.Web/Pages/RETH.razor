@@ -1,12 +1,21 @@
 @page "/reth"
+@using System.Diagnostics
 @using System.Numerics
 @using LiveChartsCore.Defaults
 @using Nethereum.Util
-@inherits PageBase<RocketExplorer.Shared.Tokens.TokensSnapshot>
+@using RocketExplorer.Shared
+@using RocketExplorer.Shared.Tokens
+@inherits PageBase<RocketExplorer.Shared.Tokens.TokensRETHSnapshot>
 
 <PageTitle>Rocket Explorer - RETH</PageTitle>
 <MudStack>
-	<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">RETH</MudText>
+	<MudContainer Class="mud-typography-align-center">
+		<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">RETH</MudText>
+		@if (Snapshot != null)
+		{
+			<Address Typo="Typo.body1" Expanded="true" ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.RETH.Address)" AppendEtherscanCodeAnchor="true"></Address>
+		}
+	</MudContainer>
 	<MudGrid Justify="Justify.Center">
 		<MudItem>
 			<ChartTotal Title="Supply" YAxesName="RETH" Data="supplyTotal" MinLimit="null"></ChartTotal>
@@ -17,50 +26,56 @@
 	</MudGrid>
 	<MudText Typo="Typo.h2" Class="mud-typography-h3 mt-8" Align="Align.Center">Holders</MudText>
 	<MudContainer MaxWidth="MaxWidth.Medium">
-	<MudTable Class="mt-0" ServerData="LoadHolders" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
-		<ToolBarContent>
-			<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
-				AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
-			</MudTextField>
-		</ToolBarContent>
-		<HeaderContent>
-			<MudTh>
-				<MudTableSortLabel T="HolderViewModel" SortLabel="@nameof(HolderViewModel.Address)">Holder Address</MudTableSortLabel>
-			</MudTh>
-			<MudTh>
-				<MudTableSortLabel T="HolderViewModel" SortLabel="@nameof(HolderViewModel.Balance)" InitialDirection="SortDirection.Descending">Amount</MudTableSortLabel>
-			</MudTh>
-		</HeaderContent>
-		<RowTemplate>
-			<MudTd>
-				<Address ContractAddress="@context.Address" HighlightedText="@searchString"></Address>
-			</MudTd>
-			<MudTd Style="text-align:right">@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") RETH</MudTd>
-		</RowTemplate>
-		<NoRecordsContent>
-			<MudText>No matching records found</MudText>
-		</NoRecordsContent>
-		<LoadingContent>
-			<MudText>Loading...</MudText>
-		</LoadingContent>
-		<PagerContent>
-			<MudTablePager />
-		</PagerContent>
-	</MudTable>
+		<MudStack>
+			<MudTable Class="mt-0" ServerData="LoadHolders" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
+				<ToolBarContent>
+					<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+						AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+					</MudTextField>
+				</ToolBarContent>
+				<HeaderContent>
+					<MudTh>
+						<MudTableSortLabel T="HolderEntry" SortLabel="@nameof(HolderEntry.Address)">Holder Address</MudTableSortLabel>
+					</MudTh>
+					<MudTh>
+						<MudTableSortLabel T="HolderEntry" SortLabel="@nameof(HolderEntry.Balance)" InitialDirection="SortDirection.Descending">Amount</MudTableSortLabel>
+					</MudTh>
+				</HeaderContent>
+				<RowTemplate>
+					<MudTd>
+						<Address ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" HighlightedText="@searchString"></Address>
+					</MudTd>
+					<MudTd Style="text-align:right">@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") RETH</MudTd>
+				</RowTemplate>
+				<NoRecordsContent>
+					<MudText>No matching records found</MudText>
+				</NoRecordsContent>
+				<LoadingContent>
+					<MudText>Loading...</MudText>
+				</LoadingContent>
+				<PagerContent>
+					<MudTablePager />
+				</PagerContent>
+			</MudTable>
+			<MudText Typo="Typo.body2">Load: @(DeserializeElapsedMilliseconds)ms, Sort & Filtering: @(sortAndFilterElapsedMilliseconds)ms</MudText>
+		</MudStack>
 	</MudContainer>
 </MudStack>
 
 @code {
 
-	private MudTable<HolderViewModel> table = null!;
+	private MudTable<HolderEntry> table = null!;
 	private string? searchString;
 
-	private HolderViewModel[] holders = null!;
+	private HolderEntry[] holders = null!;
+	private HolderEntry[] holdersByBalance = null!;
 
 	private SortedList<DateOnly, int>[]? supplyTotal;
 	private SortedList<DateOnly, int>[]? mintsAndBurns;
 
-	private readonly Func<int, int>[] dataTransform = [x => x, x => x * -1];
+	private readonly Func<int, int>[] dataTransform = [x => x, x => x * -1,];
+
+	private int sortAndFilterElapsedMilliseconds;
 
 	private readonly ISeries[] series =
 	[
@@ -82,7 +97,7 @@
 	{
 		await base.OnInitializedAsync();
 
-		ObjectStoreKey = "tokens-snapshot.msgpack";
+		ObjectStoreKey = Keys.TokensRETHSnapshot;
 	}
 
 	private void OnSearch(string text)
@@ -91,31 +106,39 @@
 		table.ReloadServerData();
 	}
 
-	private async Task<TableData<HolderViewModel>> LoadHolders(TableState state, CancellationToken token)
+	private async Task<TableData<HolderEntry>> LoadHolders(TableState state, CancellationToken token)
 	{
 		await LoadedTask;
 
-		IEnumerable<HolderViewModel> items = holders;
+		Stopwatch stopwatch = Stopwatch.StartNew();
 
-		if (state.SortLabel is nameof(HolderViewModel.Address))
+		IEnumerable<HolderEntry> items = holders;
+
+		if (state.SortLabel is nameof(HolderEntry.Address))
 		{
-			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.Address).ToList() : items.OrderByDescending(x => x.Address).ToList();
+			items = state.SortDirection == SortDirection.Ascending ? items : items.Reverse();
 		}
 
-		if (state.SortLabel is nameof(HolderViewModel.Balance))
+		if (state.SortLabel is nameof(HolderEntry.Balance))
 		{
-			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.Balance).ToList() : items.OrderByDescending(x => x.Balance).ToList();
+			items = state.SortDirection == SortDirection.Ascending ? holdersByBalance : holdersByBalance.Reverse();
 		}
 
 		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
 		{
-			items = items.Where(x => x.Address.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToArray();
+			searchString = searchString.ToUpperInvariant();
+
+			items = items.Where(x => x.Address.Contains(searchString, StringComparison.Ordinal)).ToArray();
 		}
+
+		items = items as HolderEntry[] ?? items.ToArray();
 
 		int count = items.Count();
 		items = items.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList();
 
-		return new TableData<HolderViewModel>
+		sortAndFilterElapsedMilliseconds = (int)stopwatch.ElapsedMilliseconds;
+
+		return new TableData<HolderEntry>
 		{
 			TotalItems = count,
 			Items = items,
@@ -124,28 +147,18 @@
 
 	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
 	{
+		supplyTotal = [new SortedList<DateOnly, int>(Snapshot!.Data.RETH.SupplyTotal.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),];
+
 		mintsAndBurns =
 		[
-			new SortedList<DateOnly, int>(Snapshot?.Data.RETH.MintsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
-			new SortedList<DateOnly, int>(Snapshot?.Data.RETH.BurnsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot!.Data.RETH.MintsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot!.Data.RETH.BurnsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
 		];
 
-		holders = Snapshot!.Data.RETH.Holders.Select(x => new HolderViewModel
-		{
-			Address = "0x" + Convert.ToHexString(x.Address),
-			Balance = x.Balance,
-		}).ToArray();
-
-		supplyTotal = [new SortedList<DateOnly, int>(Snapshot?.Data.RETH.SupplyTotal.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),];
+		holders = Snapshot!.Data.RETH.Holders;
+		holdersByBalance = holders.OrderBy(x => x.Balance).ToArray();
 
 		return Task.CompletedTask;
-	}
-
-	public class HolderViewModel
-	{
-		public required string Address { get; init; }
-
-		public required BigInteger Balance { get; init; }
 	}
 
 }

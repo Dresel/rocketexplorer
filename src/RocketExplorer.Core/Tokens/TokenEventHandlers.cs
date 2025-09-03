@@ -1,4 +1,6 @@
+using System.Numerics;
 using Nethereum.Contracts;
+using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Util;
 using RocketExplorer.Ethereum.RocketTokenRPL.ContractDefinition;
@@ -13,10 +15,14 @@ public class TokenEventHandlers
 		CancellationToken cancellationToken = default)
 	{
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
-		context.RPLTokenInfo.SwappedDaily[key] = context.RPLTokenInfo.SwappedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
-		context.RPLTokenInfo.SwappedTotal[key] = context.RPLTokenInfo.SwappedTotal.GetLatestValueOrDefault() + eventLog.Event.Amount;
+		context.RPLOldTokenInfo.SwappedDaily[key] = context.RPLOldTokenInfo.SwappedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
+		context.RPLOldTokenInfo.SwappedTotal[key] = context.RPLOldTokenInfo.SwappedTotal.GetLatestValueOrDefault() + eventLog.Event.Amount;
 
-		context.DashboardInfo.RPLSwappedTotal = context.RPLTokenInfo.SwappedTotal.GetLatestValueOrDefault();
+		// RPLv1 tokens are irreversible stored in the RocketTokenRPL contract so we could interpret this as a supply reduction / burn
+		context.RPLOldTokenInfo.SupplyTotal[key] = context.RPLOldTokenInfo.SupplyTotal.GetLatestValueOrDefault() - eventLog.Event.Amount;
+		context.RPLOldTokenInfo.BurnsDaily[key] = context.RPLOldTokenInfo.SwappedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
+
+		context.DashboardInfo.RPLSwappedTotal = context.RPLOldTokenInfo.SwappedTotal.GetLatestValueOrDefault();
 
 		return Task.CompletedTask;
 	}
@@ -55,8 +61,16 @@ public class TokenEventHandlers
 	{
 		if (!eventLog.Event.From.IsTheSameAddress(AddressUtil.ZERO_ADDRESS))
 		{
-			tokenInfo.Holders[eventLog.Event.From] =
-				tokenInfo.Holders.GetValueOrDefault(eventLog.Event.From) - eventLog.Event.Value;
+			BigInteger balance = tokenInfo.Holders.GetValueOrDefault(eventLog.Event.From) - eventLog.Event.Value;
+
+			if (balance.IsZero)
+			{
+				tokenInfo.Holders.Remove(eventLog.Event.From);
+			}
+			else
+			{
+				tokenInfo.Holders[eventLog.Event.From] = balance;
+			}
 		}
 		else
 		{

@@ -1,14 +1,7 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy dotnet core project to Azure Function App - rocketexplorer-functions
+name: Azure Functions App Devnet
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
     branches:
       - main
   workflow_dispatch:
@@ -43,14 +36,14 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_0A8C7F5414084DED8AA4ABAB00806F47 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_CD8142C079664224A681AD73A0AB7368 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_15D28584B1884BFD886E1C89256E8AAC }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A5CA9A5456BC48F59CA6329D28856FF7 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C9C4C44129474E918752C87479B04002 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_E10D11E979FF4FA099FBD4CDCC754571 }}
 
       - name: 'Run Azure Functions Action'
         uses: Azure/functions-action@v1
         id: fa
         with:
-          app-name: 'rocketexplorer-functions'
+          app-name: 'rocketexplorer-functions-devnet'
           slot-name: 'Production'
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'

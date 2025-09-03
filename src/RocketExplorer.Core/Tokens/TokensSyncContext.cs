@@ -12,9 +12,11 @@ public class TokensSyncContext : ContextBase
 
 	public string RPLOldTokenAddress => Contracts["rocketTokenRPLFixedSupply"].Versions.Select(x => x.Address).Single();
 
-	public required TokenInfo RPLOldTokenInfo { get; init; }
+	public required RPLOldTokenInfo RPLOldTokenInfo { get; init; }
 
 	public string RPLTokenAddress => Contracts["rocketTokenRPL"].Versions.Select(x => x.Address).Single();
 
-	public required RPLTokenInfo RPLTokenInfo { get; init; }
+	public required TokenInfo RPLTokenInfo { get; init; }
+
+	public required StakedRPLInfo StakedRPLInfo { get; set; }
 }

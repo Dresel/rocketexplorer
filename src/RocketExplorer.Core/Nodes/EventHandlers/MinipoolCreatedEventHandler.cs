@@ -5,6 +5,7 @@ using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Util;
 using RocketExplorer.Ethereum.RocketMinipoolDelegate;
 using RocketExplorer.Ethereum.RocketMinipoolManager.ContractDefinition;
+using RocketExplorer.Shared;
 using RocketExplorer.Shared.Nodes;
 using RocketExplorer.Shared.Validators;
 

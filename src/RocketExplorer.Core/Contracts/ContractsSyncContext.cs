@@ -13,13 +13,13 @@ public class ContractsSyncContext : ContextBase
 
 	public ReadOnlyDictionary<byte[], string> ContractsMap { get; } = new Dictionary<byte[], string>(
 			Ethereum.Contracts.Names.Select(x => new KeyValuePair<byte[], string>(x.Sha3(), x)),
-			new ByteArrayComparer())
+			new FastByteArrayComparer())
 		.AsReadOnly();
 
 	public required List<string> TrustedUpgradeContractAddress { get; init; }
 
 	public ReadOnlyDictionary<byte[], string> UpgradeContractsMap { get; } = new Dictionary<byte[], string>(
 			Ethereum.Contracts.UpgradeContractNames.Select(x => new KeyValuePair<byte[], string>(x.Sha3(), x)),
-			new ByteArrayComparer())
+			new FastByteArrayComparer())
 		.AsReadOnly();
 }

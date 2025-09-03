@@ -8,8 +8,8 @@ using RocketExplorer.Core.Nodes;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade.ContractDefinition;
 using RocketExplorer.Ethereum.RocketStorage;
+using RocketExplorer.Shared;
 using RocketExplorer.Shared.Contracts;
-using RocketExplorer.Shared.Nodes;
 
 namespace RocketExplorer.Core.Contracts;
 

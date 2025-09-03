@@ -6,6 +6,7 @@ using Nethereum.Hex.HexTypes;
 using Nethereum.RPC.Eth.DTOs;
 using RocketExplorer.Ethereum.RocketMegapoolDelegate;
 using RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition;
+using RocketExplorer.Shared;
 using RocketExplorer.Shared.Nodes;
 using RocketExplorer.Shared.Validators;
 

@@ -3,7 +3,7 @@ using Nethereum.Hex.HexConvertors.Extensions;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketMinipoolDelegate.ContractDefinition;
 using RocketExplorer.Ethereum.RocketMinipoolQueue.ContractDefinition;
-using RocketExplorer.Shared.Nodes;
+using RocketExplorer.Shared;
 using RocketExplorer.Shared.Validators;
 
 namespace RocketExplorer.Core.Nodes.EventHandlers;

@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace RocketExplorer.Shared.Nodes;
+namespace RocketExplorer.Shared;
 
 public static class Keys
 {
@@ -14,7 +14,13 @@ public static class Keys
 
 	public const string SnapshotMetadata = "snapshot-metadata.msgpack";
 
-	public const string TokensSnapshot = "tokens-snapshot.msgpack";
+	public const string TokensRETHSnapshot = "tokens-reth-snapshot.msgpack";
+
+	public const string TokensRPLOldSnapshot = "tokens-rpl-old-snapshot.msgpack";
+
+	public const string TokensRPLSnapshot = "tokens-rpl-snapshot.msgpack";
+
+	public const string TokensStakedRPLSnapshot = "tokens-staked-rpl-snapshot.msgpack";
 
 	public const string ValidatorSnapshot = "validator-snapshot.msgpack";
 

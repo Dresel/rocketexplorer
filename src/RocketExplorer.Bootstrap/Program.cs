@@ -16,7 +16,6 @@ using RocketExplorer.Core.Tokens;
 using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Shared;
 using RocketExplorer.Shared.Contracts;
-using RocketExplorer.Shared.Nodes;
 using Serilog;
 using Serilog.Core;
 using Serilog.Sinks.SystemConsole.Themes;

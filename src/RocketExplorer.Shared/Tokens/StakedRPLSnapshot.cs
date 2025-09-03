@@ -4,23 +4,23 @@ using MessagePack;
 namespace RocketExplorer.Shared.Tokens;
 
 [MessagePackObject]
-public record class RPLToken : Token
+public record class StakedRPLSnapshot
 {
-	[Key(4)]
+	[Key(0)]
 	public required SortedList<DateOnly, BigInteger> LegacyStakedDaily { get; init; }
 
-	[Key(5)]
+	[Key(1)]
 	public required SortedList<DateOnly, BigInteger> LegacyUnstakedDaily { get; init; }
 
-	[Key(6)]
+	[Key(2)]
 	public required SortedList<DateOnly, BigInteger> LegacyStakedTotal { get; init; }
 
-	[Key(7)]
+	[Key(3)]
 	public required SortedList<DateOnly, BigInteger> MegapoolStakedDaily { get; init; }
 
-	[Key(8)]
+	[Key(4)]
 	public required SortedList<DateOnly, BigInteger> MegapoolUnstakedDaily { get; init; }
 
-	[Key(9)]
+	[Key(5)]
 	public required SortedList<DateOnly, BigInteger> MegapoolStakedTotal { get; init; }
 }

@@ -49,14 +49,14 @@
 				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Staked Legacy RPL</MudText>
 			</MudItem>
 			<MudItem>
-				<MudText Typo="Typo.body1">@Snapshot.Data.RPLLegacyStaked</MudText>
+				<MudText Typo="Typo.body1">@Snapshot.Data.RPLLegacyStaked.Normalize().ToString("N2")</MudText>
 			</MudItem>
 			<MudFlexBreak />
 			<MudItem Class="label">
 				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Staked Megapool RPL</MudText>
 			</MudItem>
 			<MudItem>
-				<MudText Typo="Typo.body1">@Snapshot.Data.RPLMegapoolStaked</MudText>
+				<MudText Typo="Typo.body1">@Snapshot.Data.RPLMegapoolStaked.Normalize().ToString("N2")</MudText>
 			</MudItem>
 		</MudStack>
 
@@ -109,7 +109,9 @@
 				<MudTh>Registration Date</MudTh>
 			</HeaderContent>
 			<RowTemplate>
-				<MudTd><MudLink Typo="Typo.body2" Href="@($"validator/{context.MegapoolAddress}/{context.MegapoolIndex}")">Validator #@context.MegapoolIndex</MudLink></MudTd>
+				<MudTd>
+					<MudLink Typo="Typo.body2" Href="@($"validator/{context.MegapoolAddress}/{context.MegapoolIndex}")">Validator #@context.MegapoolIndex</MudLink>
+				</MudTd>
 				<MudTd>@context.ValidatorStatus</MudTd>
 				<MudTd>@context.History.First().Timestamp.ToString("G")</MudTd>
 			</RowTemplate>
@@ -199,7 +201,7 @@
 		List<Task<ValidatorViewModel>> query = items.Skip(state.Page * state.PageSize).Take(state.PageSize).Select(async x =>
 		{
 			Shared.Validators.Validator validatorSnapshot = MessagePackSerializer.Deserialize<Shared.Validators.Validator>(await HttpClient.GetStreamAsync(GetObjectStoreUrl(Keys.MinipoolValidator(x.MinipoolAddress!)), token));
-			
+
 			return new ValidatorViewModel
 			{
 				MinipoolAddress = x.MinipoolAddress,
@@ -243,7 +245,7 @@
 		List<Task<ValidatorViewModel>> query = items.Skip(state.Page * state.PageSize).Take(state.PageSize).Select(async x =>
 		{
 			Shared.Validators.Validator validatorSnapshot = MessagePackSerializer.Deserialize<Shared.Validators.Validator>(await HttpClient.GetStreamAsync(GetObjectStoreUrl(Keys.MegapoolValidator(x.MegapoolAddress!, x.MegapoolIndex!.Value)), token));
-			
+
 			return new ValidatorViewModel
 			{
 				MegapoolAddress = x.MegapoolAddress,

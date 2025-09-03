@@ -1,4 +1,3 @@
-using System.Numerics;
 using Nethereum.Contracts;
 using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
 
@@ -12,7 +11,8 @@ public class StakingEventHandlers
 
 		context.StakedRPLInfo.LegacyStakedDaily[key] =
 			context.StakedRPLInfo.LegacyStakedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
-		context.StakedRPLInfo.LegacyStakedTotal[key] = context.StakedRPLInfo.LegacyStakedTotal.GetLatestValueOrDefault() +
+		context.StakedRPLInfo.LegacyStakedTotal[key] =
+			context.StakedRPLInfo.LegacyStakedTotal.GetLatestValueOrDefault() +
 			eventLog.Event.Amount;
 	}
 
@@ -21,8 +21,9 @@ public class StakingEventHandlers
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
 
 		context.StakedRPLInfo.LegacyUnstakedDaily[key] =
-			context.StakedRPLInfo.LegacyUnstakedDaily.GetValueOrDefault(key) - eventLog.Event.Amount;
-		context.StakedRPLInfo.LegacyStakedTotal[key] = context.StakedRPLInfo.LegacyStakedTotal.GetLatestValueOrDefault() -
+			context.StakedRPLInfo.LegacyUnstakedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
+		context.StakedRPLInfo.LegacyStakedTotal[key] =
+			context.StakedRPLInfo.LegacyStakedTotal.GetLatestValueOrDefault() -
 			eventLog.Event.Amount;
 	}
 
@@ -32,8 +33,9 @@ public class StakingEventHandlers
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
 
 		context.StakedRPLInfo.LegacyUnstakedDaily[key] =
-			context.StakedRPLInfo.LegacyUnstakedDaily.GetValueOrDefault(key) - eventLog.Event.Amount;
-		context.StakedRPLInfo.LegacyStakedTotal[key] = context.StakedRPLInfo.LegacyStakedTotal.GetLatestValueOrDefault() -
+			context.StakedRPLInfo.LegacyUnstakedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
+		context.StakedRPLInfo.LegacyStakedTotal[key] =
+			context.StakedRPLInfo.LegacyStakedTotal.GetLatestValueOrDefault() -
 			eventLog.Event.Amount;
 	}
 
@@ -52,7 +54,7 @@ public class StakingEventHandlers
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
 
 		context.StakedRPLInfo.MegapoolUnstakedDaily[key] =
-			context.StakedRPLInfo.MegapoolUnstakedDaily.GetValueOrDefault(key) - eventLog.Event.Amount;
+			context.StakedRPLInfo.MegapoolUnstakedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
 		context.StakedRPLInfo.MegapoolStakedTotal[key] =
 			context.StakedRPLInfo.MegapoolStakedTotal.GetLatestValueOrDefault() - eventLog.Event.Amount;
 	}

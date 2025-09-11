@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
@@ -271,6 +272,21 @@ foreach (var entry in validatorSnapshot.Data.MinipoolValidatorIndex)
 //		},
 //	},
 //});
+
+await Parallel.ForEachAsync(
+	index,
+	async (tuple, cancellationToken) =>
+	{
+		await storage.WriteAsync($"index-{tuple.Key.ToString(CultureInfo.InvariantCulture)}.mgspack",
+			new BlobObject<GlobalIndexSnapshot>()
+			{
+				ProcessedBlockNumber = nodesSnapshot.ProcessedBlockNumber,
+				Data = new GlobalIndexSnapshot()
+				{
+					Index = tuple.Value.ToArray(),
+				},
+			});
+	});
 
 return;
 

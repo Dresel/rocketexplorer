@@ -7,10 +7,10 @@ namespace RocketExplorer.Shared;
 public class GlobalIndexSnapshot
 {
 	[Key(0)]
-	public required NodeIndexEntry[] Index { get; init; }
-
+	public required IndexEntry[] Index { get; init; }
 }
 
+[MessagePackObject]
 public class IndexEntry
 {
 	[Key(0)]

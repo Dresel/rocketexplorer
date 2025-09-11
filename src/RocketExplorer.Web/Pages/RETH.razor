@@ -5,7 +5,7 @@
 @using Nethereum.Util
 @using RocketExplorer.Shared
 @using RocketExplorer.Shared.Tokens
-@inherits PageBase<RocketExplorer.Shared.Tokens.TokensRETHSnapshot>
+@inherits PageBase<RocketExplorer.Shared.Tokens.TokensRETHSnapshot2>
 
 <PageTitle>Rocket Explorer - RETH</PageTitle>
 <MudStack>
@@ -35,14 +35,18 @@
 				</ToolBarContent>
 				<HeaderContent>
 					<MudTh>
-						<MudTableSortLabel T="HolderEntry" SortLabel="@nameof(HolderEntry.Address)">Holder Address</MudTableSortLabel>
+						<MudTableSortLabel T="HolderEntry2" SortLabel="@nameof(HolderEntry2.Address)">Holder Address</MudTableSortLabel>
 					</MudTh>
 					<MudTh>
-						<MudTableSortLabel T="HolderEntry" SortLabel="@nameof(HolderEntry.Balance)" InitialDirection="SortDirection.Descending">Amount</MudTableSortLabel>
+						<MudTableSortLabel T="HolderEntry2" SortLabel="@nameof(HolderEntry2.Balance)" InitialDirection="SortDirection.Descending">Amount</MudTableSortLabel>
 					</MudTh>
 				</HeaderContent>
 				<RowTemplate>
 					<MudTd>
+						@if (!string.IsNullOrEmpty(context.ENSName))
+						{
+							<MudHighlighter Text="@context.ENSName" HighlightedText="@searchString" />
+						}
 						<Address ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" HighlightedText="@searchString"></Address>
 					</MudTd>
 					<MudTd Style="text-align:right">@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") RETH</MudTd>
@@ -64,11 +68,11 @@
 
 @code {
 
-	private MudTable<HolderEntry> table = null!;
+	private MudTable<HolderEntry2> table = null!;
 	private string? searchString;
 
-	private HolderEntry[] holders = null!;
-	private HolderEntry[] holdersByBalance = null!;
+	private HolderEntry2[] holders = null!;
+	private HolderEntry2[] holdersByBalance = null!;
 
 	private SortedList<DateOnly, int>[]? supplyTotal;
 	private SortedList<DateOnly, int>[]? mintsAndBurns;
@@ -97,7 +101,7 @@
 	{
 		await base.OnInitializedAsync();
 
-		ObjectStoreKey = Keys.TokensRETHSnapshot;
+		ObjectStoreKey = Keys.TokensRETHSnapshot2;
 	}
 
 	private void OnSearch(string text)
@@ -106,20 +110,20 @@
 		table.ReloadServerData();
 	}
 
-	private async Task<TableData<HolderEntry>> LoadHolders(TableState state, CancellationToken token)
+	private async Task<TableData<HolderEntry2>> LoadHolders(TableState state, CancellationToken token)
 	{
 		await LoadedTask;
 
 		Stopwatch stopwatch = Stopwatch.StartNew();
 
-		IEnumerable<HolderEntry> items = holders;
+		IEnumerable<HolderEntry2> items = holders;
 
-		if (state.SortLabel is nameof(HolderEntry.Address))
+		if (state.SortLabel is nameof(HolderEntry2.Address))
 		{
 			items = state.SortDirection == SortDirection.Ascending ? items : items.Reverse();
 		}
 
-		if (state.SortLabel is nameof(HolderEntry.Balance))
+		if (state.SortLabel is nameof(HolderEntry2.Balance))
 		{
 			items = state.SortDirection == SortDirection.Ascending ? holdersByBalance : holdersByBalance.Reverse();
 		}
@@ -128,17 +132,17 @@
 		{
 			searchString = searchString.ToUpperInvariant();
 
-			items = items.Where(x => x.Address.Contains(searchString, StringComparison.Ordinal)).ToArray();
+			items = items.Where(x => x.Address.Contains(searchString, StringComparison.Ordinal) || (x.ENSName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false)).ToArray();
 		}
 
-		items = items as HolderEntry[] ?? items.ToArray();
+		items = items as HolderEntry2[] ?? items.ToArray();
 
 		int count = items.Count();
 		items = items.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList();
 
 		sortAndFilterElapsedMilliseconds = (int)stopwatch.ElapsedMilliseconds;
 
-		return new TableData<HolderEntry>
+		return new TableData<HolderEntry2>
 		{
 			TotalItems = count,
 			Items = items,

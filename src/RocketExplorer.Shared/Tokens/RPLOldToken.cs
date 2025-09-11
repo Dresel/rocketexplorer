@@ -12,3 +12,13 @@ public record class RPLOldToken : Token
 	[Key(6)]
 	public required SortedList<DateOnly, BigInteger> SwappedDaily { get; init; }
 }
+
+[MessagePackObject]
+public record class RPLOldToken2: Token2
+{
+	[Key(5)]
+	public required SortedList<DateOnly, BigInteger> SwappedTotal { get; init; }
+
+	[Key(6)]
+	public required SortedList<DateOnly, BigInteger> SwappedDaily { get; init; }
+}

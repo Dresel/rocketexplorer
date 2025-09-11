@@ -10,15 +10,23 @@ public static class Keys
 
 	public const string NodesSnapshot = "nodes-snapshot.msgpack";
 
+	public const string NodesSnapshot2 = "nodes-snapshot-2.msgpack";
+
 	public const string QueueSnapshot = "queue-snapshot.msgpack";
 
 	public const string SnapshotMetadata = "snapshot-metadata.msgpack";
 
 	public const string TokensRETHSnapshot = "tokens-reth-snapshot.msgpack";
 
+	public const string TokensRETHSnapshot2 = "tokens-reth-snapshot-2.msgpack";
+
 	public const string TokensRPLOldSnapshot = "tokens-rpl-old-snapshot.msgpack";
 
+	public const string TokensRPLOldSnapshot2 = "tokens-rpl-old-snapshot-2.msgpack";
+
 	public const string TokensRPLSnapshot = "tokens-rpl-snapshot.msgpack";
+
+	public const string TokensRPLSnapshot2 = "tokens-rpl-snapshot-2.msgpack";
 
 	public const string TokensStakedRPLSnapshot = "tokens-staked-rpl-snapshot.msgpack";
 

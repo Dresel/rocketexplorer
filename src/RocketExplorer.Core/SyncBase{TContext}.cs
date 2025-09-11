@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Web3;
@@ -12,7 +13,7 @@ namespace RocketExplorer.Core;
 public abstract class SyncBase<TContext>(IOptions<SyncOptions> options, Storage storage, ILogger logger)
 	where TContext : ContextBase
 {
-	private const long BlockRange = 25000;
+	private const long BlockRange = 10_000;
 
 	protected ILogger Logger { get; set; } = logger;
 
@@ -37,13 +38,22 @@ public abstract class SyncBase<TContext>(IOptions<SyncOptions> options, Storage 
 
 		await BeforeHandleBlocksAsync(context, latestBlock, cancellationToken);
 
-		long currentBlock = context.CurrentBlockHeight + 1;
+		long startBlock = context.CurrentBlockHeight + 1;
+		long totalBlocks = latestBlock - startBlock + 2;
+
+		long currentBlock = startBlock;
+
+		var stopwatch = Stopwatch.StartNew();
 
 		do
 		{
 			long toBlock = Math.Min(currentBlock + BlockRange - 1, latestBlock);
+			long processedBlocks = toBlock - startBlock + 1;
 
-			Logger.LogDebug("Processing block {FromBlock} to {ToBlock}", currentBlock, toBlock);
+			double remainingTimeInMilliseconds = ((double)stopwatch.ElapsedMilliseconds / processedBlocks) * (totalBlocks - processedBlocks);
+
+			Logger.LogDebug("Processing block {FromBlock} to {ToBlock}, estimated remaining time: {RemainingTime}", currentBlock, toBlock, double.IsNormal(remainingTimeInMilliseconds) ? TimeSpan.FromMilliseconds(remainingTimeInMilliseconds) : "-");
+
 			await HandleBlocksAsync(context, currentBlock, toBlock, latestBlock, cancellationToken);
 			context.CurrentBlockHeight = toBlock;
 

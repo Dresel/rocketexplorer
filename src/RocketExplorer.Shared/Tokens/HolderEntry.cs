@@ -13,3 +13,17 @@ public record class HolderEntry
 	[Key(1)]
 	public required BigInteger Balance { get; init; }
 }
+
+[MessagePackObject]
+public record class HolderEntry2
+{
+	[Key(0)]
+	[MessagePackFormatter(typeof(HexStringWithPrefixFormatter))]
+	public required string Address { get; init; }
+
+	[Key(1)]
+	public required string? ENSName { get; init; }
+
+	[Key(2)]
+	public required BigInteger Balance { get; init; }
+}

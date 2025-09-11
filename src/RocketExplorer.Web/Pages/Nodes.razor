@@ -1,6 +1,7 @@
 @page "/nodes"
 
-@inherits PageBase<RocketExplorer.Shared.Nodes.NodesSnapshot>
+@using RocketExplorer.Shared
+@inherits PageBase<RocketExplorer.Shared.Nodes.NodesSnapshot2>
 
 <PageTitle>Rocket Explorer - Nodes</PageTitle>
 <MudStack>
@@ -16,7 +17,7 @@
 	<MudText Typo="Typo.h2" Class="mud-typography-h3 mt-8" Align="Align.Center">List</MudText>
 	<MudTable Class="mt-0" ServerData="LoadNodes" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
 		<ToolBarContent>
-			<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+			<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="ENS Name or Address" Adornment="Adornment.Start"
 				AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
 			</MudTextField>
 		</ToolBarContent>
@@ -33,6 +34,10 @@
 		</HeaderContent>
 		<RowTemplate>
 			<MudTd>
+                @if (!string.IsNullOrEmpty(context.ContractEnsName))
+				{
+                    <MudHighlighter Text="@context.ContractEnsName" HighlightedText="@searchString" />
+				}
 				<Address ContractAddress="@context.ContractAddress" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
 			</MudTd>
 			<MudTd>
@@ -41,7 +46,7 @@
 					<Address ContractAddress="@context.MegapoolAddress" HighlightedText="@searchString"></Address>
 				}
 			</MudTd>
-			<MudTd>@context.RegistrationDate.ToString("G")</MudTd>
+			<MudTd>@context.RegistrationDate.ToLocalTime().ToString("G")</MudTd>
 		</RowTemplate>
 		<NoRecordsContent>
 			<MudText>No matching records found</MudText>
@@ -69,7 +74,7 @@
 	{
 		await base.OnInitializedAsync();
 
-		ObjectStoreKey = "nodes-snapshot.msgpack";
+		ObjectStoreKey = Keys.NodesSnapshot2;
 	}
 
 	private void OnSearch(string text)
@@ -96,7 +101,7 @@
 
 		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
 		{
-			items = items.Where(x => x.ContractAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToArray();
+			items = items.Where(x => x.ContractAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase) || (x.ContractEnsName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false)).ToArray();
 		}
 
 		int count = items.Count();
@@ -114,6 +119,7 @@
 		nodes = Snapshot!.Data.Index.Select(x => new NodeIndexViewModel
 		{
 			ContractAddress = "0x" + Convert.ToHexString(x.ContractAddress),
+            ContractEnsName = x.ContractENSName,
 			MegapoolAddress = x.MegapoolAddress == null ? null : "0x" + Convert.ToHexString(x.MegapoolAddress),
 			RegistrationDate = DateTimeOffset.FromUnixTimeSeconds(x.RegistrationTimestamp),
 		}).ToArray();
@@ -129,6 +135,8 @@
 		public required string ContractAddress { get; init; }
 
 		public required string? MegapoolAddress { get; init; }
+
+		public required string? ContractEnsName { get; init; }
 
 		public required DateTimeOffset RegistrationDate { get; init; }
 	}

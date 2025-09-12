@@ -48,6 +48,9 @@ public class CustomThemeProvider : MudThemeProvider
 		theme.AppendLine($"--mud-palette-on-surface-variant: {palette.OnSurfaceVariant()};");
 		theme.AppendLine($"--mud-palette-surface-variant-hover: {palette.ToHover(x => x.SurfaceVariant())};");
 
+		theme.AppendLine($"--mud-palette-surface-dim: {palette.SurfaceDim()};");
+		theme.AppendLine($"--mud-palette-surface-bright: {palette.SurfaceBright()};");
+
 		theme.AppendLine($"--mud-palette-surface-container-lowest: {palette.SurfaceContainerLowest()};");
 		theme.AppendLine($"--mud-palette-surface-container-low: {palette.SurfaceContainerLow()};");
 		theme.AppendLine($"--mud-palette-surface-container: {palette.SurfaceContainer()};");

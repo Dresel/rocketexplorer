@@ -75,6 +75,10 @@ header .mud-autocomplete {
 	border-radius: var(--mud-default-borderradius);
 }
 
+.test .mud-list-item.mud-list-item-disabled {
+	color: var(--mud-palette-text-primary) !important;
+}
+
 mark {
 	background-color: var(--mark-background-color);
 	color: var(--mark-color);

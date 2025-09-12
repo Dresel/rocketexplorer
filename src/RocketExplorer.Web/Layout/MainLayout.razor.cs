@@ -67,7 +67,7 @@ public partial class MainLayout : LayoutComponentBase, IDisposable
 			await LoadAsync();
 			await InvokeAsync(StateHasChanged);
 
-			this.timer = new PeriodicTimer(TimeSpan.FromSeconds(4));
+			this.timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
 			_ = UpdateBlockInfo(this.cancellationTokenSourceTimer.Token);
 		}
 	}

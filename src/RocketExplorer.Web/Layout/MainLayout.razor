@@ -3,6 +3,9 @@
 @using MaterialColorUtilities.Palettes
 @using MaterialColorUtilities.Schemes
 @using MaterialColorUtilities.Utils
+@using Nethereum.Util
+@using RocketExplorer.Shared
+@using RocketExplorer.Web.Pages
 @using Environment = Environment
 
 @inherits LayoutComponentBase
@@ -17,10 +20,19 @@
 		<MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" Class="mr-4" OnClick="() => drawerOpen = !drawerOpen" />
 		<MudImage Style="height: calc(100% - 16px)" Src="images/rpl.svg"></MudImage>
 		<div class="mud-typography-h5 ml-2">Rocket Explorer @(Configuration.Environment != Environment.Mainnet ? $"({Configuration.Environment})" : "")</div>
-        <MudSpacer />
-        <MudAutocomplete T="string" Label="US States" Color="Color.Inherit" SearchFunc="SearchFunc" ShowProgressIndicator="true" />
-        <MudSpacer />
-        <MudTooltip Text="@(DarkLightModeButtonText)">
+		<MudSpacer />
+		<MudAutocomplete T="IndexEntryViewModel" MinCharacters="4" Placeholder="ENS Name, Address, Index, ..." Color="Color.Inherit" SearchFunc="SearchFunc"
+			Class="docs-search-bar mx-4" @bind-Text="searchString" Variant="Variant.Outlined" MaxHeight="480" ShowProgressIndicator="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search">
+			<ItemTemplate Context="result">
+				<Address Fixed="true" PrefixLength="16" SuffixLength="14" ContractAddress="@result.Address" HighlightedText="@searchString">
+				</Address>
+				@foreach (string chip in result.Chips)
+				{
+					<MudChip Style="color: var(--mud-palette-on-secondary-container); background: var(--mud-palette-secondary-container)" Size="Size.Small" T="string">@chip</MudChip>
+				}
+			</ItemTemplate>
+		</MudAutocomplete>
+		<MudTooltip Text="@(DarkLightModeButtonText)">
 			<MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="() => ThemeService.CycleDarkLightMode()" aria-label="@(DarkLightModeButtonText)" />
 		</MudTooltip>
 		<MudTooltip Text="Open GitHub">
@@ -46,6 +58,8 @@
 </MudLayout>
 
 @code {
+
+	private string searchString;
 
     private string ObjectStoreMetadataUrl => $"{Configuration.ObjectStoreBaseUrl}/snapshot-metadata.msgpack";
 
@@ -121,6 +135,9 @@
         palette.LinesInputs = scheme.Outline.ToMudColor();
         palette.TableLines = scheme.Outline.ToMudColor();
         palette.TableHover = scheme.ToHover(x => x.Surface).ToMudColor();
+
+        palette.SetSurfaceDim(scheme.SurfaceDim.ToMudColor());
+        palette.SetSurfaceBright(scheme.SurfaceBright.ToMudColor());
 
         palette.SetSurfaceContainerLowest(scheme.SurfaceContainerLowest.ToMudColor());
         palette.SetSurfaceContainerLow(scheme.SurfaceContainerLow.ToMudColor());
@@ -211,9 +228,49 @@
         LiveCharts.DefaultSettings.WithLegendTextPaint(ThemeService.CurrentPalette.OnSurfaceVariant().ToPaint());
     }
 
-    private Task<IEnumerable<string>>? SearchFunc(string? arg1, CancellationToken arg2)
+    private async Task<IEnumerable<IndexEntryViewModel>>? SearchFunc(string? arg1, CancellationToken cancellationToken)
     {
-        return Task.FromResult(Enumerable.Empty<string>());
+        if (string.IsNullOrWhiteSpace(arg1))
+        {
+            return [];
+        }
+
+        ushort key = Convert.ToUInt16(arg1[..4], 16);
+
+        SnapshotResponse<GlobalIndexSnapshot> response = await HttpClient.GetSnapshotResponse<GlobalIndexSnapshot>($"{Configuration.ObjectStoreBaseUrl}/index-{key}.mgspack", cancellationToken: cancellationToken);
+        Snapshot<GlobalIndexSnapshot> snapshotAsync = await response.ToSnapshotAsync(cancellationToken);
+
+		IndexEntryType[] indexEntryTypes = Enum.GetValues<IndexEntryType>();
+
+		return snapshotAsync.Data.Index.Select(x =>
+		{
+			return new IndexEntryViewModel()
+			{
+				Address = $"{AddressUtil.Current.ConvertToChecksumAddress(x.Address)}",
+				Chips = indexEntryTypes.Where(flag => x.Type.HasFlag(flag) && flag != 0).Select(GetDisplayText).ToArray(),
+			};
+        }).OrderBy(x => x.Address.IndexOf(arg1, StringComparison.OrdinalIgnoreCase)).ThenBy(x => x.Address, StringComparer.OrdinalIgnoreCase);
+	}
+
+    public class IndexEntryViewModel
+	{
+        public required string Address { get; set; }
+
+        public required string[] Chips { get; set; }
     }
+
+	public static string GetDisplayText(IndexEntryType type)
+	{
+		return type switch
+		{
+			IndexEntryType.NodeOperator     => "Node Operator",
+			IndexEntryType.MinipoolValidator => "Minipool Validator",
+			IndexEntryType.MegapoolValidator => "Megapool Validator",
+			IndexEntryType.RETHHolder        => "RETH Holder",
+			IndexEntryType.RPLHolder         => "RPL Holder",
+			IndexEntryType.RPLOldHolder      => "RPLv1 Holder",
+			_ => throw new ArgumentOutOfRangeException(nameof(type)),
+		};
+	}
 
 }

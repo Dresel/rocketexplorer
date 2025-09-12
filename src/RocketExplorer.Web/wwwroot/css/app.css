@@ -55,6 +55,26 @@ html, body {
 	.mud-drawer-open-responsive-md-left .mud-main-content .chart-double { width: 1200px; }
 }
 
+header .mud-autocomplete {
+	max-width: 420px
+}
+
+.docs-search-bar .mud-input {
+	height: 42px
+}
+
+.docs-search-bar.mud-input-control {
+	background-color: var(--mud-palette-surface-dim);
+	margin-bottom: 5px;
+	height: 42px;
+	border-radius: var(--mud-default-borderradius);
+}
+
+.docs-search-bar .mud-input.mud-input-outlined .mud-input-outlined-border {
+	border: none;
+	border-radius: var(--mud-default-borderradius);
+}
+
 mark {
 	background-color: var(--mark-background-color);
 	color: var(--mark-color);

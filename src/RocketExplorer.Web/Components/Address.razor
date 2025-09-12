@@ -53,6 +53,9 @@
 	public bool Expanded { get; set; }
 
 	[Parameter]
+	public bool Fixed { get; set; }
+
+	[Parameter]
 	public int PrefixLength { get; set; } = 6;
 
 	[Parameter]
@@ -155,29 +158,32 @@
 
 	Task IBrowserViewportObserver.NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs browserViewportEventArgs)
 	{
-		switch (browserViewportEventArgs.Breakpoint)
+		if (!Fixed)
 		{
-			case Breakpoint.Xs:
-				PrefixLength = 12;
-				SuffixLength = 10;
-				break;
+			switch (browserViewportEventArgs.Breakpoint)
+			{
+				case Breakpoint.Xs:
+					PrefixLength = 12;
+					SuffixLength = 10;
+					break;
 
-			case Breakpoint.Sm:
-				PrefixLength = 8;
-				SuffixLength = 6;
-				break;
+				case Breakpoint.Sm:
+					PrefixLength = 8;
+					SuffixLength = 6;
+					break;
 
-			case Breakpoint.Md:
-			case Breakpoint.Lg:
-				PrefixLength = 12;
-				SuffixLength = 10;
-				break;
+				case Breakpoint.Md:
+				case Breakpoint.Lg:
+					PrefixLength = 12;
+					SuffixLength = 10;
+					break;
 
-			case Breakpoint.Xl:
-			case Breakpoint.Xxl:
-				PrefixLength = 42;
-				SuffixLength = 42;
-				break;
+				case Breakpoint.Xl:
+				case Breakpoint.Xxl:
+					PrefixLength = 42;
+					SuffixLength = 42;
+					break;
+			}
 		}
 
 		if (Expanded)

@@ -21,17 +21,23 @@
 		<MudImage Style="height: calc(100% - 16px)" Src="images/rpl.svg"></MudImage>
 		<div class="mud-typography-h5 ml-2">Rocket Explorer @(Configuration.Environment != Environment.Mainnet ? $"({Configuration.Environment})" : "")</div>
 		<MudSpacer />
-		<MudAutocomplete PopoverClass="test" ItemDisabledFunc="item => !string.IsNullOrWhiteSpace(item.GroupName)" T="GroupedListItem<IndexEntryViewModel>" MinCharacters="4" Placeholder="ENS Name, Address, Index, ..." Color="Color.Inherit" SearchFunc="SearchFunc"
+		<MudAutocomplete Dense="true" PopoverClass="test" ItemDisabledFunc="item => !string.IsNullOrWhiteSpace(item.GroupName)" T="GroupedListItem<IndexEntryViewModel>" MinCharacters="4" Placeholder="ENS Name, Address, Index, ..." Color="Color.Inherit" SearchFunc="SearchFunc"
 			Class="docs-search-bar mx-4" @bind-Text="searchString" Variant="Variant.Outlined" MaxHeight="480" ShowProgressIndicator="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search">
 			<ItemTemplate Context="result">
 				@if(!string.IsNullOrWhiteSpace(result.GroupName))
 				{
-					@result.GroupName
+                    <strong>@result.GroupName</strong>
 				}
 				else
 				{
+					<div class="m-4">
 					<Address Fixed="true" PrefixLength="16" SuffixLength="14" ContractAddress="@result.Data!.Address" HighlightedText="@searchString">
 					</Address>
+					@foreach (string chip in result.Data.Chips)
+					{
+						<MudChip Style="color: var(--mud-palette-on-secondary-container); background: var(--mud-palette-secondary-container)" Size="Size.Small" T="string">@chip</MudChip>
+					}
+					</div>
 				}
 			</ItemTemplate>
 		</MudAutocomplete>
@@ -260,6 +266,7 @@
 					Data = new IndexEntryViewModel
 					{
 						Address = $"{AddressUtil.Current.ConvertToChecksumAddress(item.Entry.Address)}",
+						Chips = indexEntryTypes.Where(flag => item.Entry.Type.HasFlag(flag) && flag != 0).Select(GetDisplayText).ToArray(),
 					},
 				}).OrderBy(item => item.Data!.Address.IndexOf(arg1, StringComparison.OrdinalIgnoreCase)).ThenBy(item => item.Data!.Address, StringComparer.OrdinalIgnoreCase),
 			];
@@ -287,6 +294,8 @@
 	public class IndexEntryViewModel
 	{
 		public required string Address { get; set; }
+
+        public string[] Chips { get; set; }
 	}
 
 	public static string GetDisplayText(IndexEntryType type) =>

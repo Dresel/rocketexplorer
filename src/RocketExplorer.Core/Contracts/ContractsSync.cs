@@ -263,10 +263,20 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 		Func<BlockParameter, Task<bool>> executionFunc, string activationMethod, long activationHeight,
 		long latestBlock)
 	{
-		long? executionHeight = await Helper.FindFirstBlock(
-			blockParameter => Policy.ExecuteAsync(() => executionFunc(blockParameter)),
-			activationHeight, latestBlock,
-			TimeSpan.FromDays(1).BlockCount());
+		long? executionHeight = null;
+
+		try
+		{
+			executionHeight = await Helper.FindFirstBlock(
+				blockParameter => Policy.ExecuteAsync(() => executionFunc(blockParameter)),
+				activationHeight,
+				latestBlock,
+				TimeSpan.FromDays(1).BlockCount());
+		}
+		catch
+		{
+			Logger.LogWarning("Executed property not found for upgrade contract {ContractName}", activationMethod);
+		}
 
 		if (executionHeight == null)
 		{

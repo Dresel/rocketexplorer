@@ -31,6 +31,7 @@ public class MinipoolEventHandlers
 		context.DashboardInfo.QueueLength++;
 
 		MinipoolValidatorIndexEntry indexEntry = context.ValidatorInfo.Data.MinipoolValidatorIndex[updatedEvent.MinipoolAddress];
+
 		MinipoolValidatorQueueEntry queueEntry = new()
 		{
 			NodeAddress = indexEntry.NodeAddress,

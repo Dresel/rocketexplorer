@@ -21,7 +21,7 @@
 		<MudImage Style="height: calc(100% - 16px)" Src="images/rpl.svg"></MudImage>
 		<div class="mud-typography-h5 ml-2">Rocket Explorer @(Configuration.Environment != Environment.Mainnet ? $"({Configuration.Environment})" : "")</div>
 		<MudSpacer />
-		<MudAutocomplete Dense="true" PopoverClass="test" ItemDisabledFunc="item => !string.IsNullOrWhiteSpace(item.GroupName)" T="GroupedListItem<IndexEntryViewModel>" MinCharacters="4" Placeholder="ENS Name, Address, Index, ..." Color="Color.Inherit" SearchFunc="SearchFunc"
+		<MudAutocomplete MaxItems="100" Dense="true" PopoverClass="test" ItemDisabledFunc="item => !string.IsNullOrWhiteSpace(item.GroupName)" T="GroupedListItem<IndexEntryViewModel>" MinCharacters="4" Placeholder="ENS Name, Address, Index, ..." Color="Color.Inherit" SearchFunc="SearchFunc"
 			Class="docs-search-bar mx-4" @bind-Text="searchString" Variant="Variant.Outlined" MaxHeight="480" ShowProgressIndicator="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search">
 			<ItemTemplate Context="result">
 				@if(!string.IsNullOrWhiteSpace(result.GroupName))
@@ -31,12 +31,20 @@
 				else
 				{
 					<div class="m-4">
-					<Address Fixed="true" PrefixLength="16" SuffixLength="14" ContractAddress="@result.Data!.Address" HighlightedText="@searchString">
-					</Address>
-					@foreach (string chip in result.Data.Chips)
-					{
-						<MudChip Style="color: var(--mud-palette-on-secondary-container); background: var(--mud-palette-secondary-container)" Size="Size.Small" T="string">@chip</MudChip>
-					}
+                        @if(!string.IsNullOrWhiteSpace(result.Data!.ENS))
+						{
+                            <MudHighlighter Text="@result.Data!.ENS" HighlightedText="@searchString" />
+						}
+                        else
+						{
+							<Address Fixed="true" PrefixLength="16" SuffixLength="14" ContractAddress="@result.Data!.Address" HighlightedText="@searchString">
+							</Address>
+						}
+
+						@foreach (string chip in result.Data.Chips)
+						{
+							<MudChip Style="color: var(--mud-palette-on-secondary-container); background: var(--mud-palette-secondary-container)" Size="Size.Small" T="string">@chip</MudChip>
+						}
 					</div>
 				}
 			</ItemTemplate>
@@ -68,190 +76,247 @@
 
 @code {
 
-	private string searchString;
+    private string searchString;
 
-	private string ObjectStoreMetadataUrl => $"{Configuration.ObjectStoreBaseUrl}/snapshot-metadata.msgpack";
+    private string ObjectStoreMetadataUrl => $"{Configuration.ObjectStoreBaseUrl}/snapshot-metadata.msgpack";
 
-	private string DarkLightModeButtonText => ThemeService.CurrentDarkLightMode switch
-	{
-		DarkLightMode.Dark => "Use system mode",
-		DarkLightMode.Light => "Use dark mode",
-		_ => "Use light mode",
-	};
+    private string DarkLightModeButtonText => ThemeService.CurrentDarkLightMode switch
+    {
+        DarkLightMode.Dark => "Use system mode",
+        DarkLightMode.Light => "Use dark mode",
+        _ => "Use light mode",
+    };
 
-	private string DarkLightModeButtonIcon => ThemeService.CurrentDarkLightMode switch
-	{
-		DarkLightMode.Dark => Icons.Material.Rounded.AutoMode,
-		DarkLightMode.Light => Icons.Material.Outlined.DarkMode,
-		_ => Icons.Material.Filled.LightMode,
-	};
+    private string DarkLightModeButtonIcon => ThemeService.CurrentDarkLightMode switch
+    {
+        DarkLightMode.Dark => Icons.Material.Rounded.AutoMode,
+        DarkLightMode.Light => Icons.Material.Outlined.DarkMode,
+        _ => Icons.Material.Filled.LightMode,
+    };
 
-	private void SetMudTheme()
-	{
-		uint brandColor = ColorUtils.ArgbFromRgb(255, 110, 48);
-		uint markColor = ColorUtils.ArgbFromRgb(255, 235, 59);
+    private void SetMudTheme()
+    {
+        uint brandColor = ColorUtils.ArgbFromRgb(255, 110, 48);
+        uint markColor = ColorUtils.ArgbFromRgb(255, 235, 59);
 
-		Scheme<uint> darkSchemeVibrant = new DarkSchemeMapper().Map(CorePalette.Of(brandColor, Style.Vibrant));
-		CorePalette markPalette = CorePalette.Of(markColor, Style.Vibrant);
+        Scheme<uint> darkSchemeVibrant = new DarkSchemeMapper().Map(CorePalette.Of(brandColor, Style.Vibrant));
+        CorePalette markPalette = CorePalette.Of(markColor, Style.Vibrant);
 
-		PaletteLight paletteLight = SetPalette(new CustomPaletteLight(), new LightSchemeMapper().Map(CorePalette.Of(brandColor, Style.Vibrant)), new LightSchemeMapper().Map(markPalette));
+        PaletteLight paletteLight = SetPalette(new CustomPaletteLight(), new LightSchemeMapper().Map(CorePalette.Of(brandColor, Style.Vibrant)), new LightSchemeMapper().Map(markPalette));
 
-		// Override primary colors with vibrant style
-		PaletteDark paletteDark = SetPalette(new CustomPaletteDark(), new DarkSchemeMapper().Map(CorePalette.Of(brandColor, Style.Spritz)), new DarkSchemeMapper().Map(markPalette));
-		paletteDark.Primary = darkSchemeVibrant.Primary.ToMudColor();
-		paletteDark.PrimaryContrastText = darkSchemeVibrant.OnPrimary.ToMudColor();
-		paletteDark.AppbarText = darkSchemeVibrant.OnPrimary.ToMudColor();
-		paletteDark.AppbarBackground = darkSchemeVibrant.Primary.ToMudColor();
+        // Override primary colors with vibrant style
+        PaletteDark paletteDark = SetPalette(new CustomPaletteDark(), new DarkSchemeMapper().Map(CorePalette.Of(brandColor, Style.Spritz)), new DarkSchemeMapper().Map(markPalette));
+        paletteDark.Primary = darkSchemeVibrant.Primary.ToMudColor();
+        paletteDark.PrimaryContrastText = darkSchemeVibrant.OnPrimary.ToMudColor();
+        paletteDark.AppbarText = darkSchemeVibrant.OnPrimary.ToMudColor();
+        paletteDark.AppbarBackground = darkSchemeVibrant.Primary.ToMudColor();
 
-		theme = new MudTheme
+        theme = new MudTheme
 		{
 			Typography = CreateTypography(),
 			PaletteLight = paletteLight,
 			PaletteDark = paletteDark,
 		};
-	}
+    }
 
-	private T SetPalette<T>(T palette, Scheme<uint> scheme, Scheme<uint> markScheme) where T : Palette
-	{
-		palette.Primary = scheme.Primary.ToMudColor();
-		palette.PrimaryContrastText = scheme.OnPrimary.ToMudColor();
-		palette.Secondary = scheme.Secondary.ToMudColor();
-		palette.SecondaryContrastText = scheme.OnSecondary.ToMudColor();
-		palette.Tertiary = markScheme.PrimaryContainer.ToMudColor();
-		palette.TertiaryContrastText = markScheme.OnPrimaryContainer.ToMudColor();
+    private T SetPalette<T>(T palette, Scheme<uint> scheme, Scheme<uint> markScheme) where T : Palette
+    {
+        palette.Primary = scheme.Primary.ToMudColor();
+        palette.PrimaryContrastText = scheme.OnPrimary.ToMudColor();
+        palette.Secondary = scheme.Secondary.ToMudColor();
+        palette.SecondaryContrastText = scheme.OnSecondary.ToMudColor();
+        palette.Tertiary = markScheme.PrimaryContainer.ToMudColor();
+        palette.TertiaryContrastText = markScheme.OnPrimaryContainer.ToMudColor();
 
-		palette.AppbarText = scheme.OnPrimary.ToMudColor();
-		palette.AppbarBackground = scheme.Primary.ToMudColor();
+        palette.AppbarText = scheme.OnPrimary.ToMudColor();
+        palette.AppbarBackground = scheme.Primary.ToMudColor();
 
-		palette.DrawerText = scheme.OnSurface.ToMudColor();
-		palette.DrawerBackground = scheme.Surface.ToMudColor();
+        palette.DrawerText = scheme.OnSurface.ToMudColor();
+        palette.DrawerBackground = scheme.Surface.ToMudColor();
 
-		palette.Background = scheme.Background.ToMudColor();
-		palette.TextPrimary = scheme.OnBackground.ToMudColor();
-		palette.TextSecondary = scheme.OnSurfaceVariant.ToMudColor();
+        palette.Background = scheme.Background.ToMudColor();
+        palette.TextPrimary = scheme.OnBackground.ToMudColor();
+        palette.TextSecondary = scheme.OnSurfaceVariant.ToMudColor();
 
-		palette.SetPrimaryContainer(scheme.PrimaryContainer.ToMudColor());
-		palette.SetOnPrimaryContainer(scheme.OnPrimaryContainer.ToMudColor());
-		palette.SetSecondaryContainer(scheme.SecondaryContainer.ToMudColor());
-		palette.SetOnSecondaryContainer(scheme.OnSecondaryContainer.ToMudColor());
+        palette.SetPrimaryContainer(scheme.PrimaryContainer.ToMudColor());
+        palette.SetOnPrimaryContainer(scheme.OnPrimaryContainer.ToMudColor());
+        palette.SetSecondaryContainer(scheme.SecondaryContainer.ToMudColor());
+        palette.SetOnSecondaryContainer(scheme.OnSecondaryContainer.ToMudColor());
 
-		palette.Surface = scheme.Surface.ToMudColor();
-		palette.SetOnSurface(scheme.OnSurface.ToMudColor());
-		palette.SetSurfaceVariant(scheme.SurfaceVariant.ToMudColor());
-		palette.SetOnSurfaceVariant(scheme.OnSurfaceVariant.ToMudColor());
+        palette.Surface = scheme.Surface.ToMudColor();
+        palette.SetOnSurface(scheme.OnSurface.ToMudColor());
+        palette.SetSurfaceVariant(scheme.SurfaceVariant.ToMudColor());
+        palette.SetOnSurfaceVariant(scheme.OnSurfaceVariant.ToMudColor());
 
-		palette.LinesDefault = scheme.Outline.ToMudColor();
-		palette.LinesInputs = scheme.Outline.ToMudColor();
-		palette.TableLines = scheme.Outline.ToMudColor();
-		palette.TableHover = scheme.ToHover(x => x.Surface).ToMudColor();
+        palette.LinesDefault = scheme.Outline.ToMudColor();
+        palette.LinesInputs = scheme.Outline.ToMudColor();
+        palette.TableLines = scheme.Outline.ToMudColor();
+        palette.TableHover = scheme.ToHover(x => x.Surface).ToMudColor();
 
-		palette.SetSurfaceDim(scheme.SurfaceDim.ToMudColor());
-		palette.SetSurfaceBright(scheme.SurfaceBright.ToMudColor());
+        palette.SetSurfaceDim(scheme.SurfaceDim.ToMudColor());
+        palette.SetSurfaceBright(scheme.SurfaceBright.ToMudColor());
 
-		palette.SetSurfaceContainerLowest(scheme.SurfaceContainerLowest.ToMudColor());
-		palette.SetSurfaceContainerLow(scheme.SurfaceContainerLow.ToMudColor());
-		palette.SetSurfaceContainer(scheme.SurfaceContainer.ToMudColor());
-		palette.SetSurfaceContainerHigh(scheme.SurfaceContainerHigh.ToMudColor());
-		palette.SetSurfaceContainerHighest(scheme.SurfaceContainerHighest.ToMudColor());
+        palette.SetSurfaceContainerLowest(scheme.SurfaceContainerLowest.ToMudColor());
+        palette.SetSurfaceContainerLow(scheme.SurfaceContainerLow.ToMudColor());
+        palette.SetSurfaceContainer(scheme.SurfaceContainer.ToMudColor());
+        palette.SetSurfaceContainerHigh(scheme.SurfaceContainerHigh.ToMudColor());
+        palette.SetSurfaceContainerHighest(scheme.SurfaceContainerHighest.ToMudColor());
 
-		return palette;
-	}
+        return palette;
+    }
 
-	private void SetLiveChartsLightTheme()
-	{
-		LiveCharts.DefaultSettings.HasTheme(_ =>
-		{
-			LiveChartsSettings defaultSettings = new();
+    private void SetLiveChartsLightTheme()
+    {
+        LiveCharts.DefaultSettings.HasTheme(_ =>
+        {
+            LiveChartsSettings defaultSettings = new();
 
-			LiveCharts.DefaultSettings.TooltipBackgroundPaint = defaultSettings.TooltipBackgroundPaint;
-			LiveCharts.DefaultSettings.TooltipTextPaint = defaultSettings.TooltipTextPaint;
-			LiveCharts.DefaultSettings.LegendTextPaint = defaultSettings.LegendTextPaint;
-		});
+            LiveCharts.DefaultSettings.TooltipBackgroundPaint = defaultSettings.TooltipBackgroundPaint;
+            LiveCharts.DefaultSettings.TooltipTextPaint = defaultSettings.TooltipTextPaint;
+            LiveCharts.DefaultSettings.LegendTextPaint = defaultSettings.LegendTextPaint;
+        });
 
-		LiveCharts.DefaultSettings.AddLightTheme(chartsTheme =>
-		{
-			chartsTheme.Colors =
+        LiveCharts.DefaultSettings.AddLightTheme(chartsTheme =>
+        {
+            chartsTheme.Colors =
 			[
-				ThemeService.CurrentPalette.Primary.ToLvcColor(),
+                ThemeService.CurrentPalette.Primary.ToLvcColor(),
 				CorePalette.Of(ColorUtils.ArgbFromRgb(156, 39, 176), Style.Vibrant).Primary[40].ToLvcColor(),
 				CorePalette.Of(ColorUtils.ArgbFromRgb(33, 150, 243), Style.Vibrant).Primary[40].ToLvcColor(),
-			];
+            ];
 
-			chartsTheme.HasRuleForAxes(axis =>
-			{
-				axis.NamePaint = ThemeService.CurrentPalette.OnSurface().ToPaint();
-				axis.LabelsPaint = ThemeService.CurrentPalette.OnSurfaceVariant().ToPaint();
-			});
+            chartsTheme.HasRuleForAxes(axis =>
+            {
+                axis.NamePaint = ThemeService.CurrentPalette.OnSurface().ToPaint();
+                axis.LabelsPaint = ThemeService.CurrentPalette.OnSurfaceVariant().ToPaint();
+            });
 
-			chartsTheme.HasRuleForLineSeries(rule =>
-			{
-				rule.Stroke!.StrokeThickness = 3.0f;
+            chartsTheme.HasRuleForLineSeries(rule =>
+            {
+                rule.Stroke!.StrokeThickness = 3.0f;
 
-				rule.GeometrySize = 10;
-				rule.GeometryStroke!.StrokeThickness = 3.0f;
-			});
-		});
+                rule.GeometrySize = 10;
+                rule.GeometryStroke!.StrokeThickness = 3.0f;
+            });
+        });
 
-		LiveCharts.DefaultSettings.WithTooltipBackgroundPaint(ThemeService.CurrentPalette.SurfaceContainerHigh().ToPaint());
-		LiveCharts.DefaultSettings.WithTooltipTextPaint(ThemeService.CurrentPalette.OnSurface().ToPaint());
-		LiveCharts.DefaultSettings.WithLegendTextPaint(ThemeService.CurrentPalette.OnSurface().ToPaint());
-	}
+        LiveCharts.DefaultSettings.WithTooltipBackgroundPaint(ThemeService.CurrentPalette.SurfaceContainerHigh().ToPaint());
+        LiveCharts.DefaultSettings.WithTooltipTextPaint(ThemeService.CurrentPalette.OnSurface().ToPaint());
+        LiveCharts.DefaultSettings.WithLegendTextPaint(ThemeService.CurrentPalette.OnSurface().ToPaint());
+    }
 
-	private void SetLiveChartsDarkTheme()
-	{
-		LiveCharts.DefaultSettings.HasTheme(_ =>
-		{
-			LiveChartsSettings defaultSettings = new();
+    private void SetLiveChartsDarkTheme()
+    {
+        LiveCharts.DefaultSettings.HasTheme(_ =>
+        {
+            LiveChartsSettings defaultSettings = new();
 
-			LiveCharts.DefaultSettings.TooltipBackgroundPaint = defaultSettings.TooltipBackgroundPaint;
-			LiveCharts.DefaultSettings.TooltipTextPaint = defaultSettings.TooltipTextPaint;
-			LiveCharts.DefaultSettings.LegendTextPaint = defaultSettings.LegendTextPaint;
-		});
+            LiveCharts.DefaultSettings.TooltipBackgroundPaint = defaultSettings.TooltipBackgroundPaint;
+            LiveCharts.DefaultSettings.TooltipTextPaint = defaultSettings.TooltipTextPaint;
+            LiveCharts.DefaultSettings.LegendTextPaint = defaultSettings.LegendTextPaint;
+        });
 
-		LiveCharts.DefaultSettings.AddDarkTheme(chartsTheme =>
-		{
-			chartsTheme.Colors =
+        LiveCharts.DefaultSettings.AddDarkTheme(chartsTheme =>
+        {
+            chartsTheme.Colors =
 			[
-				ThemeService.CurrentPalette.Primary.ToLvcColor(),
+                ThemeService.CurrentPalette.Primary.ToLvcColor(),
 				CorePalette.Of(ColorUtils.ArgbFromRgb(156, 39, 176), Style.Vibrant).Primary[80].ToLvcColor(),
 				CorePalette.Of(ColorUtils.ArgbFromRgb(33, 150, 243), Style.Vibrant).Primary[80].ToLvcColor(),
-			];
+            ];
 
-			chartsTheme.HasRuleForAxes(axis =>
-			{
-				axis.NamePaint = ThemeService.CurrentPalette.OnSurface().ToPaint();
-				axis.LabelsPaint = ThemeService.CurrentPalette.OnSurfaceVariant().ToPaint();
-			});
+            chartsTheme.HasRuleForAxes(axis =>
+            {
+                axis.NamePaint = ThemeService.CurrentPalette.OnSurface().ToPaint();
+                axis.LabelsPaint = ThemeService.CurrentPalette.OnSurfaceVariant().ToPaint();
+            });
 
-			chartsTheme.HasRuleForLineSeries(rule =>
-			{
-				rule.Stroke!.StrokeThickness = 3.0f;
+            chartsTheme.HasRuleForLineSeries(rule =>
+            {
+                rule.Stroke!.StrokeThickness = 3.0f;
 
-				rule.GeometrySize = 10;
-				rule.GeometryStroke!.StrokeThickness = 3.0f;
-			});
-		});
+                rule.GeometrySize = 10;
+                rule.GeometryStroke!.StrokeThickness = 3.0f;
+            });
+        });
 
-		LiveCharts.DefaultSettings.WithTooltipBackgroundPaint(ThemeService.CurrentPalette.SurfaceContainerHigh().ToPaint());
-		LiveCharts.DefaultSettings.WithTooltipTextPaint(ThemeService.CurrentPalette.OnSurface().ToPaint());
-		LiveCharts.DefaultSettings.WithLegendTextPaint(ThemeService.CurrentPalette.OnSurfaceVariant().ToPaint());
-	}
+        LiveCharts.DefaultSettings.WithTooltipBackgroundPaint(ThemeService.CurrentPalette.SurfaceContainerHigh().ToPaint());
+        LiveCharts.DefaultSettings.WithTooltipTextPaint(ThemeService.CurrentPalette.OnSurface().ToPaint());
+        LiveCharts.DefaultSettings.WithLegendTextPaint(ThemeService.CurrentPalette.OnSurfaceVariant().ToPaint());
+    }
 
-	private async Task<IEnumerable<GroupedListItem<IndexEntryViewModel>>>? SearchFunc(string? arg1, CancellationToken cancellationToken)
-	{
-		if (string.IsNullOrWhiteSpace(arg1))
+    private async Task<IEnumerable<GroupedListItem<IndexEntryViewModel>>>? SearchFunc(string? arg1, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(arg1))
+        {
+            return [];
+        }
+
+        // ushort key = Convert.ToUInt16(arg1[..4], 16);
+
+        SnapshotResponse<GlobalIndexENSSnapshot> response2 = await HttpClient.GetSnapshotResponse<GlobalIndexENSSnapshot>($"{Configuration.ObjectStoreBaseUrl}/ens.mgspack", cancellationToken);
+        Snapshot<GlobalIndexENSSnapshot> ens = await response2.ToSnapshotAsync(cancellationToken);
+
+        SnapshotResponse<GlobalIndexShardSnapshot> response = await HttpClient.GetSnapshotResponse<GlobalIndexShardSnapshot>($"{Configuration.ObjectStoreBaseUrl}/index/{arg1[..4]}.mgspack", cancellationToken);
+        Snapshot<GlobalIndexShardSnapshot> snapshotAsync = await response.ToSnapshotAsync(cancellationToken);
+
+        IndexEntryType[] indexEntryTypes = Enum.GetValues<IndexEntryType>();
+
+        // IEnumerable<IGrouping<IndexEntryType, (IndexEntry Entry, IndexEntryType Flag)>> grouped = snapshotAsync.Data.Index.SelectMany(x => indexEntryTypes.Where(flag => x.Type.HasFlag(flag) && flag != 0).Select(flag => (Entry: x, Flag: flag))).GroupBy(x => x.Flag);
+
+		var grouped = snapshotAsync.Data.Index.SelectMany(entry =>
 		{
-			return [];
-		}
+			List<GroupedListItem<IndexEntryViewModel>> result = [];
 
-		ushort key = Convert.ToUInt16(arg1[..4], 16);
+			if (entry.Address is not null)
+			{
+				// TODO: ToUpper
+				string hexString = Convert.ToHexString(entry.Address);
+				if (hexString.Contains(arg1, StringComparison.OrdinalIgnoreCase))
+				{
+					result.Add(
+						new GroupedListItem<IndexEntryViewModel>()
+						{
+							GroupName = "By Address",
+							Data = new IndexEntryViewModel()
+							{
+								Address = hexString,
+								Chips = indexEntryTypes.Where(flag => entry.Type.HasFlag(flag) && flag != 0).Select(GetDisplayText).ToArray(),
+							},
+						});
+				}
+			}
 
-		SnapshotResponse<GlobalIndexSnapshot> response = await HttpClient.GetSnapshotResponse<GlobalIndexSnapshot>($"{Configuration.ObjectStoreBaseUrl}/index-{key}.mgspack", cancellationToken);
-		Snapshot<GlobalIndexSnapshot> snapshotAsync = await response.ToSnapshotAsync(cancellationToken);
+			if (entry.ValidatorPubKey is not null)
+			{
+				// TODO: ToUpper
+				string hexString = Convert.ToHexString(entry.ValidatorPubKey);
+				if (hexString.Contains(arg1, StringComparison.OrdinalIgnoreCase))
+				{
+					result.Add(
+						new GroupedListItem<IndexEntryViewModel>()
+						{
+							GroupName = "By PubKey",
+							Data = new IndexEntryViewModel()
+							{
+								Address = hexString,
+								Chips = indexEntryTypes.Where(flag => entry.Type.HasFlag(flag) && flag != 0).Select(GetDisplayText).ToArray(),
+							},
+						});
+				}
+			}
 
-		IndexEntryType[] indexEntryTypes = Enum.GetValues<IndexEntryType>();
-
-		IEnumerable<IGrouping<IndexEntryType, (IndexEntry Entry, IndexEntryType Flag)>> grouped = snapshotAsync.Data.Index.SelectMany(x => indexEntryTypes.Where(flag => x.Type.HasFlag(flag) && flag != 0).Select(flag => (Entry: x, Flag: flag))).GroupBy(x => x.Flag);
+			return result;
+        }).Concat(ens.Data.Index.Where(x => x.ENSName.Contains(arg1, StringComparison.OrdinalIgnoreCase)).Select(x => new GroupedListItem<IndexEntryViewModel>()
+		{
+            GroupName = "By ENS",
+            Data = new IndexEntryViewModel()
+			{
+				Address = Convert.ToHexString(x.Address),
+                ENS = x.ENSName,
+				Chips = indexEntryTypes.Where(flag => x.Type.HasFlag(flag) && flag != 0).Select(GetDisplayText).ToArray(),
+			}
+        })).GroupBy(x => x.GroupName).OrderBy(g => Array.IndexOf(["By ENS", "By Address", "By PubKey"], g.Key));
 
 		return grouped.SelectMany(x =>
 		{
@@ -259,16 +324,12 @@
 			[
 				new()
 				{
-					GroupName = GetDisplayText(x.Key),
+					GroupName = x.Key,
 				},
 				..x.Select(item => new GroupedListItem<IndexEntryViewModel>
 				{
-					Data = new IndexEntryViewModel
-					{
-						Address = $"{AddressUtil.Current.ConvertToChecksumAddress(item.Entry.Address)}",
-						Chips = indexEntryTypes.Where(flag => item.Entry.Type.HasFlag(flag) && flag != 0).Select(GetDisplayText).ToArray(),
-					},
-				}).OrderBy(item => item.Data!.Address.IndexOf(arg1, StringComparison.OrdinalIgnoreCase)).ThenBy(item => item.Data!.Address, StringComparer.OrdinalIgnoreCase),
+					Data = item.Data,
+                }).OrderBy(item => item.Data!.Address.IndexOf(arg1, StringComparison.OrdinalIgnoreCase)).ThenBy(item => item.Data!.Address, StringComparer.OrdinalIgnoreCase).Take(5),
 			];
 
 			return result;
@@ -294,6 +355,8 @@
 	public class IndexEntryViewModel
 	{
 		public required string Address { get; set; }
+
+        public string? ENS { get; set; }
 
         public string[] Chips { get; set; }
 	}

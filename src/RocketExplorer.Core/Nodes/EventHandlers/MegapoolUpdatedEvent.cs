@@ -13,5 +13,9 @@ public class MegapoolUpdatedEvent
 
 	public required long Time { get; set; }
 
+	// Megapool Id (0, 1, 2, ...)
 	public required int ValidatorId { get; set; }
+
+	// Beacon Chain Index
+	public long? ValidatorIndex { get; set; } = null;
 }

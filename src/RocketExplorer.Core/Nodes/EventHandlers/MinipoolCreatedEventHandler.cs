@@ -46,6 +46,7 @@ public class MinipoolCreatedEventHandler
 				NodeAddress = entry.NodeAddress,
 				MinipoolAddress = entry.MinipoolAddress,
 				PubKey = entry.PubKey,
+				ValidatorIndex = null,
 				Status = ValidatorStatus.Created,
 				Bond = (float)UnitConversion.Convert.FromWei(
 					await minipoolDelegate.GetNodeDepositBalanceQueryAsync(

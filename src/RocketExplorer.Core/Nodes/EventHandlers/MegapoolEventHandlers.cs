@@ -63,6 +63,11 @@ public class MegapoolEventHandlers
 		int validatorId = (int)eventLog.Event.ValidatorId;
 		long time = (long)eventLog.Event.Time;
 
+		RocketMegapoolDelegateService megapoolDelegate = new(context.Web3, megapoolAddress);
+
+		GetValidatorInfoOutputDTO validatorInfo = await megapoolDelegate.GetValidatorInfoQueryAsync(
+			(uint)validatorId, new BlockParameter(eventLog.Log.BlockNumber));
+
 		string? nodeOperatorAddress = await EventMegapoolValidatorUpdateAsync(
 			context, new MegapoolUpdatedEvent
 			{
@@ -70,6 +75,7 @@ public class MegapoolEventHandlers
 				Time = time,
 				MegapoolAddress = megapoolAddress,
 				ValidatorId = validatorId,
+				ValidatorIndex = (long)validatorInfo.ReturnValue1.ValidatorIndex,
 				Status = ValidatorStatus.Staking,
 			}, cancellationToken);
 
@@ -231,6 +237,7 @@ public class MegapoolEventHandlers
 			MegapoolAddress = megapoolAddress.HexToByteArray(),
 			MegapoolIndex = eventValidatorId,
 			PubKey = pubKey,
+			//ValidatorIndex = null,
 		};
 
 		context.ValidatorInfo.Data.MegapoolValidatorIndex.Add(
@@ -250,6 +257,7 @@ public class MegapoolEventHandlers
 			MegapoolAddress = entry.MegapoolAddress,
 			MegapoolIndex = entry.MegapoolIndex,
 			PubKey = entry.PubKey,
+			ValidatorIndex = null, //entry.ValidatorIndex,
 			ExpressTicketUsed = validatorInfo.ReturnValue1.ExpressUsed,
 			Status = ValidatorStatus.Created,
 			Bond = 4, // TODO: Saturn2
@@ -322,6 +330,11 @@ public class MegapoolEventHandlers
 		MegapoolValidatorIndexEntry indexEntry =
 			context.ValidatorInfo.Data.MegapoolValidatorIndex[(updatedEvent.MegapoolAddress, updatedEvent.ValidatorId)];
 
+		context.ValidatorInfo.Data.MegapoolValidatorIndex[(updatedEvent.MegapoolAddress, updatedEvent.ValidatorId)] = indexEntry with
+		{
+			//ValidatorIndex = indexEntry.ValidatorIndex ?? updatedEvent.ValidatorIndex,
+		};
+
 		Dictionary<(string Address, int Index), Validator> megapoolValidators =
 			context.ValidatorInfo.Partial.UpdatedMegapoolValidators;
 
@@ -337,6 +350,7 @@ public class MegapoolEventHandlers
 		megapoolValidators[(updatedEvent.MegapoolAddress, updatedEvent.ValidatorId)] = megapoolValidators[
 				(updatedEvent.MegapoolAddress, updatedEvent.ValidatorId)] with
 			{
+				ValidatorIndex = updatedEvent.ValidatorIndex ?? updatedEvent.ValidatorIndex,
 				Status = updatedEvent.Status,
 				History =
 				[

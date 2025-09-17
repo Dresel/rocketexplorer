@@ -4,10 +4,31 @@ using RocketExplorer.Shared.Nodes;
 namespace RocketExplorer.Shared;
 
 [MessagePackObject]
-public class GlobalIndexSnapshot
+public class GlobalIndexShardSnapshot
 {
 	[Key(0)]
 	public required IndexEntry[] Index { get; init; }
+}
+
+[MessagePackObject]
+public class GlobalIndexENSSnapshot
+{
+	[Key(0)]
+	public required ENSIndexEntry[] Index { get; init; }
+}
+
+
+[MessagePackObject]
+public class ENSIndexEntry
+{
+	[Key(0)]
+	public required IndexEntryType Type { get; set; }
+
+	[Key(1)]
+	public required byte[] Address { get; set; }
+
+	[Key(2)]
+	public required string ENSName { get; init; }
 }
 
 [MessagePackObject]
@@ -17,10 +38,16 @@ public class IndexEntry
 	public required IndexEntryType Type { get; set; }
 
 	[Key(1)]
-	public byte[]? Address { get; init; }
+	public byte[]? Address { get; set; }
 
 	[Key(2)]
-	public int MegapoolIndex { get; set; }
+	public byte[]? ValidatorPubKey { get; set; }
+
+	[Key(3)]
+	public int? ValidatorIndex { get; set; }
+
+	[Key(4)]
+	public int MegapoolValidatorIndex { get; set; }
 }
 
 [Flags]

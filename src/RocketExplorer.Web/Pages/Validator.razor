@@ -59,7 +59,7 @@
 					<MudItem>
 						@if (Snapshot.Data.PubKey is not null)
 						{
-							<Address ContractAddress="@Snapshot.Data.PubKey.ToHex().ToUpperInvariant()" IsPubKey="true" HrefPlaceholder="https://hoodi.beaconcha.in/validator/{0}"></Address>
+							<Address ContractAddress="@Snapshot.Data.PubKey.ToHex().ToUpperInvariant()" IsPubKey="true"></Address>
 						}
 						else
 						{

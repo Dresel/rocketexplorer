@@ -68,6 +68,20 @@
 					</MudItem>
 					<MudFlexBreak />
 					<MudItem Class="label">
+						<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Validator Index</MudText>
+					</MudItem>
+					<MudItem>
+						@if (Snapshot.Data.PubKey is not null)
+						{
+							<MudText Typo="Typo.body1">@Snapshot.Data.ValidatorIndex</MudText>
+						}
+						else
+						{
+							<MudText Typo="Typo.body1">-</MudText>
+						}
+					</MudItem>
+					<MudFlexBreak />
+					<MudItem Class="label">
 						<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Node Operator Bond</MudText>
 					</MudItem>
 					<MudItem>

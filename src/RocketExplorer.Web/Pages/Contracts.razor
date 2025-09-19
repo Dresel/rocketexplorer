@@ -5,7 +5,11 @@
 
 <PageTitle>Rocket Explorer - Contracts</PageTitle>
 <MudStack>
-	<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">Contracts</MudText>
+	<div>
+		<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">Contracts</MudText>
+		<MudText Typo="Typo.subtitle1" Align="Align.Center">Protocol Version: @Snapshot?.Data.ProtocolVersion</MudText>
+	</div>
+
 	<MudTable ServerData="LoadContracts" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary"
 		GroupBy="@groupContractsDefinition"
 		GroupHeaderClass="table-group-header"

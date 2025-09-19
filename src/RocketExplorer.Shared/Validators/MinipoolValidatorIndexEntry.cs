@@ -13,4 +13,7 @@ public record class MinipoolValidatorIndexEntry
 
 	[Key(2)]
 	public byte[]? PubKey { get; init; }
+
+	[Key(3)]
+	public long? ValidatorIndex { get; init; }
 }

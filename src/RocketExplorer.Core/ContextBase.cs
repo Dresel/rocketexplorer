@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using Microsoft.Extensions.Logging;
 using Nethereum.Web3;
 using Polly;
+using RocketExplorer.Core.BeaconChain;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Shared.Contracts;
@@ -10,6 +11,8 @@ namespace RocketExplorer.Core;
 
 public class ContextBase
 {
+	public required BeaconChainService BeaconChainService { get; set; }
+
 	public required ReadOnlyDictionary<string, RocketPoolContract> Contracts { get; init; }
 
 	public required long CurrentBlockHeight { get; set; }

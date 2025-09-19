@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Web3;
 using RocketExplorer.Core;
+using RocketExplorer.Core.BeaconChain;
 using RocketExplorer.Core.Contracts;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Core.Tokens;
@@ -37,6 +38,12 @@ IHost host = Host.CreateDefaultBuilder(args)
 			throw new InvalidOperationException("Environment is null");
 
 		services.Configure<SyncOptions>(context.Configuration.GetSection(environment));
+
+		services.AddTransient<BeaconChainService>(provider => new BeaconChainService(
+			new HttpClient
+			{
+				BaseAddress = new Uri(provider.GetRequiredService<IOptions<SyncOptions>>().Value.BeaconChainUrl),
+			}));
 
 		services.AddTransient<ContractsSync>();
 		services.AddTransient<TokensSync>();
@@ -87,6 +94,10 @@ else
 
 BlockWithTransactions latestBlock =
 	await web3.Eth.Blocks.GetBlockWithTransactionsByNumber.SendRequestAsync(BlockParameter.CreateLatest());
+latestBlock = await web3.Eth.Blocks
+	.GetBlockWithTransactionsByNumber
+	.SendRequestAsync(new BlockParameter((ulong)(latestBlock.Number.Value - 12)));
+
 logger.LogInformation("Latest block: {Block}", latestBlock.Number);
 
 RocketStorageService rocketStorage = new(web3, options.RocketStorageContractAddress);
@@ -130,9 +141,11 @@ DashboardInfo dashboardInfo = new()
 	RPLMegapoolStakedTotal = dashboardSnapshot.Data.RPLMegapoolStakedTotal,
 };
 
+BeaconChainService beaconChainService = host.Services.GetRequiredService<BeaconChainService>();
+
 ContractsSync contracts = host.Services.GetRequiredService<ContractsSync>();
 await contracts.HandleBlocksAsync(
-	web3, rocketStorage, new Dictionary<string, RocketPoolContract>().AsReadOnly(), dashboardInfo,
+	web3, beaconChainService, rocketStorage, new Dictionary<string, RocketPoolContract>().AsReadOnly(), dashboardInfo,
 	(long)latestBlock.Number.Value);
 
 BlobObject<ContractsSnapshot> snapshot =
@@ -141,12 +154,12 @@ BlobObject<ContractsSnapshot> snapshot =
 
 TokensSync tokens = host.Services.GetRequiredService<TokensSync>();
 await tokens.HandleBlocksAsync(
-	web3, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
+	web3, beaconChainService, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
 	dashboardInfo, (long)latestBlock.Number.Value);
 
 NodesSync nodes = host.Services.GetRequiredService<NodesSync>();
 await nodes.HandleBlocksAsync(
-	web3, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
+	web3, beaconChainService, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
 	dashboardInfo, (long)latestBlock.Number.Value);
 
 logger.LogInformation("Writing {snapshot}", Keys.DashboardSnapshot);

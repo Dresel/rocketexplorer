@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Nethereum.Contracts;
 using Nethereum.Util;
 using Nethereum.Web3;
+using RocketExplorer.Core.BeaconChain;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
@@ -95,7 +96,7 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 	}
 
 	protected override async Task<TokensSyncContext> LoadContextAsync(
-		Web3 web3, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts,
+		Web3 web3, BeaconChainService beaconChainService, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts,
 		DashboardInfo dashboardInfo,
 		CancellationToken cancellationToken = default)
 	{
@@ -194,6 +195,7 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 			Policy = Policy,
 			Logger = Logger,
 			Web3 = web3,
+			BeaconChainService = beaconChainService,
 			DashboardInfo = dashboardInfo,
 			CurrentBlockHeight = rplSnapshot.ProcessedBlockNumber,
 			RocketStorage = rocketStorage,

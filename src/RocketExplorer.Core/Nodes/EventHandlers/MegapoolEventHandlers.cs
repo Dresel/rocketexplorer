@@ -78,6 +78,23 @@ public class MegapoolEventHandlers
 			return;
 		}
 
+		RocketMegapoolDelegateService megapoolDelegate = new(context.Web3, megapoolAddress);
+
+		GetValidatorInfoOutputDTO validatorInfo = await megapoolDelegate.GetValidatorInfoQueryAsync(
+			(uint)validatorId, new BlockParameter(eventLog.Log.BlockNumber));
+
+		context.ValidatorInfo.Data.MegapoolValidatorIndex[(megapoolAddress, validatorId)] =
+			context.ValidatorInfo.Data.MegapoolValidatorIndex[(megapoolAddress, validatorId)] with
+			{
+				ValidatorIndex = (long)validatorInfo.ReturnValue1.ValidatorIndex,
+			};
+
+		context.ValidatorInfo.Partial.UpdatedMegapoolValidators[(megapoolAddress, validatorId)] =
+			context.ValidatorInfo.Partial.UpdatedMegapoolValidators[(megapoolAddress, validatorId)] with
+			{
+				ValidatorIndex = (long)validatorInfo.ReturnValue1.ValidatorIndex,
+			};
+
 		context.DashboardInfo.MegapoolValidatorsStaking++;
 	}
 
@@ -101,6 +118,7 @@ public class MegapoolEventHandlers
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
+			return;
 		}
 	}
 
@@ -150,6 +168,7 @@ public class MegapoolEventHandlers
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
+			return;
 		}
 	}
 
@@ -231,6 +250,7 @@ public class MegapoolEventHandlers
 			MegapoolAddress = megapoolAddress.HexToByteArray(),
 			MegapoolIndex = eventValidatorId,
 			PubKey = pubKey,
+			ValidatorIndex = null,
 		};
 
 		context.ValidatorInfo.Data.MegapoolValidatorIndex.Add(
@@ -250,6 +270,7 @@ public class MegapoolEventHandlers
 			MegapoolAddress = entry.MegapoolAddress,
 			MegapoolIndex = entry.MegapoolIndex,
 			PubKey = entry.PubKey,
+			ValidatorIndex = entry.ValidatorIndex,
 			ExpressTicketUsed = validatorInfo.ReturnValue1.ExpressUsed,
 			Status = ValidatorStatus.Created,
 			Bond = 4, // TODO: Saturn2

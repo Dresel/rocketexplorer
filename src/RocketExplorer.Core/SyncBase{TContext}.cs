@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Web3;
 using Polly.Retry;
+using RocketExplorer.Core.BeaconChain;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Shared.Contracts;
@@ -23,11 +24,11 @@ public abstract class SyncBase<TContext>(IOptions<SyncOptions> options, Storage 
 	protected Storage Storage { get; set; } = storage;
 
 	public async Task HandleBlocksAsync(
-		Web3 web3, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts,
+		Web3 web3, BeaconChainService beaconChainService, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts,
 		DashboardInfo dashboardInfo,
 		long latestBlock, CancellationToken cancellationToken = default)
 	{
-		TContext context = await LoadContextAsync(web3, rocketStorage, contracts, dashboardInfo, cancellationToken);
+		TContext context = await LoadContextAsync(web3, beaconChainService, rocketStorage, contracts, dashboardInfo, cancellationToken);
 
 		if (context.CurrentBlockHeight == latestBlock)
 		{
@@ -63,7 +64,7 @@ public abstract class SyncBase<TContext>(IOptions<SyncOptions> options, Storage 
 		CancellationToken cancellationToken = default);
 
 	protected abstract Task<TContext> LoadContextAsync(
-		Web3 web3, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts,
+		Web3 web3, BeaconChainService beaconChainService, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts,
 		DashboardInfo dashboardInfo,
 		CancellationToken cancellationToken = default);
 

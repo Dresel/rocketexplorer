@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using Nethereum.Util;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Shared.Contracts;
 
@@ -15,6 +14,8 @@ public class ContractsSyncContext : ContextBase
 			Ethereum.Contracts.Names.Select(x => new KeyValuePair<byte[], string>(x.Sha3(), x)),
 			new FastByteArrayComparer())
 		.AsReadOnly();
+
+	public required string? ProtocolVersion { get; set; }
 
 	public required List<string> TrustedUpgradeContractAddress { get; init; }
 

@@ -63,11 +63,13 @@ public class MinipoolEventHandlers
 	public static async Task HandleAsync(
 		NodesSyncContext context, EventLog<MinipoolDequeuedEventDTO> eventLog, CancellationToken cancellationToken)
 	{
+		string minipoolAddress = eventLog.Event.Minipool;
+
 		MinipoolUpdatedEvent updatedEvent = new()
 		{
 			Log = eventLog.Log,
 			Time = eventLog.Event.Time,
-			MinipoolAddress = eventLog.Event.Minipool,
+			MinipoolAddress = minipoolAddress,
 			Status = ValidatorStatus.Dequeued,
 		};
 
@@ -77,6 +79,21 @@ public class MinipoolEventHandlers
 		{
 			return;
 		}
+
+		long validatorIndex = await context.BeaconChainService.GetValidatorIndex(
+			context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress].PubKey!) ?? throw new InvalidOperationException();
+
+		context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress] =
+			context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress] with
+			{
+				ValidatorIndex = validatorIndex,
+			};
+
+		context.ValidatorInfo.Partial.UpdatedMinipoolValidators[minipoolAddress] =
+			context.ValidatorInfo.Partial.UpdatedMinipoolValidators[minipoolAddress] with
+			{
+				ValidatorIndex = validatorIndex,
+			};
 
 		context.DashboardInfo.QueueLength--;
 
@@ -163,7 +180,7 @@ public class MinipoolEventHandlers
 	{
 		string minipoolAddress = eventLog.Log.Address;
 
-		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(
+		await EventMinipoolValidatorUpdateAsync(
 			context, new MinipoolUpdatedEvent
 			{
 				Log = eventLog.Log,

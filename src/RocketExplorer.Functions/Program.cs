@@ -4,7 +4,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using RocketExplorer.Core;
+using RocketExplorer.Core.BeaconChain;
 using RocketExplorer.Core.Contracts;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Core.Tokens;
@@ -31,6 +33,12 @@ IHostBuilder builder = new HostBuilder()
 			throw new InvalidOperationException("RocketEnvironment is null");
 
 		services.Configure<SyncOptions>(context.Configuration.GetSection(environment));
+
+		services.AddTransient<BeaconChainService>(provider => new BeaconChainService(
+			new HttpClient
+			{
+				BaseAddress = new Uri(provider.GetRequiredService<IOptions<SyncOptions>>().Value.BeaconChainUrl),
+			}));
 
 		services.AddTransient<ContractsSync>();
 		services.AddTransient<TokensSync>();

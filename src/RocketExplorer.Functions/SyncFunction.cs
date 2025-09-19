@@ -1,11 +1,13 @@
 using System.Net.Http.Headers;
 using System.Text;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Web3;
 using RocketExplorer.Core;
+using RocketExplorer.Core.BeaconChain;
 using RocketExplorer.Core.Contracts;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Core.Tokens;
@@ -22,14 +24,16 @@ public class SyncFunction
 	private readonly NodesSync nodes;
 	private readonly SyncOptions options;
 	private readonly Storage storage;
+	private readonly BeaconChainService beaconChainService;
 	private readonly TokensSync tokens;
 
 	public SyncFunction(
-		IOptions<SyncOptions> options, Storage storage, ContractsSync contracts, TokensSync tokens, NodesSync nodes,
+		IOptions<SyncOptions> options, Storage storage, BeaconChainService beaconChainService, ContractsSync contracts, TokensSync tokens, NodesSync nodes,
 		ILogger<SyncFunction> logger)
 	{
 		this.options = options.Value;
 		this.storage = storage;
+		this.beaconChainService = beaconChainService;
 		this.contracts = contracts;
 		this.tokens = tokens;
 		this.nodes = nodes;
@@ -58,7 +62,9 @@ public class SyncFunction
 
 		BlockWithTransactions latestBlock =
 			await web3.Eth.Blocks.GetBlockWithTransactionsByNumber.SendRequestAsync(BlockParameter.CreateLatest());
-		this.logger.LogInformation("Latest block: {Block}", latestBlock.Number);
+		latestBlock = await web3.Eth.Blocks
+			.GetBlockWithTransactionsByNumber
+			.SendRequestAsync(new BlockParameter((ulong)(latestBlock.Number.Value - 12)));
 
 		RocketStorageService rocketStorage = new(web3, this.options.RocketStorageContractAddress);
 
@@ -101,7 +107,7 @@ public class SyncFunction
 		};
 
 		await this.contracts.HandleBlocksAsync(
-			web3, rocketStorage, new Dictionary<string, RocketPoolContract>().AsReadOnly(), dashboardInfo,
+			web3, beaconChainService, rocketStorage,  new Dictionary<string, RocketPoolContract>().AsReadOnly(), dashboardInfo,
 			(long)latestBlock.Number.Value);
 
 		BlobObject<ContractsSnapshot> snapshot =
@@ -109,11 +115,11 @@ public class SyncFunction
 			throw new InvalidOperationException("Cannot read contracts snapshot from storage.");
 
 		await this.tokens.HandleBlocksAsync(
-			web3, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
+			web3, beaconChainService, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
 			dashboardInfo, (long)latestBlock.Number.Value);
 
 		await this.nodes.HandleBlocksAsync(
-			web3, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
+			web3, beaconChainService, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
 			dashboardInfo, (long)latestBlock.Number.Value);
 
 		this.logger.LogInformation("Writing {snapshot}", Keys.DashboardSnapshot);

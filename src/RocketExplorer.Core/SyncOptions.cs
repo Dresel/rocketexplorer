@@ -2,6 +2,8 @@ namespace RocketExplorer.Core;
 
 public class SyncOptions
 {
+	public required string BeaconChainUrl { get; set; } = string.Empty;
+
 	public required string Environment { get; init; }
 
 	public required string RocketStorageContractAddress { get; init; }

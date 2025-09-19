@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Nethereum.Contracts;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Web3;
+using RocketExplorer.Core.BeaconChain;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade.ContractDefinition;
@@ -57,7 +58,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 	}
 
 	protected override async Task<ContractsSyncContext> LoadContextAsync(
-		Web3 web3, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts, DashboardInfo dashboardInfo,
+		Web3 web3, BeaconChainService beaconChainService, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts, DashboardInfo dashboardInfo,
 		CancellationToken cancellationToken = default)
 	{
 		Logger.LogInformation("Loading {snapshot}", Keys.ContractsSnapshotKey);
@@ -69,6 +70,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 				ProcessedBlockNumber = 0,
 				Data = new ContractsSnapshot
 				{
+					ProtocolVersion = null,
 					Contracts = [],
 					UpgradeContracts = [],
 				},
@@ -80,10 +82,12 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 			Policy = Policy,
 			Logger = Logger,
 			Web3 = web3,
+			BeaconChainService = beaconChainService,
 			CurrentBlockHeight = snapshot.ProcessedBlockNumber,
 			RocketStorage = rocketStorage,
 			Contracts = contracts,
 			DashboardInfo = dashboardInfo,
+			ProtocolVersion = snapshot.Data.ProtocolVersion,
 			TrustedUpgradeContractAddress = snapshot.Data.Contracts.SingleOrDefault(x => x.Name == "rocketDAONodeTrustedUpgrade")?.Versions.Select(x => x.Address).ToList() ?? [],
 			ContextContracts = snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x),
 			ContextUpgradeContracts = snapshot.Data.UpgradeContracts.ToDictionary(x => x.Name, x => x),
@@ -107,6 +111,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 							? int.MaxValue
 							: Array.IndexOf(Ethereum.Contracts.Names, x.Name)).ToArray(),
 					UpgradeContracts = context.ContextUpgradeContracts.Values.ToArray(),
+					ProtocolVersion = context.ProtocolVersion,
 				},
 			}, cancellationToken: cancellationToken);
 	}
@@ -278,11 +283,28 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 			Logger.LogWarning("Executed property not found for upgrade contract {ContractName}", activationMethod);
 		}
 
+		if (executionHeight is null)
+		{
+			executionHeight = await Helper.FindFirstBlock(
+				blockParameter => Policy.ExecuteAsync(async () =>
+				{
+					string version = await context.RocketStorage.GetStringQueryAsync("protocol.version".Sha3(), blockParameter);
+
+					return !string.IsNullOrWhiteSpace(version) &&
+						context.ProtocolVersion?.Equals(version, StringComparison.OrdinalIgnoreCase) != true;
+				}),
+				activationHeight,
+				latestBlock,
+				TimeSpan.FromDays(1).BlockCount());
+		}
+
 		if (executionHeight == null)
 		{
-			Logger.LogInformation("Execution block not found");
+			Logger.LogInformation("Neither execution block nor version change found");
 			return false;
 		}
+
+		context.ProtocolVersion = await context.RocketStorage.GetStringQueryAsync("protocol.version".Sha3(), new BlockParameter((ulong)executionHeight));
 
 		Logger.LogInformation("Executed in block {Block}", executionHeight);
 

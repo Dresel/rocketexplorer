@@ -36,6 +36,7 @@ public class MinipoolCreatedEventHandler
 			NodeAddress = nodeOperatorAddress.HexToByteArray(),
 			MinipoolAddress = @event.Minipool.HexToByteArray(),
 			PubKey = null,
+			ValidatorIndex = null,
 		};
 
 		context.ValidatorInfo.Data.MinipoolValidatorIndex.Add(@event.Minipool, entry);
@@ -46,6 +47,7 @@ public class MinipoolCreatedEventHandler
 				NodeAddress = entry.NodeAddress,
 				MinipoolAddress = entry.MinipoolAddress,
 				PubKey = entry.PubKey,
+				ValidatorIndex = entry.ValidatorIndex,
 				Status = ValidatorStatus.Created,
 				Bond = (float)UnitConversion.Convert.FromWei(
 					await minipoolDelegate.GetNodeDepositBalanceQueryAsync(

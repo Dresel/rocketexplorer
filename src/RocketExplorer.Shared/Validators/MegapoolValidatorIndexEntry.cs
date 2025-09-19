@@ -16,4 +16,7 @@ public record class MegapoolValidatorIndexEntry
 
 	[Key(3)]
 	public required byte[] PubKey { get; init; }
+
+	[Key(4)]
+	public required long? ValidatorIndex { get; init; }
 }

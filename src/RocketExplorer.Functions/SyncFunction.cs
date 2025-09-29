@@ -1,7 +1,7 @@
+using System.Collections.ObjectModel;
 using System.Net.Http.Headers;
 using System.Text;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.RPC.Eth.DTOs;
@@ -19,16 +19,18 @@ namespace RocketExplorer.Functions;
 
 public class SyncFunction
 {
+	private readonly BeaconChainService beaconChainService;
 	private readonly ContractsSync contracts;
+	private readonly GlobalIndexService globalIndexService;
 	private readonly ILogger logger;
 	private readonly NodesSync nodes;
 	private readonly SyncOptions options;
 	private readonly Storage storage;
-	private readonly BeaconChainService beaconChainService;
 	private readonly TokensSync tokens;
 
 	public SyncFunction(
-		IOptions<SyncOptions> options, Storage storage, BeaconChainService beaconChainService, ContractsSync contracts, TokensSync tokens, NodesSync nodes,
+		IOptions<SyncOptions> options, Storage storage, BeaconChainService beaconChainService,
+		GlobalIndexService globalIndexService, ContractsSync contracts, TokensSync tokens, NodesSync nodes,
 		ILogger<SyncFunction> logger)
 	{
 		this.options = options.Value;
@@ -38,6 +40,7 @@ public class SyncFunction
 		this.tokens = tokens;
 		this.nodes = nodes;
 		this.logger = logger;
+		this.globalIndexService = globalIndexService;
 	}
 
 	[Function("SyncFunction")]
@@ -66,9 +69,9 @@ public class SyncFunction
 			.GetBlockWithTransactionsByNumber
 			.SendRequestAsync(new BlockParameter((ulong)(latestBlock.Number.Value - 12)));
 
-		RocketStorageService rocketStorage = new(web3, this.options.RocketStorageContractAddress);
+		this.logger.LogInformation("Latest block: {Block}", latestBlock.Number);
 
-		////await storage.WriteCorsConfigurationAsync();
+		RocketStorageService rocketStorage = new(web3, this.options.RocketStorageContractAddress);
 
 		this.logger.LogInformation("Loading {snapshot}", Keys.DashboardSnapshot);
 
@@ -106,21 +109,35 @@ public class SyncFunction
 			RPLMegapoolStakedTotal = dashboardSnapshot.Data.RPLMegapoolStakedTotal,
 		};
 
-		await this.contracts.HandleBlocksAsync(
-			web3, beaconChainService, rocketStorage, new Dictionary<string, RocketPoolContract>().AsReadOnly(), dashboardInfo,
-			(long)latestBlock.Number.Value);
+		ContextBase contextBase = new()
+		{
+			Storage = this.storage,
+			RocketStorage = rocketStorage,
+			BeaconChainService = this.beaconChainService,
+			Contracts =
+				new ReadOnlyDictionary<string, RocketPoolContract>(new Dictionary<string, RocketPoolContract>()),
+			CurrentBlockHeight = 0,
+			GlobalIndexService = this.globalIndexService,
+			DashboardInfo = dashboardInfo,
+			Logger = this.logger,
+			Policy = NethereumPolicies.Retry(this.logger),
+			Web3 = web3,
+			LatestBlockHeight = (long)latestBlock.Number.Value,
+		};
+
+		await this.contracts.HandleBlocksAsync(contextBase);
 
 		BlobObject<ContractsSnapshot> snapshot =
 			await this.storage.ReadAsync<ContractsSnapshot>(Keys.ContractsSnapshotKey) ??
 			throw new InvalidOperationException("Cannot read contracts snapshot from storage.");
 
-		await this.tokens.HandleBlocksAsync(
-			web3, beaconChainService, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
-			dashboardInfo, (long)latestBlock.Number.Value);
+		contextBase = contextBase with
+		{
+			Contracts = snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
+		};
 
-		await this.nodes.HandleBlocksAsync(
-			web3, beaconChainService, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
-			dashboardInfo, (long)latestBlock.Number.Value);
+		await this.tokens.HandleBlocksAsync(contextBase);
+		await this.nodes.HandleBlocksAsync(contextBase);
 
 		this.logger.LogInformation("Writing {snapshot}", Keys.DashboardSnapshot);
 		await this.storage.WriteAsync(
@@ -134,12 +151,12 @@ public class SyncFunction
 					RPLTotalSupply = dashboardInfo.RPLSupplyTotal,
 					RETHTotalSupply = dashboardInfo.RETHSupplyTotal,
 					RPLSwapped = dashboardInfo.RPLSwappedTotal,
+					RPLLegacyStakedTotal = dashboardInfo.RPLLegacyStakedTotal,
+					RPLMegapoolStakedTotal = dashboardInfo.RPLMegapoolStakedTotal,
 					NodeOperators = dashboardInfo.NodeOperators,
 					MinipoolValidatorsStaking = dashboardInfo.MinipoolValidatorsStaking,
 					MegapoolValidatorsStaking = dashboardInfo.MegapoolValidatorsStaking,
 					QueueLength = dashboardInfo.QueueLength,
-					RPLLegacyStakedTotal = dashboardInfo.RPLLegacyStakedTotal,
-					RPLMegapoolStakedTotal = dashboardInfo.RPLMegapoolStakedTotal,
 				},
 			});
 
@@ -154,5 +171,8 @@ public class SyncFunction
 					Timestamp = (long)latestBlock.Timestamp.Value,
 				},
 			}, 10);
+
+		this.logger.LogInformation("Writing global index shards");
+		await contextBase.GlobalIndexService.WriteAsync((long)latestBlock.Number.Value);
 	}
 }

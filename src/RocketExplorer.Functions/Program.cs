@@ -40,6 +40,8 @@ IHostBuilder builder = new HostBuilder()
 				BaseAddress = new Uri(provider.GetRequiredService<IOptions<SyncOptions>>().Value.BeaconChainUrl),
 			}));
 
+		services.AddTransient<GlobalIndexService>();
+
 		services.AddTransient<ContractsSync>();
 		services.AddTransient<TokensSync>();
 		services.AddTransient<NodesSync>();

@@ -69,6 +69,10 @@ html, body {
 	}
 }
 
+header .mud-icon-button {
+	padding: 6px;
+}
+
 header .mud-autocomplete {
 	width: 400px;
 	max-width: 400px;

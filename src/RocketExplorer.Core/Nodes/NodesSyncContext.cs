@@ -3,7 +3,7 @@ using RocketExplorer.Ethereum.RocketNodeManager;
 
 namespace RocketExplorer.Core.Nodes;
 
-public class NodesSyncContext : ContextBase
+public record class NodesSyncContext : ContextBase
 {
 	public required NodeInfo Nodes { get; init; }
 

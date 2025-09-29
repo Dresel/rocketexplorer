@@ -1,6 +1,6 @@
 namespace RocketExplorer.Core.Tokens;
 
-public class TokensSyncContext : ContextBase
+public record class TokensSyncContext : ContextBase
 {
 	public required string[] PostSaturn1RocketNodeStakingAddresses { get; set; }
 

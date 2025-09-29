@@ -1,3 +1,4 @@
+using System.Globalization;
 using Nethereum.Contracts;
 using Nethereum.Hex.HexConvertors.Extensions;
 using RocketExplorer.Ethereum;
@@ -95,6 +96,14 @@ public class MinipoolEventHandlers
 				ValidatorIndex = validatorIndex,
 			};
 
+		await context.GlobalIndexService.AddOrUpdateEntryAsync(
+			minipoolAddress.HexToByteArray(), validatorIndex.ToString(CultureInfo.InvariantCulture),
+			x =>
+			{
+				x.Type |= IndexEntryType.MinipoolValidator;
+				x.ValidatorIndex = validatorIndex;
+			}, cancellationToken);
+
 		context.DashboardInfo.QueueLength--;
 
 		if ("minipools.available.half".Sha3().SequenceEqual(eventLog.Event.QueueId))
@@ -172,6 +181,14 @@ public class MinipoolEventHandlers
 			{
 				PubKey = eventLog.Event.ValidatorPubkey,
 			});
+
+		await context.GlobalIndexService.AddOrUpdateEntryAsync(
+			minipoolAddress.HexToByteArray(), eventLog.Event.ValidatorPubkey.ToHex(),
+			x =>
+			{
+				x.Type |= IndexEntryType.MinipoolValidator;
+				x.ValidatorPubKey = eventLog.Event.ValidatorPubkey;
+			}, cancellationToken);
 	}
 
 	public static async Task HandleAsync(

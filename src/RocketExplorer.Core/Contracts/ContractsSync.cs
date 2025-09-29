@@ -1,40 +1,36 @@
-using System.Collections.ObjectModel;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Contracts;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Web3;
-using RocketExplorer.Core.BeaconChain;
-using RocketExplorer.Core.Nodes;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade.ContractDefinition;
-using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Shared;
 using RocketExplorer.Shared.Contracts;
 
 namespace RocketExplorer.Core.Contracts;
 
-public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogger<ContractsSync> logger)
-	: SyncBase<ContractsSyncContext>(options, storage, logger)
+public class ContractsSync(IOptions<SyncOptions> options)
+	: SyncBase<ContractsSyncContext>(options)
 {
 	protected override async Task BeforeHandleBlocksAsync(
-		ContractsSyncContext context, long latestBlock, CancellationToken cancellationToken)
+		ContractsSyncContext context, CancellationToken cancellationToken)
 	{
 		if (context.CurrentBlockHeight == 0)
 		{
-			await ProcessBootstrapContractsAsync(context, latestBlock);
+			await ProcessBootstrapContractsAsync(context);
 		}
 
-		await ContinueProcessingUpgradeContractsAsync(context, latestBlock);
+		await ContinueProcessingUpgradeContractsAsync(context);
 	}
 
 	protected override async Task HandleBlocksAsync(
-		ContractsSyncContext context, long fromBlock, long toBlock, long latestBlock,
+		ContractsSyncContext context, long fromBlock, long toBlock,
 		CancellationToken cancellationToken = default)
 	{
 		IEnumerable<IEventLog> nodeAddedEvents = await context.Web3.FilterAsync(
 			fromBlock, toBlock, [typeof(ContractAddedEventDTO), typeof(ContractUpgradedEventDTO),],
-			context.TrustedUpgradeContractAddress, Policy);
+			context.TrustedUpgradeContractAddress, context.Policy);
 
 		bool updated = false;
 
@@ -42,29 +38,29 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 		{
 			updated |= await eventLog.WhenIsAsync<ContractAddedEventDTO, bool>(
 				(@event, log, _) => ProcessContractAddedEventAsync(
-					context, @event.Name, @event.NewAddress, (long)log.BlockNumber.Value, latestBlock),
+					context, @event.Name, @event.NewAddress, (long)log.BlockNumber.Value),
 				cancellationToken);
 
 			updated |= await eventLog.WhenIsAsync<ContractUpgradedEventDTO, bool>(
 				(@event, log, _) => ProcessContractAddedEventAsync(
-					context, @event.Name, @event.NewAddress, (long)log.BlockNumber.Value, latestBlock),
+					context, @event.Name, @event.NewAddress, (long)log.BlockNumber.Value),
 				cancellationToken);
 		}
 
 		if (updated)
 		{
-			await HandleBlocksAsync(context, fromBlock, toBlock, latestBlock, cancellationToken);
+			await HandleBlocksAsync(context, fromBlock, toBlock, cancellationToken);
 		}
 	}
 
 	protected override async Task<ContractsSyncContext> LoadContextAsync(
-		Web3 web3, BeaconChainService beaconChainService, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts, DashboardInfo dashboardInfo,
+		ContextBase contextBase,
 		CancellationToken cancellationToken = default)
 	{
-		Logger.LogInformation("Loading {snapshot}", Keys.ContractsSnapshotKey);
+		contextBase.Logger.LogInformation("Loading {snapshot}", Keys.ContractsSnapshotKey);
 
 		BlobObject<ContractsSnapshot> snapshot =
-			await Storage.ReadAsync<ContractsSnapshot>(Keys.ContractsSnapshotKey, cancellationToken) ??
+			await contextBase.Storage.ReadAsync<ContractsSnapshot>(Keys.ContractsSnapshotKey, cancellationToken) ??
 			new BlobObject<ContractsSnapshot>
 			{
 				ProcessedBlockNumber = 0,
@@ -78,17 +74,23 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 
 		return new ContractsSyncContext
 		{
-			Storage = Storage,
-			Policy = Policy,
-			Logger = Logger,
-			Web3 = web3,
-			BeaconChainService = beaconChainService,
+			Storage = contextBase.Storage,
+			Policy = contextBase.Policy,
+			Logger = contextBase.Logger,
+			Web3 = contextBase.Web3,
+			BeaconChainService = contextBase.BeaconChainService,
+			GlobalIndexService = contextBase.GlobalIndexService,
+			DashboardInfo = contextBase.DashboardInfo,
+			RocketStorage = contextBase.RocketStorage,
+			Contracts = contextBase.Contracts,
+			LatestBlockHeight = contextBase.LatestBlockHeight,
+
 			CurrentBlockHeight = snapshot.ProcessedBlockNumber,
-			RocketStorage = rocketStorage,
-			Contracts = contracts,
-			DashboardInfo = dashboardInfo,
+
 			ProtocolVersion = snapshot.Data.ProtocolVersion,
-			TrustedUpgradeContractAddress = snapshot.Data.Contracts.SingleOrDefault(x => x.Name == "rocketDAONodeTrustedUpgrade")?.Versions.Select(x => x.Address).ToList() ?? [],
+			TrustedUpgradeContractAddress = snapshot.Data.Contracts
+				.SingleOrDefault(x => x.Name == "rocketDAONodeTrustedUpgrade")?.Versions.Select(x => x.Address)
+				.ToList() ?? [],
 			ContextContracts = snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x),
 			ContextUpgradeContracts = snapshot.Data.UpgradeContracts.ToDictionary(x => x.Name, x => x),
 		};
@@ -97,9 +99,9 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 	protected override async Task SaveContextAsync(
 		ContractsSyncContext context, CancellationToken cancellationToken = default)
 	{
-		Logger.LogInformation("Writing {snapshot}", Keys.ContractsSnapshotKey);
+		context.Logger.LogInformation("Writing {snapshot}", Keys.ContractsSnapshotKey);
 
-		await Storage.WriteAsync(
+		await context.Storage.WriteAsync(
 			Keys.ContractsSnapshotKey,
 			new BlobObject<ContractsSnapshot>
 			{
@@ -150,7 +152,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 		return versionFunction;
 	}
 
-	private async Task ContinueProcessingUpgradeContractsAsync(ContractsSyncContext context, long latestBlock)
+	private async Task ContinueProcessingUpgradeContractsAsync(ContractsSyncContext context)
 	{
 		foreach (var pair in context.ContextUpgradeContracts.SelectMany(
 						x => x.Value.Versions, (parent, contract) => new
@@ -160,21 +162,22 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 						})
 					.Where(x => !x.Contract.IsExecuted))
 		{
-			Logger.LogInformation("Continue processing upgrade contract {ContractName}", pair.Name);
+			context.Logger.LogInformation("Continue processing upgrade contract {ContractName}", pair.Name);
 
 			await ProcessUpgradeContractAsync(
 				context, pair.Contract,
 				blockParameter => GetExecutedFunction(context.Web3, pair.Contract.Address)
 					.CallAsync<bool>(blockParameter),
-				"rocketDAONodeTrustedUpgrade", context.CurrentBlockHeight, latestBlock);
+				"rocketDAONodeTrustedUpgrade", context.CurrentBlockHeight);
 		}
 	}
 
-	private async Task ProcessBootstrapContractsAsync(ContractsSyncContext context, long latestBlock)
+	private async Task ProcessBootstrapContractsAsync(ContractsSyncContext context)
 	{
 		long rocketPoolDeployedBlock =
-			(long)await Policy.ExecuteAsync(() => context.RocketStorage.GetUintQueryAsync("deploy.block".Sha3()));
-		Logger.LogInformation("RocketPool Deployment Block: {Block}", rocketPoolDeployedBlock);
+			(long)await context.Policy.ExecuteAsync(() =>
+				context.RocketStorage.GetUintQueryAsync("deploy.block".Sha3()));
+		context.Logger.LogInformation("RocketPool Deployment Block: {Block}", rocketPoolDeployedBlock);
 
 		VersionedRocketPoolUpgradeContract upgradeContract = new()
 		{
@@ -196,14 +199,14 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 
 		_ = await ProcessUpgradeContractAsync(
 			context, upgradeContract, context.RocketStorage.GetDeployedStatusQueryAsync,
-			"bootstrap", rocketPoolDeployedBlock, latestBlock);
+			"bootstrap", rocketPoolDeployedBlock);
 
 		context.CurrentBlockHeight = rocketPoolDeployedBlock;
 	}
 
 	private async Task<bool> ProcessContractAddedEventAsync(
 		ContractsSyncContext context,
-		byte[] contractNameHash, string contractAddress, long currentBlock, long latestBlock)
+		byte[] contractNameHash, string contractAddress, long currentBlock)
 	{
 		if (context.UpgradeContractsMap.TryGetValue(contractNameHash, out string? upgradeContractName))
 		{
@@ -223,7 +226,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 				return false;
 			}
 
-			Logger.LogInformation("New upgrade contract found {ContractName}", upgradeContractName);
+			context.Logger.LogInformation("New upgrade contract found {ContractName}", upgradeContractName);
 
 			VersionedRocketPoolUpgradeContract upgradeContract = new()
 			{
@@ -246,67 +249,68 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 			return await ProcessUpgradeContractAsync(
 				context, upgradeContract,
 				blockParameter => GetExecutedFunction(context.Web3, contractAddress).CallAsync<bool>(blockParameter),
-				upgradeContractName, currentBlock, latestBlock);
+				upgradeContractName, currentBlock);
 		}
-		else if (context.ContractsMap.TryGetValue(contractNameHash, out string? contractName))
+
+		if (context.ContractsMap.TryGetValue(contractNameHash, out string? contractName))
 		{
 			return await UpdateContractAddressForBlockAsync(
 				context, contractAddress, contractName, "rocketDAONodeTrustedUpgrade", currentBlock);
 		}
-		else
-		{
-			// TODO: Might be an unknown update contract, check for execute first
-			Logger.LogWarning("Unknown contract with address {Address}", contractAddress);
-			return await UpdateContractAddressForBlockAsync(
-				context, contractAddress, $"unknown ({contractAddress[..6]})",
-				"rocketDAONodeTrustedUpgrade", currentBlock);
-		}
+
+		// TODO: Might be an unknown update contract, check for execute first
+		context.Logger.LogWarning("Unknown contract with address {Address}", contractAddress);
+		return await UpdateContractAddressForBlockAsync(
+			context, contractAddress, $"unknown ({contractAddress[..6]})",
+			"rocketDAONodeTrustedUpgrade", currentBlock);
 	}
 
 	private async Task<bool> ProcessUpgradeContractAsync(
 		ContractsSyncContext context, VersionedRocketPoolUpgradeContract upgradeContract,
-		Func<BlockParameter, Task<bool>> executionFunc, string activationMethod, long activationHeight,
-		long latestBlock)
+		Func<BlockParameter, Task<bool>> executionFunc, string activationMethod, long activationHeight)
 	{
 		long? executionHeight = null;
 
 		try
 		{
 			executionHeight = await Helper.FindFirstBlock(
-				blockParameter => Policy.ExecuteAsync(() => executionFunc(blockParameter)),
+				blockParameter => context.Policy.ExecuteAsync(() => executionFunc(blockParameter)),
 				activationHeight,
-				latestBlock,
+				context.LatestBlockHeight,
 				TimeSpan.FromDays(1).BlockCount());
 		}
 		catch
 		{
-			Logger.LogWarning("Executed property not found for upgrade contract {ContractName}", activationMethod);
+			context.Logger.LogWarning(
+				"Executed property not found for upgrade contract {ContractName}", activationMethod);
 		}
 
 		if (executionHeight is null)
 		{
 			executionHeight = await Helper.FindFirstBlock(
-				blockParameter => Policy.ExecuteAsync(async () =>
+				blockParameter => context.Policy.ExecuteAsync(async () =>
 				{
-					string version = await context.RocketStorage.GetStringQueryAsync("protocol.version".Sha3(), blockParameter);
+					string version = await context.RocketStorage.GetStringQueryAsync(
+						"protocol.version".Sha3(), blockParameter);
 
 					return !string.IsNullOrWhiteSpace(version) &&
 						context.ProtocolVersion?.Equals(version, StringComparison.OrdinalIgnoreCase) != true;
 				}),
 				activationHeight,
-				latestBlock,
+				context.LatestBlockHeight,
 				TimeSpan.FromDays(1).BlockCount());
 		}
 
 		if (executionHeight == null)
 		{
-			Logger.LogInformation("Neither execution block nor version change found");
+			context.Logger.LogInformation("Neither execution block nor version change found");
 			return false;
 		}
 
-		context.ProtocolVersion = await context.RocketStorage.GetStringQueryAsync("protocol.version".Sha3(), new BlockParameter((ulong)executionHeight));
+		context.ProtocolVersion = await context.RocketStorage.GetStringQueryAsync(
+			"protocol.version".Sha3(), new BlockParameter((ulong)executionHeight));
 
-		Logger.LogInformation("Executed in block {Block}", executionHeight);
+		context.Logger.LogInformation("Executed in block {Block}", executionHeight);
 
 		upgradeContract.ExecutionHeight = (long)executionHeight;
 		upgradeContract.IsExecuted = true;
@@ -315,7 +319,8 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 
 		foreach (string contractName in Ethereum.Contracts.Names)
 		{
-			rocketNodeDaoTrustedUpgradeUpdated |= await TryUpdateContractAddressForBlockAsync(context, contractName, activationMethod, (long)executionHeight);
+			rocketNodeDaoTrustedUpgradeUpdated |= await TryUpdateContractAddressForBlockAsync(
+				context, contractName, activationMethod, (long)executionHeight);
 		}
 
 		return rocketNodeDaoTrustedUpgradeUpdated;
@@ -324,7 +329,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 	private async Task<bool> TryUpdateContractAddressForBlockAsync(
 		ContractsSyncContext context, string contractName, string activationMethod, long currentBlock)
 	{
-		string address = await Policy.ExecuteAsync(() =>
+		string address = await context.Policy.ExecuteAsync(() =>
 			context.RocketStorage.GetAddressQueryAsync(contractName, new BlockParameter((ulong)currentBlock)));
 
 		if (address is null or "0x0000000000000000000000000000000000000000")
@@ -360,7 +365,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 			return false;
 		}
 
-		Logger.LogInformation("New Address for {ContractName} found: {Address}", contractName, address);
+		context.Logger.LogInformation("New Address for {ContractName} found: {Address}", contractName, address);
 
 		byte? version = null;
 
@@ -371,7 +376,7 @@ public class ContractsSync(IOptions<SyncOptions> options, Storage storage, ILogg
 		}
 		catch
 		{
-			logger.LogInformation("No version for {ContractName} found", contractName);
+			context.Logger.LogInformation("No version for {ContractName} found", contractName);
 		}
 
 		context.ContextContracts[contractName] = context.ContextContracts[contractName] with

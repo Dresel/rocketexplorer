@@ -4,6 +4,7 @@ using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Util;
 using RocketExplorer.Ethereum.RocketTokenRPL.ContractDefinition;
+using RocketExplorer.Shared;
 using TransferEventDTO = Nethereum.Contracts.Standards.ERC20.ContractDefinition.TransferEventDTO;
 
 namespace RocketExplorer.Core.Tokens;
@@ -15,12 +16,16 @@ public class TokenEventHandlers
 		CancellationToken cancellationToken = default)
 	{
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
-		context.RPLOldTokenInfo.SwappedDaily[key] = context.RPLOldTokenInfo.SwappedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
-		context.RPLOldTokenInfo.SwappedTotal[key] = context.RPLOldTokenInfo.SwappedTotal.GetLatestValueOrDefault() + eventLog.Event.Amount;
+		context.RPLOldTokenInfo.SwappedDaily[key] =
+			context.RPLOldTokenInfo.SwappedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
+		context.RPLOldTokenInfo.SwappedTotal[key] =
+			context.RPLOldTokenInfo.SwappedTotal.GetLatestValueOrDefault() + eventLog.Event.Amount;
 
 		// RPLv1 tokens are irreversible stored in the RocketTokenRPL contract so we could interpret this as a supply reduction / burn
-		context.RPLOldTokenInfo.SupplyTotal[key] = context.RPLOldTokenInfo.SupplyTotal.GetLatestValueOrDefault() - eventLog.Event.Amount;
-		context.RPLOldTokenInfo.BurnsDaily[key] = context.RPLOldTokenInfo.SwappedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
+		context.RPLOldTokenInfo.SupplyTotal[key] =
+			context.RPLOldTokenInfo.SupplyTotal.GetLatestValueOrDefault() - eventLog.Event.Amount;
+		context.RPLOldTokenInfo.BurnsDaily[key] =
+			context.RPLOldTokenInfo.SwappedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
 
 		context.DashboardInfo.RPLSwappedTotal = context.RPLOldTokenInfo.SwappedTotal.GetLatestValueOrDefault();
 
@@ -31,7 +36,7 @@ public class TokenEventHandlers
 		TokensSyncContext context, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
-		await HandleAsync(context, context.RETHTokenInfo, eventLog, cancellationToken);
+		await HandleAsync(context, context.RETHTokenInfo, TokenType.RETH, eventLog, cancellationToken);
 
 		context.DashboardInfo.RETHSupplyTotal = context.RETHTokenInfo.SupplyTotal.GetLatestValueOrDefault();
 	}
@@ -40,7 +45,7 @@ public class TokenEventHandlers
 		TokensSyncContext context, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
-		await HandleAsync(context, context.RPLTokenInfo, eventLog, cancellationToken);
+		await HandleAsync(context, context.RPLTokenInfo, TokenType.RPL, eventLog, cancellationToken);
 
 		context.DashboardInfo.RPLSupplyTotal = context.RPLTokenInfo.SupplyTotal.GetLatestValueOrDefault();
 	}
@@ -49,14 +54,14 @@ public class TokenEventHandlers
 		TokensSyncContext context, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
-		await HandleAsync(context, context.RPLOldTokenInfo, eventLog, cancellationToken);
+		await HandleAsync(context, context.RPLOldTokenInfo, TokenType.RPLOld, eventLog, cancellationToken);
 
 		context.DashboardInfo.RPLOldSupplyTotal = context.RPLOldTokenInfo.SupplyTotal.GetLatestValueOrDefault();
 	}
 
 	private static async Task HandleAsync(
 		TokensSyncContext context,
-		TokenInfo tokenInfo, EventLog<TransferEventDTO> eventLog,
+		TokenInfo tokenInfo, TokenType tokenType, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
 		if (!eventLog.Event.From.IsTheSameAddress(AddressUtil.ZERO_ADDRESS))
@@ -66,6 +71,21 @@ public class TokenEventHandlers
 			if (balance.IsZero)
 			{
 				tokenInfo.Holders.Remove(eventLog.Event.From);
+
+				await context.GlobalIndexService.UpdateOrRemoveEntryAsync(
+					eventLog.Event.From.HexToByteArray(), eventLog.Event.From.RemoveHexPrefix(),
+					entry =>
+					{
+						IndexEntryType indexEntryType = tokenType switch
+						{
+							TokenType.RPL => IndexEntryType.RPLHolder,
+							TokenType.RPLOld => IndexEntryType.RPLOldHolder,
+							TokenType.RETH => IndexEntryType.RETHHolder,
+							_ => throw new InvalidOperationException("Unknown token type"),
+						};
+
+						entry.Type &= ~indexEntryType;
+					}, cancellationToken);
 			}
 			else
 			{
@@ -85,6 +105,22 @@ public class TokenEventHandlers
 
 		if (!eventLog.Event.To.IsTheSameAddress(AddressUtil.ZERO_ADDRESS))
 		{
+			if (!tokenInfo.Holders.ContainsKey(eventLog.Event.To))
+			{
+				await context.GlobalIndexService.AddOrUpdateEntryAsync(
+					eventLog.Event.To.HexToByteArray(), eventLog.Event.To.RemoveHexPrefix(),
+					entry =>
+					{
+						entry.Type |= tokenType switch
+						{
+							TokenType.RPL => IndexEntryType.RPLHolder,
+							TokenType.RPLOld => IndexEntryType.RPLOldHolder,
+							TokenType.RETH => IndexEntryType.RETHHolder,
+							_ => throw new InvalidOperationException("Unknown token type"),
+						};
+					}, cancellationToken);
+			}
+
 			tokenInfo.Holders[eventLog.Event.To] =
 				tokenInfo.Holders.GetValueOrDefault(eventLog.Event.To) + eventLog.Event.Value;
 		}

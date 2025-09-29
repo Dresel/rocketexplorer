@@ -107,7 +107,7 @@ public class SyncFunction
 		};
 
 		await this.contracts.HandleBlocksAsync(
-			web3, beaconChainService, rocketStorage,  new Dictionary<string, RocketPoolContract>().AsReadOnly(), dashboardInfo,
+			web3, beaconChainService, rocketStorage, new Dictionary<string, RocketPoolContract>().AsReadOnly(), dashboardInfo,
 			(long)latestBlock.Number.Value);
 
 		BlobObject<ContractsSnapshot> snapshot =

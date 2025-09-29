@@ -1,11 +1,8 @@
-using System.Collections.ObjectModel;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Contracts;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.Util;
-using Nethereum.Web3;
-using RocketExplorer.Core.BeaconChain;
 using RocketExplorer.Core.Nodes.EventHandlers;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition;
@@ -16,25 +13,23 @@ using RocketExplorer.Ethereum.RocketMinipoolQueue.ContractDefinition;
 using RocketExplorer.Ethereum.RocketNodeManager;
 using RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition;
 using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
-using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Shared;
-using RocketExplorer.Shared.Contracts;
 using RocketExplorer.Shared.Nodes;
 using RocketExplorer.Shared.Validators;
 using Validator = RocketExplorer.Shared.Validators.Validator;
 
 namespace RocketExplorer.Core.Nodes;
 
-public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<NodesSync> logger)
-	: SyncBase<NodesSyncContext>(options, storage, logger)
+public class NodesSync(IOptions<SyncOptions> options)
+	: SyncBase<NodesSyncContext>(options)
 {
 	protected override async Task HandleBlocksAsync(
-		NodesSyncContext context, long fromBlock, long toBlock, long latestBlock,
+		NodesSyncContext context, long fromBlock, long toBlock,
 		CancellationToken cancellationToken = default)
 	{
 		IEnumerable<IEventLog> nodeAddedEvents = await context.Web3.FilterAsync(
 			fromBlock, toBlock, [typeof(NodeRegisteredEventDTO),],
-			context.RocketNodeManagerAddresses, Policy);
+			context.RocketNodeManagerAddresses, context.Policy);
 
 		foreach (IEventLog eventLog in nodeAddedEvents)
 		{
@@ -47,7 +42,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				typeof(RPLLegacyStakedEventDto),
 				typeof(RPLOrRPLLegacyWithdrawnEventDTO),
 			],
-			context.PreSaturn1RocketNodeStakingAddresses, Policy);
+			context.PreSaturn1RocketNodeStakingAddresses, context.Policy);
 
 		foreach (IEventLog eventLog in preSaturn1StakingEvents)
 		{
@@ -64,7 +59,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				typeof(RPLStakedEventDTO),
 				typeof(RPLUnstakedEventDTO),
 			],
-			context.PostSaturn1RocketNodeStakingAddresses, Policy);
+			context.PostSaturn1RocketNodeStakingAddresses, context.Policy);
 
 		foreach (IEventLog eventLog in postSaturn1StakingEvents)
 		{
@@ -80,7 +75,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 
 		IEnumerable<IEventLog> minipoolCreatedEvents = await context.Web3.FilterAsync(
 			fromBlock, toBlock, [typeof(MinipoolCreatedEventDTO),],
-			context.ValidatorInfo.RocketMinipoolManagerAddresses, Policy);
+			context.ValidatorInfo.RocketMinipoolManagerAddresses, context.Policy);
 
 		foreach (IEventLog eventLog in minipoolCreatedEvents)
 		{
@@ -106,7 +101,7 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				////typeof(MinipoolPromotedEventDTO),
 				////typeof(MinipoolDestroyedEventDTO),
 				typeof(EtherWithdrawalProcessedEventDTO), // Exit
-			], [], Policy)).ToList();
+			], [], context.Policy)).ToList();
 
 		foreach (IEventLog eventLog in validatorEvents)
 		{
@@ -149,15 +144,14 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 	}
 
 	protected override async Task<NodesSyncContext> LoadContextAsync(
-		Web3 web3, BeaconChainService beaconChainService, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts,
-		DashboardInfo dashboardInfo,
+		ContextBase contextBase,
 		CancellationToken cancellationToken = default)
 	{
-		long activationHeight = contracts["rocketStorage"].Versions.Single().ActivationHeight;
+		long activationHeight = contextBase.Contracts["rocketStorage"].Versions.Single().ActivationHeight;
 
-		Logger.LogInformation("Loading {snapshot}", Keys.NodesSnapshot);
+		contextBase.Logger.LogInformation("Loading {snapshot}", Keys.NodesSnapshot);
 		BlobObject<NodesSnapshot> nodesSnapshot =
-			await Storage.ReadAsync<NodesSnapshot>(Keys.NodesSnapshot, cancellationToken) ??
+			await contextBase.Storage.ReadAsync<NodesSnapshot>(Keys.NodesSnapshot, cancellationToken) ??
 			new BlobObject<NodesSnapshot>
 			{
 				ProcessedBlockNumber = activationHeight,
@@ -169,9 +163,9 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				},
 			};
 
-		Logger.LogInformation("Loading {snapshot}", Keys.ValidatorSnapshot);
+		contextBase.Logger.LogInformation("Loading {snapshot}", Keys.ValidatorSnapshot);
 		BlobObject<ValidatorSnapshot> validatorSnapshot =
-			await Storage.ReadAsync<ValidatorSnapshot>(Keys.ValidatorSnapshot, cancellationToken) ??
+			await contextBase.Storage.ReadAsync<ValidatorSnapshot>(Keys.ValidatorSnapshot, cancellationToken) ??
 			new BlobObject<ValidatorSnapshot>
 			{
 				ProcessedBlockNumber = activationHeight,
@@ -182,9 +176,9 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				},
 			};
 
-		Logger.LogInformation("Loading {snapshot}", Keys.QueueSnapshot);
+		contextBase.Logger.LogInformation("Loading {snapshot}", Keys.QueueSnapshot);
 		BlobObject<QueueSnapshot> queueSnapshot =
-			await Storage.ReadAsync<QueueSnapshot>(Keys.QueueSnapshot, cancellationToken) ??
+			await contextBase.Storage.ReadAsync<QueueSnapshot>(Keys.QueueSnapshot, cancellationToken) ??
 			new BlobObject<QueueSnapshot>
 			{
 				ProcessedBlockNumber = activationHeight,
@@ -205,33 +199,57 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 
 		return new NodesSyncContext
 		{
-			Storage = Storage,
-			Policy = Policy,
-			Logger = Logger,
-			Web3 = web3,
-			BeaconChainService = beaconChainService,
+			Storage = contextBase.Storage,
+			Policy = contextBase.Policy,
+			Logger = contextBase.Logger,
+			Web3 = contextBase.Web3,
+			BeaconChainService = contextBase.BeaconChainService,
+			GlobalIndexService = contextBase.GlobalIndexService,
+			DashboardInfo = contextBase.DashboardInfo,
+			RocketStorage = contextBase.RocketStorage,
+			Contracts = contextBase.Contracts,
+			LatestBlockHeight = contextBase.LatestBlockHeight,
+
 			CurrentBlockHeight = nodesSnapshot.ProcessedBlockNumber,
-			RocketStorage = rocketStorage,
-			Contracts = contracts,
+
 			RocketNodeManager =
 				new RocketNodeManagerService(
-					web3, await Policy.ExecuteAsync(() => rocketStorage.GetAddressQueryAsync("rocketNodeManager"))),
+					contextBase.Web3,
+					await contextBase.Policy.ExecuteAsync(() =>
+						contextBase.RocketStorage.GetAddressQueryAsync("rocketNodeManager"))),
 			RocketMinipoolManager =
 				new RocketMinipoolManagerService(
-					web3, await Policy.ExecuteAsync(() => rocketStorage.GetAddressQueryAsync("rocketMinipoolManager"))),
-			RocketNodeManagerAddresses = contracts["rocketNodeManager"].Versions.Select(x => x.Address).ToArray(),
-			PreSaturn1RocketNodeStakingAddresses = contracts["rocketNodeStaking"].Versions.Where(x => x.Version <= 6)
-				.Select(x => x.Address).Concat([AddressUtil.ZERO_ADDRESS]).ToArray(),
-			PostSaturn1RocketNodeStakingAddresses = contracts["rocketNodeStaking"].Versions.Where(x => x.Version > 6)
-				.Select(x => x.Address).Concat([AddressUtil.ZERO_ADDRESS]).ToArray(),
-			DashboardInfo = dashboardInfo,
+					contextBase.Web3,
+					await contextBase.Policy.ExecuteAsync(() =>
+						contextBase.RocketStorage.GetAddressQueryAsync("rocketMinipoolManager"))),
+			RocketNodeManagerAddresses = contextBase.Contracts["rocketNodeManager"]
+				.Versions.Select(x => x.Address)
+				.ToArray(),
+			PreSaturn1RocketNodeStakingAddresses = contextBase.Contracts["rocketNodeStaking"]
+				.Versions.Where(x => x.Version <= 6)
+				.Select(x => x.Address)
+				.Concat(
+				[
+					AddressUtil.ZERO_ADDRESS,
+				])
+				.ToArray(),
+			PostSaturn1RocketNodeStakingAddresses = contextBase.Contracts["rocketNodeStaking"]
+				.Versions.Where(x => x.Version > 6)
+				.Select(x => x.Address)
+				.Concat(
+				[
+					AddressUtil.ZERO_ADDRESS,
+				])
+				.ToArray(),
 			Nodes = new NodeInfo
 			{
 				Data = new NodeInfo.NodeInfoFull
 				{
 					Index = new OrderedDictionary<string, NodeIndexEntry>(
 						nodesSnapshot.Data.Index.Select(x =>
-							new KeyValuePair<string, NodeIndexEntry>(x.ContractAddress.ToHex(true), x)),
+							new KeyValuePair<string, NodeIndexEntry>(
+								x.ContractAddress.ToHex(true),
+								x)),
 						StringComparer.OrdinalIgnoreCase),
 					TotalNodesCount = nodesSnapshot.Data.TotalNodeCount,
 					DailyRegistrations = nodesSnapshot.Data.DailyRegistrations,
@@ -240,18 +258,23 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 			ValidatorInfo = new ValidatorInfo
 			{
 				RocketMinipoolManagerAddresses =
-					contracts["rocketMinipoolManager"].Versions.Select(x => x.Address).ToArray(),
+					contextBase.Contracts["rocketMinipoolManager"]
+						.Versions.Select(x => x.Address)
+						.ToArray(),
 				Data = new ValidatorInfo.ValidatorInfoFull
 				{
 					MinipoolValidatorIndex = new OrderedDictionary<string, MinipoolValidatorIndexEntry>(
 						validatorSnapshot.Data.MinipoolValidatorIndex.Select(x =>
-							new KeyValuePair<string, MinipoolValidatorIndexEntry>(x.MinipoolAddress.ToHex(true), x)),
+							new KeyValuePair<string, MinipoolValidatorIndexEntry>(
+								x.MinipoolAddress.ToHex(true),
+								x)),
 						StringComparer.OrdinalIgnoreCase),
 					MegapoolValidatorIndex =
 						new OrderedDictionary<(string Address, int Index), MegapoolValidatorIndexEntry>(
 							validatorSnapshot.Data.MegapoolValidatorIndex.Select(x =>
 								new KeyValuePair<(string Address, int Index), MegapoolValidatorIndexEntry>(
-									(x.MegapoolAddress.ToHex(true), x.MegapoolIndex), x)),
+									(x.MegapoolAddress.ToHex(true), x.MegapoolIndex),
+									x)),
 							new MegapoolIndexEqualityComparer()),
 				},
 			},
@@ -274,8 +297,8 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 	protected override async Task SaveContextAsync(
 		NodesSyncContext context, CancellationToken cancellationToken = default)
 	{
-		Logger.LogInformation("Writing {snapshot}", Keys.NodesSnapshot);
-		await Storage.WriteAsync(
+		context.Logger.LogInformation("Writing {snapshot}", Keys.NodesSnapshot);
+		await context.Storage.WriteAsync(
 			Keys.NodesSnapshot,
 			new BlobObject<NodesSnapshot>
 			{
@@ -288,8 +311,8 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				},
 			}, cancellationToken: cancellationToken);
 
-		Logger.LogInformation("Writing {snapshot}", Keys.QueueSnapshot);
-		await Storage.WriteAsync(
+		context.Logger.LogInformation("Writing {snapshot}", Keys.QueueSnapshot);
+		await context.Storage.WriteAsync(
 			Keys.QueueSnapshot,
 			new BlobObject<QueueSnapshot>
 			{
@@ -309,8 +332,8 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 				},
 			}, cancellationToken: cancellationToken);
 
-		Logger.LogInformation("Writing {snapshot}", Keys.ValidatorSnapshot);
-		await Storage.WriteAsync(
+		context.Logger.LogInformation("Writing {snapshot}", Keys.ValidatorSnapshot);
+		await context.Storage.WriteAsync(
 			Keys.ValidatorSnapshot,
 			new BlobObject<ValidatorSnapshot>
 			{
@@ -325,8 +348,8 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 		await Parallel.ForEachAsync(
 			context.Nodes.Partial.Updated.Values, cancellationToken, async (node, innerCancellationToken) =>
 			{
-				Logger.LogInformation("Writing {snapshot}", Keys.Node(node.ContractAddress.ToHex(true)));
-				await Storage.WriteAsync(
+				context.Logger.LogInformation("Writing {snapshot}", Keys.Node(node.ContractAddress.ToHex(true)));
+				await context.Storage.WriteAsync(
 					Keys.Node(node.ContractAddress.ToHex(true)), new BlobObject<Node>
 					{
 						ProcessedBlockNumber = context.CurrentBlockHeight,
@@ -341,8 +364,9 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 			{
 				(string megapoolAddress, int megapoolIndex, Validator validator) = validatorEntry;
 
-				Logger.LogInformation("Writing {snapshot}", Keys.MegapoolValidator(megapoolAddress, megapoolIndex));
-				await Storage.WriteAsync(
+				context.Logger.LogInformation(
+					"Writing {snapshot}", Keys.MegapoolValidator(megapoolAddress, megapoolIndex));
+				await context.Storage.WriteAsync(
 					Keys.MegapoolValidator(megapoolAddress, megapoolIndex), new BlobObject<Validator>
 					{
 						ProcessedBlockNumber = context.CurrentBlockHeight,
@@ -356,8 +380,8 @@ public class NodesSync(IOptions<SyncOptions> options, Storage storage, ILogger<N
 			{
 				(string minipoolAddress, Validator validator) = validatorEntry;
 
-				Logger.LogInformation("Writing {snapshot}", Keys.MinipoolValidator(minipoolAddress));
-				await Storage.WriteAsync(
+				context.Logger.LogInformation("Writing {snapshot}", Keys.MinipoolValidator(minipoolAddress));
+				await context.Storage.WriteAsync(
 					Keys.MinipoolValidator(minipoolAddress), new BlobObject<Validator>
 					{
 						ProcessedBlockNumber = context.CurrentBlockHeight,

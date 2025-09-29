@@ -1,5 +1,6 @@
 @page "/nodes"
 
+@using RocketExplorer.Shared
 @inherits PageBase<RocketExplorer.Shared.Nodes.NodesSnapshot>
 
 <PageTitle>Rocket Explorer - Nodes</PageTitle>
@@ -41,7 +42,7 @@
 					<Address ContractAddress="@context.MegapoolAddress" HighlightedText="@searchString"></Address>
 				}
 			</MudTd>
-			<MudTd>@context.RegistrationDate.ToString("G")</MudTd>
+			<MudTd>@context.RegistrationDate.ToLocalTime().ToString("G")</MudTd>
 		</RowTemplate>
 		<NoRecordsContent>
 			<MudText>No matching records found</MudText>
@@ -69,7 +70,7 @@
 	{
 		await base.OnInitializedAsync();
 
-		ObjectStoreKey = "nodes-snapshot.msgpack";
+		ObjectStoreKey = Keys.NodesSnapshot;
 	}
 
 	private void OnSearch(string text)

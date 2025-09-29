@@ -41,6 +41,10 @@ public class MinipoolCreatedEventHandler
 
 		context.ValidatorInfo.Data.MinipoolValidatorIndex.Add(@event.Minipool, entry);
 
+		await context.GlobalIndexService.AddOrUpdateEntryAsync(
+			@event.Minipool.HexToByteArray(), @event.Minipool.RemoveHexPrefix(),
+			x => x.Type |= IndexEntryType.MinipoolValidator, cancellationToken);
+
 		context.ValidatorInfo.Partial.UpdatedMinipoolValidators.Add(
 			@event.Minipool, new Validator
 			{

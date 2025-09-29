@@ -8,6 +8,8 @@ public class SnapshotResponse<T>(HttpResponseMessage httpResponseMessage) : IDis
 
 	public string? ETag => this.httpResponseMessage.Headers.ETag?.Tag;
 
+	public bool IsSuccess => this.httpResponseMessage.IsSuccessStatusCode;
+
 	public void Dispose() => this.httpResponseMessage.Dispose();
 
 	public async Task<Snapshot<T>> ToSnapshotAsync(CancellationToken cancellationToken) =>

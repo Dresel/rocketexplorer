@@ -51,6 +51,21 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 	////		}, cancellationToken);
 	////}
 
+	public async Task DeleteAsync(string key, CancellationToken cancellationToken = default)
+	{
+		Stopwatch stopwatch = Stopwatch.StartNew();
+
+		await this.s3Client.DeleteObjectAsync(
+			new DeleteObjectRequest
+			{
+				BucketName = this.bucketName,
+				Key = $"{this.options.Environment.ToLower()}/{key}",
+			},
+			cancellationToken);
+
+		this.logger.LogDebug($"DeleteObject took {stopwatch.ElapsedMilliseconds}ms");
+	}
+
 	public async Task<BlobObject<T>?> ReadAsync<T>(string key, CancellationToken cancellationToken = default)
 		where T : class
 	{
@@ -90,7 +105,8 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 	public async Task WriteAsync<T>(
 		string key, BlobObject<T> snapshot, int maxAge = 60, CancellationToken cancellationToken = default)
 	{
-		byte[] data = MessagePackSerializer.Serialize(snapshot.Data, MessagePackSerializerOptions.Standard.WithResolver(this.messagePackResolver));
+		byte[] data = MessagePackSerializer.Serialize(
+			snapshot.Data, MessagePackSerializerOptions.Standard.WithResolver(this.messagePackResolver));
 		using MemoryStream memoryStream = new(data);
 
 		Stopwatch stopwatch = Stopwatch.StartNew();

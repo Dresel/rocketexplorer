@@ -1,0 +1,80 @@
+@inject Configuration Configuration
+@inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+@if (compact)
+{
+	<MudTooltip Text="Search">
+		<MudIconButton Icon="@Icons.Material.Rounded.Search" Color="Color.Inherit" aria-label="Open search dialog" OnClick="() => isSearchDialogOpen = true" />
+	</MudTooltip>
+}
+else
+{
+	<MudAutocomplete MaxItems="100" Dense="true" PopoverClass="global-search-popover" ItemDisabledFunc="item => !string.IsNullOrWhiteSpace(item.GroupName)" T="GroupedListItem<IndexEntryViewModel>" MinCharacters="4" Placeholder="Address, Public Key, Validator Index, ..." Color="Color.Inherit" SearchFunc="SearchFunc"
+		Class="docs-search-bar mx-4" ValueChanged="OnSearchResultClicked" Variant="Variant.Outlined" MaxHeight="480" ShowProgressIndicator="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" ToStringFunc="x => string.Empty">
+		<ItemTemplate Context="result">
+			@if (!string.IsNullOrWhiteSpace(result.GroupName))
+			{
+				<MudText Typo="Typo.body1">
+					<strong>@result.GroupName</strong>
+				</MudText>
+			}
+			else
+			{
+				<div class="m-4">
+					<MudText Typo="Typo.body2" Color="Color.Primary" Style="font-family: monospace;">
+						<MudHighlighter Text="@result.Data!.DisplayText" HighlightedTexts="@result.Data!.HighlightedTexts"></MudHighlighter>
+					</MudText>
+
+					@foreach (string chip in result.Data.Chips)
+					{
+						<MudChip Style="color: var(--mud-palette-on-secondary-container); background: var(--mud-palette-secondary-container)" Size="Size.Small" T="string">@chip</MudChip>
+					}
+				</div>
+			}
+		</ItemTemplate>
+		<NoItemsTemplate>
+			<MudText Typo="Typo.body1">
+				No items found
+			</MudText>
+		</NoItemsTemplate>
+	</MudAutocomplete>
+}
+
+<MudDialog @bind-Visible="isSearchDialogOpen" Options="dialogOptions" Class="docs-gray-bg" ContentClass="docs-mobile-dialog-search d-flex flex-column" DefaultFocus="DefaultFocus.FirstChild">
+	<DialogContent>
+		<MudAutocomplete MaxItems="100" Dense="true" PopoverClass="global-search-popover-mobile" ItemDisabledFunc="item => !string.IsNullOrWhiteSpace(item.GroupName)" T="GroupedListItem<IndexEntryViewModel>" MinCharacters="4" Placeholder="Address, Public Key, Validator Index, ..." Color="Color.Inherit" SearchFunc="SearchFunc"
+			Class="docs-search-bar mx-4" ValueChanged="OnSearchResultClicked" Variant="Variant.Outlined" ShowProgressIndicator="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" ToStringFunc="x => string.Empty" Modal="false">
+			<ItemTemplate Context="result">
+				@if (!string.IsNullOrWhiteSpace(result.GroupName))
+				{
+					<MudText Typo="Typo.body1">
+						<strong>@result.GroupName</strong>
+					</MudText>
+				}
+				else
+				{
+					<div class="m-4">
+						<MudText Typo="Typo.body2" Color="Color.Primary" Style="font-family: monospace;">
+							<MudHighlighter Text="@result.Data!.DisplayText" HighlightedTexts="@result.Data!.HighlightedTexts"></MudHighlighter>
+						</MudText>
+
+						@foreach (string chip in result.Data.Chips)
+						{
+							<MudChip Style="color: var(--mud-palette-on-secondary-container); background: var(--mud-palette-secondary-container)" Size="Size.Small" T="string">@chip</MudChip>
+						}
+					</div>
+				}
+			</ItemTemplate>
+			<NoItemsTemplate>
+				<MudText Typo="Typo.body1">
+					No items found
+				</MudText>
+			</NoItemsTemplate>
+		</MudAutocomplete>
+
+		<MudText Typo="Typo.body2" Class="flex-grow-1 mud-text-secondary" Align="Align.Center">
+		</MudText>
+	</DialogContent>
+</MudDialog>

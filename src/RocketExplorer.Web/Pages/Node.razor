@@ -22,7 +22,7 @@
 				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Registration Date</MudText>
 			</MudItem>
 			<MudItem>
-				<MudText Typo="Typo.body1">@DateTimeOffset.FromUnixTimeSeconds(Snapshot.Data.RegistrationTimestamp).ToString("G")</MudText>
+				<MudText Typo="Typo.body1">@DateTimeOffset.FromUnixTimeSeconds(Snapshot.Data.RegistrationTimestamp).ToLocalTime().ToString("G")</MudText>
 			</MudItem>
 			<MudFlexBreak />
 			<MudItem Class="label">
@@ -81,7 +81,7 @@
 					<Address ContractAddress="@context.MinipoolAddress" HighlightedText="@minipoolSearchString" HrefPlaceholder="validator/{0}" AppendEtherscanCodeAnchor="true"></Address>
 				</MudTd>
 				<MudTd>@context.ValidatorStatus</MudTd>
-				<MudTd>@context.History.First().Timestamp.ToString("G")</MudTd>
+				<MudTd>@context.History.First().Timestamp.ToLocalTime().ToString("G")</MudTd>
 			</RowTemplate>
 			<NoRecordsContent>
 				<MudText>No matching records found</MudText>
@@ -114,7 +114,7 @@
 					<MudLink Typo="Typo.body2" Href="@($"validator/{context.MegapoolAddress}/{context.MegapoolIndex}")">Validator #@context.MegapoolIndex</MudLink>
 				</MudTd>
 				<MudTd>@context.ValidatorStatus</MudTd>
-				<MudTd>@context.History.First().Timestamp.ToString("G")</MudTd>
+				<MudTd>@context.History.First().Timestamp.ToLocalTime().ToString("G")</MudTd>
 			</RowTemplate>
 			<NoRecordsContent>
 				<MudText>No matching records found</MudText>

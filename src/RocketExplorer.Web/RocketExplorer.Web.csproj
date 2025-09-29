@@ -5,10 +5,6 @@
 		<TargetFramework>net9.0</TargetFramework>
 	</PropertyGroup>
 
-	<PropertyGroup>
-		<InvariantGlobalization>true</InvariantGlobalization>
-	</PropertyGroup>
-
 	<ItemGroup>
 		<!-- Workaround for custom fonts, see https://github.com/beto-rodriguez/LiveCharts2/issues/1784 -->
 		<PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="8.3.1.1" />
@@ -17,7 +13,7 @@
 		<PackageReference Include="MessagePack" Version="3.1.4" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.2" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.2" PrivateAssets="all" />
-		<PackageReference Include="MudBlazor" Version="8.2.0" />
+		<PackageReference Include="MudBlazor" Version="8.12.0" />
 		<PackageReference Include="Nethereum.Util" Version="4.29.0" />
 		<PackageReference Include="Nethereum.Web3Lite" Version="4.29.0" />
 		<PackageReference Include="SkiaSharp.Views.Blazor" Version="3.119.0.1-custom" />

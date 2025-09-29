@@ -11,19 +11,19 @@ html, body {
 	width: 8rem;
 }
 
-.loading-progress circle {
-	fill: none;
-	stroke: #e0e0e0;
-	stroke-width: 0.6rem;
-	transform: rotate(-90deg);
-	transform-origin: 50% 50%;
-}
+	.loading-progress circle {
+		fill: none;
+		stroke: #e0e0e0;
+		stroke-width: 0.6rem;
+		transform: rotate(-90deg);
+		transform-origin: 50% 50%;
+	}
 
-.loading-progress circle:last-child {
-	stroke: rgba(168, 57, 0, 1);
-	stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
-	transition: stroke-dasharray 0.05s ease-in-out;
-}
+		.loading-progress circle:last-child {
+			stroke: rgba(168, 57, 0, 1);
+			stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+			transition: stroke-dasharray 0.05s ease-in-out;
+		}
 
 .loading-progress-text {
 	font-weight: bold;
@@ -32,35 +32,113 @@ html, body {
 	text-align: center;
 }
 
-.loading-progress-text:after { content: var(--blazor-load-percentage-text, "Loading Rocket Explorer"); }
+	.loading-progress-text:after {
+		content: var(--blazor-load-percentage-text, "Loading Rocket Explorer");
+	}
 
-.chart-single { width: 400px; }
+.chart-single {
+	width: 400px;
+}
 
-.chart-double { width: 400px; }
+.chart-double {
+	width: 400px;
+}
 
 @media (min-width: 650px) {
-	.chart-double { width: 600px; }
+	.chart-double {
+		width: 600px;
+	}
 }
 
 @media (min-width: 960px) {
 	.mud-main-content .chart-single,
-	.mud-main-content .chart-double { width: 600px; }
+	.mud-main-content .chart-double {
+		width: 600px;
+	}
 }
 
 @media (min-width: 1248px) {
-	.mud-drawer-close-responsive-md-left .mud-main-content .chart-double { width: 1200px; }
+	.mud-drawer-close-responsive-md-left .mud-main-content .chart-double {
+		width: 1200px;
+	}
 }
 
 @media (min-width: 1440px) {
-	.mud-drawer-open-responsive-md-left .mud-main-content .chart-double { width: 1200px; }
+	.mud-drawer-open-responsive-md-left .mud-main-content .chart-double {
+		width: 1200px;
+	}
 }
+
+header .mud-autocomplete {
+	width: 400px;
+	max-width: 400px;
+}
+
+.docs-search-bar .mud-input {
+	height: 42px;
+}
+
+.docs-search-bar.mud-input-control {
+	background-color: var(--mud-palette-surface-dim);
+	margin-bottom: 5px;
+	height: 42px;
+	border-radius: var(--mud-default-borderradius);
+}
+
+.docs-search-bar .mud-input.mud-input-outlined .mud-input-outlined-border {
+	border: none;
+	border-radius: var(--mud-default-borderradius);
+}
+
+.global-search-popover {
+	margin-top: 4px;
+}
+
+	.global-search-popover .mud-list-item.mud-list-item-disabled {
+		color: var(--mud-palette-text-primary) !important;
+	}
+
+	.global-search-popover .mud-autocomplete-no-items {
+		padding: 8px 16px !important;
+	}
+
+.docs-mobile-dialog-search {
+	height: 400px;
+}
+
+.global-search-popover-mobile {
+	box-shadow: none !important;
+	margin-top: 8px;
+}
+
+	.global-search-popover-mobile .mud-list .mud-list-item {
+		background-color: var(--mud-palette-surface-container-low);
+		margin: 6px 0;
+		border-radius: 4px;
+	}
+
+		.global-search-popover-mobile .mud-list .mud-list-item:hover {
+			background-color: var(--mud-palette-action-default-hover);
+		}
+
+		.global-search-popover-mobile .mud-list .mud-list-item.mud-list-item-disabled {
+			color: var(--mud-palette-text-primary) !important;
+			background-color: unset !important;
+		}
+
+.global-search-popover-mobile .mud-autocomplete-no-items {
+	padding: 8px 16px !important;
+}
+
 
 mark {
 	background-color: var(--mark-background-color);
 	color: var(--mark-color);
 }
 
-.mud-toggle-group * { text-transform: none; }
+.mud-toggle-group * {
+	text-transform: none;
+}
 
 .mud-toggle-group.mud-border-secondary {
 	border-color: var(--mud-palette-lines-default) !important;
@@ -83,15 +161,25 @@ mark {
 	background-color: var(--mud-palette-secondary-container-hover) !important;
 }
 
-.table-group-header { background-color: var(--mud-palette-primary-container); }
+.table-group-header {
+	background-color: var(--mud-palette-primary-container);
+}
 
-.table-group-header .mud-table-cell { color: var(--mud-palette-on-primary-container) !important; }
+	.table-group-header .mud-table-cell {
+		color: var(--mud-palette-on-primary-container) !important;
+	}
 
-.button-expandable { transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 660ms ease !important; }
+.button-expandable {
+	transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 660ms ease !important;
+}
 
-.button-expanded { transform: rotate(180deg); }
+.button-expanded {
+	transform: rotate(180deg);
+}
 
-.button-collapsed { transform: rotate(0); }
+.button-collapsed {
+	transform: rotate(0);
+}
 
 .mud-layout {
 	display: flex;
@@ -99,9 +187,13 @@ mark {
 	min-height: 100vh;
 }
 
-.footer { margin-bottom: 8px; }
+.footer {
+	margin-bottom: 8px;
+}
 
-.mud-drawer-open-responsive-md-left .footer { margin-left: var(--mud-drawer-width-left); }
+.mud-drawer-open-responsive-md-left .footer {
+	margin-left: var(--mud-drawer-width-left);
+}
 
 .mud-main-content .label {
 	width: 200px;

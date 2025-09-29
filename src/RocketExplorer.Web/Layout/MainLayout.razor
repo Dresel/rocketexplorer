@@ -9,15 +9,21 @@
 
 <CustomThemeProvider @ref="themeProvider" Theme="theme" @bind-IsDarkMode="@ThemeService.IsDarkMode" />
 <MudPopoverProvider />
-<MudDialogProvider />
+<MudDialogProvider FullWidth="true" />
 <MudSnackbarProvider />
 
 <MudLayout>
 	<MudAppBar Elevation="1">
 		<MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" Class="mr-4" OnClick="() => drawerOpen = !drawerOpen" />
 		<MudImage Style="height: calc(100% - 16px)" Src="images/rpl.svg"></MudImage>
-		<div class="mud-typography-h5 ml-2">Rocket Explorer @(Configuration.Environment != Environment.Mainnet ? $"({Configuration.Environment})" : "")</div>
+		<div class="mud-typography-h5 ml-2">Rocket Explorer
+			@if(Configuration.Environment != Environment.Mainnet)
+			{
+				<div class="mud-typography-subtitle2" style="margin-top: -8px;">@Configuration.Environment</div>
+			}
+		</div>
 		<MudSpacer />
+		<GlobalSearch />
 		<MudTooltip Text="@(DarkLightModeButtonText)">
 			<MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="() => ThemeService.CycleDarkLightMode()" aria-label="@(DarkLightModeButtonText)" />
 		</MudTooltip>
@@ -33,19 +39,10 @@
 			<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 mb-8">@Body</MudContainer>
 		</CascadingValue>
 	</MudMainContent>
-	@if (AppState.CurrentBlock != null)
-	{
-		<div Class="footer">
-			<MudContainer MaxWidth="MaxWidth.Large">
-				<MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary)" Align="Align.Right">Last processed block: @AppState.ProcessedBlockNumber (@(AppState.BlockDifference == 0 ? "up to date" : $"{AppState.BlockDifference} blocks ago"))</MudText>
-			</MudContainer>
-		</div>
-	}
+	<BlockInfo />
 </MudLayout>
 
 @code {
-
-	private string ObjectStoreMetadataUrl => $"{Configuration.ObjectStoreBaseUrl}/snapshot-metadata.msgpack";
 
 	private string DarkLightModeButtonText => ThemeService.CurrentDarkLightMode switch
 	{
@@ -119,6 +116,9 @@
 		palette.LinesInputs = scheme.Outline.ToMudColor();
 		palette.TableLines = scheme.Outline.ToMudColor();
 		palette.TableHover = scheme.ToHover(x => x.Surface).ToMudColor();
+
+		palette.SetSurfaceDim(scheme.SurfaceDim.ToMudColor());
+		palette.SetSurfaceBright(scheme.SurfaceBright.ToMudColor());
 
 		palette.SetSurfaceContainerLowest(scheme.SurfaceContainerLowest.ToMudColor());
 		palette.SetSurfaceContainerLow(scheme.SurfaceContainerLow.ToMudColor());
@@ -208,4 +208,5 @@
 		LiveCharts.DefaultSettings.WithTooltipTextPaint(ThemeService.CurrentPalette.OnSurface().ToPaint());
 		LiveCharts.DefaultSettings.WithLegendTextPaint(ThemeService.CurrentPalette.OnSurfaceVariant().ToPaint());
 	}
+
 }

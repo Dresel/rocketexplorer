@@ -17,6 +17,8 @@ public class CustomPaletteDark : PaletteDark
 
 	public MudColor SecondaryContainer { get; set; } = new();
 
+	public MudColor SurfaceBright { get; set; } = new();
+
 	public MudColor SurfaceContainer { get; set; } = new();
 
 	public MudColor SurfaceContainerHigh { get; set; } = new();
@@ -26,6 +28,8 @@ public class CustomPaletteDark : PaletteDark
 	public MudColor SurfaceContainerLow { get; set; } = new();
 
 	public MudColor SurfaceContainerLowest { get; set; } = new();
+
+	public MudColor SurfaceDim { get; set; } = new();
 
 	public MudColor SurfaceVariant { get; set; } = new();
 }

@@ -2,13 +2,14 @@ using Microsoft.Extensions.Logging;
 using Nethereum.Contracts;
 using Nethereum.Hex.HexConvertors.Extensions;
 using RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition;
+using RocketExplorer.Shared;
 using RocketExplorer.Shared.Nodes;
 
 namespace RocketExplorer.Core.Nodes.EventHandlers;
 
 public static class NodeRegisteredEventHandler
 {
-	public static Task HandleAsync(
+	public static async Task HandleAsync(
 		this NodesSyncContext context, EventLog<NodeRegisteredEventDTO> eventLog, CancellationToken cancellationToken)
 	{
 		NodeRegisteredEventDTO @event = eventLog.Event;
@@ -23,6 +24,10 @@ public static class NodeRegisteredEventHandler
 				ContractAddress = @event.Node.HexToByteArray(),
 				RegistrationTimestamp = (long)@event.Time,
 			});
+
+		await context.GlobalIndexService.AddOrUpdateEntryAsync(
+			@event.Node.HexToByteArray(), @event.Node.RemoveHexPrefix(),
+			x => x.Type |= IndexEntryType.NodeOperator, cancellationToken);
 
 		// TODO: Removed, replace
 		// Fetch latest node details (otherwise we would have to use the current latestRocketNodeManager of log.BlockNumber via contractsSnapshot)
@@ -53,7 +58,5 @@ public static class NodeRegisteredEventHandler
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)@event.Time).DateTime);
 		context.Nodes.Data.DailyRegistrations[key] = context.Nodes.Data.DailyRegistrations.GetValueOrDefault(key) + 1;
 		context.Nodes.Data.TotalNodesCount[key] = context.Nodes.Data.TotalNodesCount.GetLatestValueOrDefault() + 1;
-
-		return Task.CompletedTask;
 	}
 }

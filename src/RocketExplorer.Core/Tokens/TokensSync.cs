@@ -1,33 +1,27 @@
-using System.Collections.ObjectModel;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Contracts;
 using Nethereum.Util;
-using Nethereum.Web3;
-using RocketExplorer.Core.BeaconChain;
-using RocketExplorer.Core.Nodes;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
-using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Ethereum.RocketTokenRPL.ContractDefinition;
 using RocketExplorer.Shared;
-using RocketExplorer.Shared.Contracts;
 using RocketExplorer.Shared.Tokens;
 using TransferEventDTO = Nethereum.Contracts.Standards.ERC20.ContractDefinition.TransferEventDTO;
 
 namespace RocketExplorer.Core.Tokens;
 
-public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<TokensSync> logger)
-	: SyncBase<TokensSyncContext>(options, storage, logger)
+public class TokensSync(IOptions<SyncOptions> options)
+	: SyncBase<TokensSyncContext>(options)
 {
 	protected override async Task HandleBlocksAsync(
-		TokensSyncContext context, long fromBlock, long toBlock, long latestBlock,
+		TokensSyncContext context, long fromBlock, long toBlock,
 		CancellationToken cancellationToken = default)
 	{
 		IEnumerable<IEventLog> rplOldEvents = await context.Web3.FilterAsync(
 			fromBlock, toBlock, [typeof(TransferEventDTO),],
-			[context.RPLOldTokenAddress,], Policy);
+			[context.RPLOldTokenAddress,], context.Policy);
 
 		foreach (IEventLog eventLog in rplOldEvents)
 		{
@@ -37,7 +31,7 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 
 		IEnumerable<IEventLog> rplEvents = await context.Web3.FilterAsync(
 			fromBlock, toBlock, [typeof(TransferEventDTO), typeof(RPLFixedSupplyBurnEventDTO),],
-			[context.RPLTokenAddress,], Policy);
+			[context.RPLTokenAddress,], context.Policy);
 
 		foreach (IEventLog eventLog in rplEvents)
 		{
@@ -50,7 +44,7 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 
 		IEnumerable<IEventLog> rethEvents = await context.Web3.FilterAsync(
 			fromBlock, toBlock, [typeof(TransferEventDTO),],
-			[context.RETHTokenAddress,], Policy);
+			[context.RETHTokenAddress,], context.Policy);
 
 		foreach (IEventLog eventLog in rethEvents)
 		{
@@ -63,7 +57,7 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 				typeof(RPLLegacyStakedEventDto),
 				typeof(RPLOrRPLLegacyWithdrawnEventDTO),
 			],
-			context.PreSaturn1RocketNodeStakingAddresses, Policy);
+			context.PreSaturn1RocketNodeStakingAddresses, context.Policy);
 
 		foreach (IEventLog eventLog in preSaturn1StakingEvents)
 		{
@@ -80,7 +74,7 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 				typeof(RPLStakedEventDTO),
 				typeof(RPLUnstakedEventDTO),
 			],
-			context.PostSaturn1RocketNodeStakingAddresses, Policy);
+			context.PostSaturn1RocketNodeStakingAddresses, context.Policy);
 
 		foreach (IEventLog eventLog in postSaturn1StakingEvents)
 		{
@@ -96,24 +90,24 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 	}
 
 	protected override async Task<TokensSyncContext> LoadContextAsync(
-		Web3 web3, BeaconChainService beaconChainService, RocketStorageService rocketStorage, ReadOnlyDictionary<string, RocketPoolContract> contracts,
-		DashboardInfo dashboardInfo,
+		ContextBase contextBase,
 		CancellationToken cancellationToken = default)
 	{
-		string rplContractAddress = contracts["rocketTokenRPL"].Versions.Select(x => x.Address).Single();
-		string rplOldContractAddress = contracts["rocketTokenRPLFixedSupply"].Versions.Select(x => x.Address).Single();
-		string rethContractAddress = contracts["rocketTokenRETH"].Versions.Select(x => x.Address).Single();
+		string rplContractAddress = contextBase.Contracts["rocketTokenRPL"].Versions.Select(x => x.Address).Single();
+		string rplOldContractAddress =
+			contextBase.Contracts["rocketTokenRPLFixedSupply"].Versions.Select(x => x.Address).Single();
+		string rethContractAddress = contextBase.Contracts["rocketTokenRETH"].Versions.Select(x => x.Address).Single();
 
-		Logger.LogInformation("Loading token snapshots");
+		contextBase.Logger.LogInformation("Loading token snapshots");
 
 		Task<BlobObject<TokensRPLOldSnapshot>?> readRPLOldTask =
-			Storage.ReadAsync<TokensRPLOldSnapshot>(Keys.TokensRPLOldSnapshot, cancellationToken);
+			contextBase.Storage.ReadAsync<TokensRPLOldSnapshot>(Keys.TokensRPLOldSnapshot, cancellationToken);
 		Task<BlobObject<TokensRPLSnapshot>?> readRPLTask =
-			Storage.ReadAsync<TokensRPLSnapshot>(Keys.TokensRPLSnapshot, cancellationToken);
+			contextBase.Storage.ReadAsync<TokensRPLSnapshot>(Keys.TokensRPLSnapshot, cancellationToken);
 		Task<BlobObject<TokensRETHSnapshot>?> readRETHTask =
-			Storage.ReadAsync<TokensRETHSnapshot>(Keys.TokensRETHSnapshot, cancellationToken);
+			contextBase.Storage.ReadAsync<TokensRETHSnapshot>(Keys.TokensRETHSnapshot, cancellationToken);
 		Task<BlobObject<StakedRPLSnapshot>?> readStakedRPLTask =
-			Storage.ReadAsync<StakedRPLSnapshot>(Keys.TokensStakedRPLSnapshot, cancellationToken);
+			contextBase.Storage.ReadAsync<StakedRPLSnapshot>(Keys.TokensStakedRPLSnapshot, cancellationToken);
 
 		await Task.WhenAll(readRPLOldTask, readRPLTask, readRETHTask, readStakedRPLTask);
 
@@ -191,18 +185,24 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 
 		return new TokensSyncContext
 		{
-			Storage = Storage,
-			Policy = Policy,
-			Logger = Logger,
-			Web3 = web3,
-			BeaconChainService = beaconChainService,
-			DashboardInfo = dashboardInfo,
+			Storage = contextBase.Storage,
+			Policy = contextBase.Policy,
+			Logger = contextBase.Logger,
+			Web3 = contextBase.Web3,
+			BeaconChainService = contextBase.BeaconChainService,
+			GlobalIndexService = contextBase.GlobalIndexService,
+			DashboardInfo = contextBase.DashboardInfo,
+			RocketStorage = contextBase.RocketStorage,
+			Contracts = contextBase.Contracts,
+			LatestBlockHeight = contextBase.LatestBlockHeight,
+
 			CurrentBlockHeight = rplSnapshot.ProcessedBlockNumber,
-			RocketStorage = rocketStorage,
-			Contracts = contracts,
-			PreSaturn1RocketNodeStakingAddresses = contracts["rocketNodeStaking"].Versions.Where(x => x.Version <= 6)
+
+			PreSaturn1RocketNodeStakingAddresses = contextBase.Contracts["rocketNodeStaking"].Versions
+				.Where(x => x.Version <= 6)
 				.Select(x => x.Address).Concat([AddressUtil.ZERO_ADDRESS,]).ToArray(),
-			PostSaturn1RocketNodeStakingAddresses = contracts["rocketNodeStaking"].Versions.Where(x => x.Version > 6)
+			PostSaturn1RocketNodeStakingAddresses = contextBase.Contracts["rocketNodeStaking"].Versions
+				.Where(x => x.Version > 6)
 				.Select(x => x.Address).Concat([AddressUtil.ZERO_ADDRESS,]).ToArray(),
 			RPLOldTokenInfo = new RPLOldTokenInfo
 			{
@@ -251,9 +251,9 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 	protected override async Task SaveContextAsync(
 		TokensSyncContext context, CancellationToken cancellationToken = default)
 	{
-		Logger.LogInformation("Writing {snapshot}", Keys.TokensRPLOldSnapshot);
+		context.Logger.LogInformation("Writing {snapshot}", Keys.TokensRPLOldSnapshot);
 
-		Task writeRplOldTask = storage.WriteAsync(
+		Task writeRplOldTask = context.Storage.WriteAsync(
 			Keys.TokensRPLOldSnapshot, new BlobObject<TokensRPLOldSnapshot>
 			{
 				ProcessedBlockNumber = context.CurrentBlockHeight,
@@ -276,9 +276,9 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 				},
 			}, cancellationToken: cancellationToken);
 
-		Logger.LogInformation("Writing {snapshot}", Keys.TokensRPLSnapshot);
+		context.Logger.LogInformation("Writing {snapshot}", Keys.TokensRPLSnapshot);
 
-		Task writeRPLTask = storage.WriteAsync(
+		Task writeRPLTask = context.Storage.WriteAsync(
 			Keys.TokensRPLSnapshot, new BlobObject<TokensRPLSnapshot>
 			{
 				ProcessedBlockNumber = context.CurrentBlockHeight,
@@ -299,9 +299,9 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 				},
 			}, cancellationToken: cancellationToken);
 
-		Logger.LogInformation("Writing {snapshot}", Keys.TokensRETHSnapshot);
+		context.Logger.LogInformation("Writing {snapshot}", Keys.TokensRETHSnapshot);
 
-		Task writeRETHTask = storage.WriteAsync(
+		Task writeRETHTask = context.Storage.WriteAsync(
 			Keys.TokensRETHSnapshot, new BlobObject<TokensRETHSnapshot>
 			{
 				ProcessedBlockNumber = context.CurrentBlockHeight,
@@ -322,9 +322,9 @@ public class TokensSync(IOptions<SyncOptions> options, Storage storage, ILogger<
 				},
 			}, cancellationToken: cancellationToken);
 
-		Logger.LogInformation("Writing {snapshot}", Keys.TokensStakedRPLSnapshot);
+		context.Logger.LogInformation("Writing {snapshot}", Keys.TokensStakedRPLSnapshot);
 
-		Task writeStakedRPLTask = storage.WriteAsync(
+		Task writeStakedRPLTask = context.Storage.WriteAsync(
 			Keys.TokensStakedRPLSnapshot, new BlobObject<StakedRPLSnapshot>
 			{
 				ProcessedBlockNumber = context.CurrentBlockHeight,

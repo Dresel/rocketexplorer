@@ -53,6 +53,9 @@
 	public bool Expanded { get; set; }
 
 	[Parameter]
+	public bool Fixed { get; set; }
+
+	[Parameter]
 	public int PrefixLength { get; set; } = 6;
 
 	[Parameter]
@@ -110,74 +113,37 @@
 		contractChecksumAddress = AddressUtil.Current.IsValidEthereumAddressHexFormat(ContractAddress) ? AddressUtil.Current.ConvertToChecksumAddress(ContractAddress) : ContractAddress;
 
 		displayContractAddress = PrefixLength + SuffixLength < contractChecksumAddress.Length ? $"{contractChecksumAddress[..PrefixLength]}...{contractChecksumAddress[^SuffixLength..]}" : contractChecksumAddress;
-		displayHighlightedTexts = ExtractHighlightTexts().OrderByDescending(x => x.Length);
-	}
-
-	private IEnumerable<string> ExtractHighlightTexts()
-	{
-		if (string.IsNullOrWhiteSpace(HighlightedText))
-		{
-			yield break;
-		}
-
-		foreach (int start in AllIndexesOf(contractChecksumAddress, HighlightedText))
-		{
-			int end = start + HighlightedText.Length;
-
-			if (start < contractChecksumAddress.Length - SuffixLength && PrefixLength < end)
-			{
-				bool overlapsPrefix = start < PrefixLength;
-				bool overlapsSuffix = end > contractChecksumAddress.Length - SuffixLength;
-
-				if (overlapsPrefix && overlapsSuffix)
-				{
-					yield return $"{contractChecksumAddress[start..Math.Min(end, PrefixLength)]}...{contractChecksumAddress[^SuffixLength..end]}";
-				}
-				else if (overlapsPrefix)
-				{
-					yield return $"{contractChecksumAddress[start..Math.Min(end, PrefixLength)]}...";
-				}
-				else if (overlapsSuffix)
-				{
-					yield return $"...{contractChecksumAddress[^SuffixLength..end]}";
-				}
-				else
-				{
-					yield return "...";
-				}
-			}
-			else
-			{
-				yield return HighlightedText;
-			}
-		}
+		displayHighlightedTexts = contractChecksumAddress.ExtractHighlightTexts(HighlightedText, PrefixLength, SuffixLength).OrderByDescending(x => x.Length);
 	}
 
 	Task IBrowserViewportObserver.NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs browserViewportEventArgs)
 	{
-		switch (browserViewportEventArgs.Breakpoint)
+		if (!Fixed)
 		{
-			case Breakpoint.Xs:
-				PrefixLength = 12;
-				SuffixLength = 10;
-				break;
+			switch (browserViewportEventArgs.Breakpoint)
+			{
+				case Breakpoint.Xs:
+					PrefixLength = 12;
+					SuffixLength = 10;
+					break;
 
-			case Breakpoint.Sm:
-				PrefixLength = 8;
-				SuffixLength = 6;
-				break;
+				case Breakpoint.Sm:
+					PrefixLength = 8;
+					SuffixLength = 6;
+					break;
 
-			case Breakpoint.Md:
-			case Breakpoint.Lg:
-				PrefixLength = 12;
-				SuffixLength = 10;
-				break;
+				case Breakpoint.Md:
+				case Breakpoint.Lg:
+					PrefixLength = 12;
+					SuffixLength = 10;
+					break;
 
-			case Breakpoint.Xl:
-			case Breakpoint.Xxl:
-				PrefixLength = 42;
-				SuffixLength = 42;
-				break;
+				case Breakpoint.Xl:
+				case Breakpoint.Xxl:
+					PrefixLength = 42;
+					SuffixLength = 42;
+					break;
+			}
 		}
 
 		if (Expanded)
@@ -187,7 +153,7 @@
 		}
 
 		displayContractAddress = PrefixLength + SuffixLength < contractChecksumAddress.Length ? $"{contractChecksumAddress[..PrefixLength]}...{contractChecksumAddress[^SuffixLength..]}" : contractChecksumAddress;
-		displayHighlightedTexts = ExtractHighlightTexts().OrderByDescending(x => x.Length);
+		displayHighlightedTexts = displayContractAddress.ExtractHighlightTexts(HighlightedText, PrefixLength, SuffixLength).OrderByDescending(x => x.Length);
 
 		return InvokeAsync(StateHasChanged);
 	}
@@ -205,20 +171,6 @@
 			catch (JSDisconnectedException)
 			{
 			}
-		}
-	}
-
-	private IEnumerable<int> AllIndexesOf(string @string, string value)
-	{
-		for (int index = 0;; index += value.Length)
-		{
-			index = @string.IndexOf(value, index, StringComparison.OrdinalIgnoreCase);
-			if (index == -1)
-			{
-				break;
-			}
-
-			yield return index;
 		}
 	}
 }

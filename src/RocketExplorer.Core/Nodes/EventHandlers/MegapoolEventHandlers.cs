@@ -168,7 +168,6 @@ public class MegapoolEventHandlers
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
-			return;
 		}
 	}
 
@@ -252,6 +251,23 @@ public class MegapoolEventHandlers
 			PubKey = pubKey,
 			ValidatorIndex = null,
 		};
+
+		await context.GlobalIndexService.AddOrUpdateEntryAsync(
+			megapoolAddress.HexToByteArray(),
+			megapoolAddress.RemoveHexPrefix(),
+			x =>
+			{
+				x.Type |= IndexEntryType.Megapool;
+			}, cancellationToken);
+
+		await context.GlobalIndexService.AddOrUpdateEntryAsync(
+			megapoolAddress.HexToByteArray(), pubKey.ToHex(),
+			x =>
+			{
+				x.Type |= IndexEntryType.MegapoolValidator;
+				x.ValidatorPubKey = pubKey;
+				x.MegapoolIndex = eventValidatorId;
+			}, cancellationToken);
 
 		context.ValidatorInfo.Data.MegapoolValidatorIndex.Add(
 			(megapoolAddress, (int)eventLog.Event.ValidatorId), entry);

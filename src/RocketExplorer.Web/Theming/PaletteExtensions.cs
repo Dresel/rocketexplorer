@@ -133,6 +133,19 @@ public static class PaletteExtensions
 		}
 	}
 
+	public static void SetSurfaceBright(this Palette palette, MudColor color)
+	{
+		switch (palette)
+		{
+			case CustomPaletteLight customPaletteLight:
+				customPaletteLight.SurfaceBright = color;
+				break;
+			case CustomPaletteDark customPaletteDark:
+				customPaletteDark.SurfaceBright = color;
+				break;
+		}
+	}
+
 	public static void SetSurfaceContainer(this Palette palette, MudColor color)
 	{
 		switch (palette)
@@ -198,6 +211,19 @@ public static class PaletteExtensions
 		}
 	}
 
+	public static void SetSurfaceDim(this Palette palette, MudColor color)
+	{
+		switch (palette)
+		{
+			case CustomPaletteLight customPaletteLight:
+				customPaletteLight.SurfaceDim = color;
+				break;
+			case CustomPaletteDark customPaletteDark:
+				customPaletteDark.SurfaceDim = color;
+				break;
+		}
+	}
+
 	public static void SetSurfaceVariant(this Palette palette, MudColor color)
 	{
 		switch (palette)
@@ -210,6 +236,14 @@ public static class PaletteExtensions
 				break;
 		}
 	}
+
+	public static MudColor SurfaceBright(this Palette palette) =>
+		palette switch
+		{
+			CustomPaletteLight customPaletteLight => customPaletteLight.SurfaceBright,
+			CustomPaletteDark customPaletteDark => customPaletteDark.SurfaceBright,
+			_ => new MudColor(),
+		};
 
 	public static MudColor SurfaceContainer(this Palette palette) =>
 		palette switch
@@ -248,6 +282,14 @@ public static class PaletteExtensions
 		{
 			CustomPaletteLight customPaletteLight => customPaletteLight.SurfaceContainerLowest,
 			CustomPaletteDark customPaletteDark => customPaletteDark.SurfaceContainerLowest,
+			_ => new MudColor(),
+		};
+
+	public static MudColor SurfaceDim(this Palette palette) =>
+		palette switch
+		{
+			CustomPaletteLight customPaletteLight => customPaletteLight.SurfaceDim,
+			CustomPaletteDark customPaletteDark => customPaletteDark.SurfaceDim,
 			_ => new MudColor(),
 		};
 

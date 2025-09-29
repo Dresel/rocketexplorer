@@ -4,7 +4,7 @@ using RocketExplorer.Shared.Contracts;
 
 namespace RocketExplorer.Core.Contracts;
 
-public class ContractsSyncContext : ContextBase
+public record class ContractsSyncContext : ContextBase
 {
 	public required Dictionary<string, RocketPoolContract> ContextContracts { get; init; }
 

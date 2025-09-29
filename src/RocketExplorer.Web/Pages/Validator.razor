@@ -59,7 +59,7 @@
 					<MudItem>
 						@if (Snapshot.Data.PubKey is not null)
 						{
-							<Address ContractAddress="@Snapshot.Data.PubKey.ToHex().ToUpperInvariant()" IsPubKey="true" HrefPlaceholder="https://hoodi.beaconcha.in/validator/{0}"></Address>
+							<Address ContractAddress="@Snapshot.Data.PubKey.ToHex().ToUpperInvariant()" IsPubKey="true"></Address>
 						}
 						else
 						{
@@ -98,7 +98,7 @@
 						<MudTimelineItem Color="Color.Default" Variant="Variant.Filled">
 							<ItemContent>
 								<MudText Typo="Typo.button">@history.Status</MudText>
-								<MudText Typo="Typo.body2" Class="mud-text-secondary">@(DateTimeOffset.FromUnixTimeSeconds(history.Timestamp).ToString("G"))</MudText>
+								<MudText Typo="Typo.body2" Class="mud-text-secondary">@(DateTimeOffset.FromUnixTimeSeconds(history.Timestamp).ToLocalTime().ToString("G"))</MudText>
 							</ItemContent>
 						</MudTimelineItem>
 					}

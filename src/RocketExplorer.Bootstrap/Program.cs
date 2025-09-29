@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Net.Http.Headers;
 using System.Text;
 using Amazon.Runtime;
@@ -44,6 +45,8 @@ IHost host = Host.CreateDefaultBuilder(args)
 			{
 				BaseAddress = new Uri(provider.GetRequiredService<IOptions<SyncOptions>>().Value.BeaconChainUrl),
 			}));
+
+		services.AddTransient<GlobalIndexService>();
 
 		services.AddTransient<ContractsSync>();
 		services.AddTransient<TokensSync>();
@@ -103,8 +106,6 @@ logger.LogInformation("Latest block: {Block}", latestBlock.Number);
 RocketStorageService rocketStorage = new(web3, options.RocketStorageContractAddress);
 Storage storage = host.Services.GetRequiredService<Storage>();
 
-////await storage.WriteCorsConfigurationAsync();
-
 logger.LogInformation("Loading {snapshot}", Keys.DashboardSnapshot);
 
 BlobObject<DashboardSnapshot> dashboardSnapshot =
@@ -141,26 +142,38 @@ DashboardInfo dashboardInfo = new()
 	RPLMegapoolStakedTotal = dashboardSnapshot.Data.RPLMegapoolStakedTotal,
 };
 
-BeaconChainService beaconChainService = host.Services.GetRequiredService<BeaconChainService>();
+ContextBase contextBase = new()
+{
+	Storage = storage,
+	RocketStorage = rocketStorage,
+	BeaconChainService = host.Services.GetRequiredService<BeaconChainService>(),
+	Contracts = new ReadOnlyDictionary<string, RocketPoolContract>(new Dictionary<string, RocketPoolContract>()),
+	CurrentBlockHeight = 0,
+	GlobalIndexService = host.Services.GetRequiredService<GlobalIndexService>(),
+	DashboardInfo = dashboardInfo,
+	Logger = logger,
+	Policy = NethereumPolicies.Retry(logger),
+	Web3 = web3,
+	LatestBlockHeight = (long)latestBlock.Number.Value,
+};
 
 ContractsSync contracts = host.Services.GetRequiredService<ContractsSync>();
-await contracts.HandleBlocksAsync(
-	web3, beaconChainService, rocketStorage, new Dictionary<string, RocketPoolContract>().AsReadOnly(), dashboardInfo,
-	(long)latestBlock.Number.Value);
+await contracts.HandleBlocksAsync(contextBase);
 
 BlobObject<ContractsSnapshot> snapshot =
 	await storage.ReadAsync<ContractsSnapshot>(Keys.ContractsSnapshotKey) ??
 	throw new InvalidOperationException("Cannot read contracts snapshot from storage.");
 
+contextBase = contextBase with
+{
+	Contracts = snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
+};
+
 TokensSync tokens = host.Services.GetRequiredService<TokensSync>();
-await tokens.HandleBlocksAsync(
-	web3, beaconChainService, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
-	dashboardInfo, (long)latestBlock.Number.Value);
+await tokens.HandleBlocksAsync(contextBase);
 
 NodesSync nodes = host.Services.GetRequiredService<NodesSync>();
-await nodes.HandleBlocksAsync(
-	web3, beaconChainService, rocketStorage, snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
-	dashboardInfo, (long)latestBlock.Number.Value);
+await nodes.HandleBlocksAsync(contextBase);
 
 logger.LogInformation("Writing {snapshot}", Keys.DashboardSnapshot);
 await storage.WriteAsync(
@@ -194,3 +207,6 @@ await storage.WriteAsync(
 			Timestamp = (long)latestBlock.Timestamp.Value,
 		},
 	}, 10);
+
+logger.LogInformation("Writing global index shards");
+await contextBase.GlobalIndexService.WriteAsync((long)latestBlock.Number.Value);

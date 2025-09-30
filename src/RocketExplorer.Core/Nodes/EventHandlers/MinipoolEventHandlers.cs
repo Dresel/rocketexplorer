@@ -1,4 +1,5 @@
 using System.Globalization;
+using Microsoft.Extensions.Logging;
 using Nethereum.Contracts;
 using Nethereum.Hex.HexConvertors.Extensions;
 using RocketExplorer.Ethereum;
@@ -31,7 +32,8 @@ public class MinipoolEventHandlers
 
 		context.DashboardInfo.QueueLength++;
 
-		MinipoolValidatorIndexEntry indexEntry = context.ValidatorInfo.Data.MinipoolValidatorIndex[updatedEvent.MinipoolAddress];
+		MinipoolValidatorIndexEntry indexEntry =
+			context.ValidatorInfo.Data.MinipoolValidatorIndex[updatedEvent.MinipoolAddress];
 		MinipoolValidatorQueueEntry queueEntry = new()
 		{
 			NodeAddress = indexEntry.NodeAddress,
@@ -80,29 +82,6 @@ public class MinipoolEventHandlers
 		{
 			return;
 		}
-
-		long validatorIndex = await context.BeaconChainService.GetValidatorIndex(
-			context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress].PubKey!) ?? throw new InvalidOperationException();
-
-		context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress] =
-			context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress] with
-			{
-				ValidatorIndex = validatorIndex,
-			};
-
-		context.ValidatorInfo.Partial.UpdatedMinipoolValidators[minipoolAddress] =
-			context.ValidatorInfo.Partial.UpdatedMinipoolValidators[minipoolAddress] with
-			{
-				ValidatorIndex = validatorIndex,
-			};
-
-		await context.GlobalIndexService.AddOrUpdateEntryAsync(
-			minipoolAddress.HexToByteArray(), validatorIndex.ToString(CultureInfo.InvariantCulture),
-			x =>
-			{
-				x.Type |= IndexEntryType.MinipoolValidator;
-				x.ValidatorIndex = validatorIndex;
-			}, cancellationToken);
 
 		context.DashboardInfo.QueueLength--;
 
@@ -231,6 +210,37 @@ public class MinipoolEventHandlers
 
 		if (validatorStatus == ValidatorStatus.Staking)
 		{
+			try
+			{
+				long validatorIndex = await context.BeaconChainService.GetValidatorIndex(
+						context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress].PubKey!) ??
+					throw new InvalidOperationException();
+
+				context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress] =
+					context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress] with
+					{
+						ValidatorIndex = validatorIndex,
+					};
+
+				context.ValidatorInfo.Partial.UpdatedMinipoolValidators[minipoolAddress] =
+					context.ValidatorInfo.Partial.UpdatedMinipoolValidators[minipoolAddress] with
+					{
+						ValidatorIndex = validatorIndex,
+					};
+
+				await context.GlobalIndexService.AddOrUpdateEntryAsync(
+					minipoolAddress.HexToByteArray(), validatorIndex.ToString(CultureInfo.InvariantCulture),
+					x =>
+					{
+						x.Type |= IndexEntryType.MinipoolValidator;
+						x.ValidatorIndex = validatorIndex;
+					}, cancellationToken);
+			}
+			catch
+			{
+				context.Logger.LogDebug("Couldn't query validator index for {Address}", minipoolAddress);
+			}
+
 			context.DashboardInfo.MinipoolValidatorsStaking++;
 		}
 

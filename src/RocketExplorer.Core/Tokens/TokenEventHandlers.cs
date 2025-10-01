@@ -64,6 +64,11 @@ public class TokenEventHandlers
 		TokenInfo tokenInfo, TokenType tokenType, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
+		if (eventLog.Event.Value.IsZero)
+		{
+			return;
+		}
+
 		if (!eventLog.Event.From.IsTheSameAddress(AddressUtil.ZERO_ADDRESS))
 		{
 			BigInteger balance = tokenInfo.Holders.GetValueOrDefault(eventLog.Event.From) - eventLog.Event.Value;

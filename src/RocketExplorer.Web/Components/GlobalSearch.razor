@@ -44,7 +44,7 @@ else
 
 <MudDialog @bind-Visible="isSearchDialogOpen" Options="dialogOptions" Class="docs-gray-bg" ContentClass="docs-mobile-dialog-search d-flex flex-column" DefaultFocus="DefaultFocus.FirstChild">
 	<DialogContent>
-		<MudAutocomplete MaxItems="100" Dense="true" PopoverClass="global-search-popover-mobile" ItemDisabledFunc="item => !string.IsNullOrWhiteSpace(item.GroupName)" T="GroupedListItem<IndexEntryViewModel>" MinCharacters="4" Placeholder="Address, Public Key, Validator Index, ..." Color="Color.Inherit" SearchFunc="SearchFunc"
+		<MudAutocomplete Typo="Typo.subtitle2" MaxItems="100" Dense="true" PopoverClass="global-search-popover-mobile" ItemDisabledFunc="item => !string.IsNullOrWhiteSpace(item.GroupName)" T="GroupedListItem<IndexEntryViewModel>" MinCharacters="4" Placeholder="Address, Public Key, Validator Index, ..." Color="Color.Inherit" SearchFunc="SearchFunc"
 			Class="docs-search-bar mx-4" ValueChanged="OnSearchResultClicked" Variant="Variant.Outlined" ShowProgressIndicator="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" ToStringFunc="x => string.Empty" Modal="false">
 			<ItemTemplate Context="result">
 				@if (!string.IsNullOrWhiteSpace(result.GroupName))

@@ -1,6 +1,8 @@
 name: Azure Static Web Apps Devnet
 
 on:
+  schedule:
+    - cron: "0 * * * *"
   push:
     branches:
       - main
@@ -13,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
+          ref: ${{ github.event_name == 'schedule' && 'feature/seo' || github.ref_name }}
           submodules: true
           lfs: false
       - name: Build And Deploy

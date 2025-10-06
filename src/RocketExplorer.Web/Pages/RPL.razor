@@ -87,11 +87,16 @@
 		},
 	];
 
+	protected override string ObjectStoreKey => Keys.TokensRPLSnapshot;
+
 	protected override async Task OnInitializedAsync()
 	{
 		await base.OnInitializedAsync();
 
-		ObjectStoreKey = Keys.TokensRPLSnapshot;
+		if (IsPrerendering)
+		{
+			await table.ReloadServerData();
+		}
 	}
 
 	private void OnSearch(string text)

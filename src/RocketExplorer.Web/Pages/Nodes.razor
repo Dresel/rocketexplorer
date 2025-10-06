@@ -66,11 +66,16 @@
 	private SortedList<DateOnly, int>[]? nodesTotalData;
 	private SortedList<DateOnly, int>[]? nodesDeltaData;
 
+	protected override string ObjectStoreKey => Keys.NodesSnapshot;
+
 	protected override async Task OnInitializedAsync()
 	{
 		await base.OnInitializedAsync();
 
-		ObjectStoreKey = Keys.NodesSnapshot;
+		if (IsPrerendering)
+		{
+			await table.ReloadServerData();
+		}
 	}
 
 	private void OnSearch(string text)

@@ -1,6 +1,7 @@
 @page "/queue"
 @using LiveChartsCore.Defaults
 @using Nethereum.Hex.HexConvertors.Extensions
+@using RocketExplorer.Shared
 @using RocketExplorer.Shared.Validators
 @inherits PageBase<RocketExplorer.Shared.Validators.QueueSnapshot>
 
@@ -67,7 +68,9 @@
 					</MudLink>
 				}
 			</MudTd>
-			<MudTd><MudText Typo="Typo.body2">@context.TimeInQueue.ToReadableString()</MudText></MudTd>
+			<MudTd>
+				<MudText Typo="Typo.body2">@context.TimeInQueue.ToReadableString()</MudText>
+			</MudTd>
 		</RowTemplate>
 		<NoRecordsContent>
 			<MudText>No matching records found</MudText>
@@ -122,11 +125,16 @@
 		},
 	];
 
+	protected override string ObjectStoreKey => Keys.QueueSnapshot;
+
 	protected override async Task OnInitializedAsync()
 	{
 		await base.OnInitializedAsync();
 
-		ObjectStoreKey = "queue-snapshot.msgpack";
+		if (IsPrerendering)
+		{
+			await table.ReloadServerData();
+		}
 	}
 
 	private void OnSearch(string text)
@@ -296,4 +304,5 @@
 			yield return expressEnumerator.Current;
 		}
 	}
+
 }

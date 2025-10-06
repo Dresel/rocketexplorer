@@ -1,5 +1,5 @@
 @page "/contracts"
-
+@using RocketExplorer.Shared
 @using RocketExplorer.Shared.Contracts
 @inherits PageBase<RocketExplorer.Shared.Contracts.ContractsSnapshot>
 
@@ -89,12 +89,7 @@
 	private MudTable<VersionedRocketPoolContractViewModel> table = null!;
 	private string? searchString;
 
-	protected override async Task OnInitializedAsync()
-	{
-		await base.OnInitializedAsync();
-
-		ObjectStoreKey = "contracts-snapshot.msgpack";
-	}
+	protected override string ObjectStoreKey => Keys.ContractsSnapshotKey;
 
 	private readonly TableGroupDefinition<VersionedRocketPoolContractViewModel> groupContractsDefinition = new()
 	{
@@ -104,6 +99,16 @@
 		IsInitiallyExpanded = true,
 		Selector = e => e.ContractName,
 	};
+
+	protected override async Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
+
+		if (IsPrerendering)
+		{
+			await table.ReloadServerData();
+		}
+	}
 
 	private void OnSearch(string text)
 	{
@@ -124,10 +129,9 @@
 
 		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
 		{
-			items = items.Where(
-				x => x.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-					x.Versions.Any(version => version.Address.Contains(searchString, StringComparison.OrdinalIgnoreCase)) ||
-					x.Versions.Any(version => version.ActivationMethod.Contains(searchString, StringComparison.OrdinalIgnoreCase))).ToList();
+			items = items.Where(x => x.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+				x.Versions.Any(version => version.Address.Contains(searchString, StringComparison.OrdinalIgnoreCase)) ||
+				x.Versions.Any(version => version.ActivationMethod.Contains(searchString, StringComparison.OrdinalIgnoreCase))).ToList();
 		}
 
 		int count = items.Count;

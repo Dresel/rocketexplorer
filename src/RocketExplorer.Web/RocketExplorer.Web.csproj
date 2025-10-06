@@ -3,9 +3,11 @@
 	<PropertyGroup>
 		<!-- Explicit reference required for CI/CD -->
 		<TargetFramework>net9.0</TargetFramework>
+		<BlazorWasmPrerenderingEnvironment>$(BlazorWasmPrerenderingEnvironment)</BlazorWasmPrerenderingEnvironment>
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="BlazorWasmPreRendering.Build" Version="7.0.0-preview.1" />
 		<!-- Workaround for custom fonts, see https://github.com/beto-rodriguez/LiveCharts2/issues/1784 -->
 		<PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="8.3.1.1" />
 		<PackageReference Include="LiveChartsCore.SkiaSharpView.Blazor" Version="2.0.0-rc5.4.1-custom" />

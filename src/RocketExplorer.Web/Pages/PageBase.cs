@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 namespace RocketExplorer.Web.Pages;
 
@@ -18,18 +19,24 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 	protected int DeserializeElapsedMilliseconds { get; private set; }
 
 	[Inject]
+	protected IWebAssemblyHostEnvironment HostEnvironment { get; set; } = null!;
+
+	[Inject]
 	protected HttpClient HttpClient { get; set; } = null!;
 
 	protected bool IsLoaded => this.taskCompletionSource.Task.IsCompletedSuccessfully;
 
 	protected bool IsLoading => !IsLoaded;
 
+	protected bool IsPrerendering =>
+		HostEnvironment.Environment.Contains("Prerendering", StringComparison.OrdinalIgnoreCase);
+
 	protected Task LoadedTask => this.taskCompletionSource.Task;
 
 	[Inject]
 	protected ILogger<PageBase<T>> Logger { get; set; } = null!;
 
-	protected string? ObjectStoreKey { get; set; }
+	protected abstract string? ObjectStoreKey { get; }
 
 	protected string ObjectStoreUrl =>
 		!string.IsNullOrWhiteSpace(ObjectStoreKey) ? GetObjectStoreUrl(ObjectStoreKey) : string.Empty;
@@ -75,13 +82,13 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 				Snapshot = await response.ToSnapshotAsync(cancellationToken);
 
 				await OnAfterSnapshotLoadedAsync(cancellationToken);
-				this.taskCompletionSource.TrySetResult();
 				DeserializeElapsedMilliseconds = (int)stopwatch.ElapsedMilliseconds;
 			}
 		}
 		finally
 		{
 			this.semaphore.Release();
+			this.taskCompletionSource.TrySetResult();
 		}
 	}
 
@@ -91,17 +98,19 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 
 		if (firstRender)
 		{
-			await LoadAsync();
-			this.taskCompletionSource.TrySetResult();
-
-			await InvokeAsync(StateHasChanged);
-
 			AppState.OnAppStateChanged += OnAppStateChanged;
 		}
 	}
 
-	protected abstract Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default);
+	protected virtual Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default) =>
+		Task.CompletedTask;
 
 	protected virtual void OnAppStateChanged(object? sender, AppState e) =>
 		LoadAsync().ContinueWith(async _ => await InvokeAsync(StateHasChanged));
+
+	protected override async Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
+		await LoadAsync();
+	}
 }

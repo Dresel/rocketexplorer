@@ -1,6 +1,7 @@
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor;
 using RocketExplorer.Web.Theming;
 using SkiaSharp;
@@ -21,6 +22,9 @@ public partial class MainLayout : LayoutComponentBase
 
 	[Inject]
 	public ThemeService ThemeService { get; set; } = null!;
+
+	[Inject]
+	public IWebAssemblyHostEnvironment HostEnvironment { get; set; } = null!;
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
@@ -43,8 +47,11 @@ public partial class MainLayout : LayoutComponentBase
 
 		SetLiveChartsTheme();
 
-		LiveCharts.DefaultSettings.HasGlobalSKTypeface(
-			SKTypeface.FromStream(new MemoryStream(await HttpClient.GetByteArrayAsync("fonts/Manrope.ttf"))));
+		if (!HostEnvironment.Environment.Contains("Prerendering", StringComparison.OrdinalIgnoreCase))
+		{
+			LiveCharts.DefaultSettings.HasGlobalSKTypeface(
+				SKTypeface.FromStream(new MemoryStream(await HttpClient.GetByteArrayAsync("fonts/Manrope.ttf"))));
+		}
 	}
 
 	private Typography CreateTypography()

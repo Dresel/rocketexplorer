@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 namespace RocketExplorer.Web;
 
 public class Configuration
 {
-	public Configuration(NavigationManager navigation, ILogger<Configuration> logger)
+	public Configuration(IWebAssemblyHostEnvironment hostEnvironment, NavigationManager navigation, ILogger<Configuration> logger)
 	{
 		Uri uri = new(navigation.Uri);
 
@@ -15,6 +16,14 @@ public class Configuration
 			"devnet" => Environment.Devnet,
 			"testnet" => Environment.Testnet,
 			_ => Environment.Mainnet,
+		};
+
+		Environment = hostEnvironment.Environment switch
+		{
+			"Prerendering-Devnet" => Environment.Devnet,
+			"Prerendering-Testnet" => Environment.Testnet,
+			"Prerendering" => Environment.Mainnet,
+			_ => Environment,
 		};
 
 		Network = Environment switch

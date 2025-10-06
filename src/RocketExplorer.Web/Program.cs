@@ -12,25 +12,31 @@ WebAssemblyHostBuilder builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddMudServices();
-
-builder.Services.AddSingleton<ThemeService>();
-
-builder.Services.AddScoped(_ => new HttpClient
-{
-	BaseAddress = new Uri(builder.HostEnvironment.BaseAddress),
-});
-builder.Services.AddScoped<Configuration>();
-
-builder.Services.AddSingleton<AppState>();
-
-builder.Services.AddScoped<Web3>(provider =>
-{
-	Configuration configuration = provider.GetRequiredService<Configuration>();
-	return new Web3(configuration.EthereumRPCEndpoint);
-});
-
-MessagePackSerializer.DefaultOptions = MessagePackSerializer.DefaultOptions
-	.WithResolver(CompositeResolver.Create(BigIntegerResolver.Instance, StandardResolver.Instance));
+ConfigureServices(builder.Services, builder.HostEnvironment.BaseAddress);
 
 await builder.Build().RunAsync();
+
+static void ConfigureServices(IServiceCollection services, string baseAddress)
+{
+	services.AddMudServices();
+
+	services.AddSingleton<ThemeService>();
+
+	services.AddScoped(_ => new HttpClient
+	{
+		BaseAddress = new Uri(baseAddress),
+	});
+
+	services.AddScoped<Configuration>();
+
+	services.AddSingleton<AppState>();
+
+	services.AddScoped<Web3>(provider =>
+	{
+		Configuration configuration = provider.GetRequiredService<Configuration>();
+		return new Web3(configuration.EthereumRPCEndpoint);
+	});
+
+	MessagePackSerializer.DefaultOptions = MessagePackSerializer.DefaultOptions
+		.WithResolver(CompositeResolver.Create(BigIntegerResolver.Instance, StandardResolver.Instance));
+}

@@ -122,12 +122,7 @@
 		},
 	];
 
-	protected override async Task OnInitializedAsync()
-	{
-		await base.OnInitializedAsync();
-
-		ObjectStoreKey = "queue-snapshot.msgpack";
-	}
+	protected override string ObjectStoreKey => RocketExplorer.Shared.Keys.QueueSnapshot;
 
 	private void OnSearch(string text)
 	{
@@ -296,4 +291,5 @@
 			yield return expressEnumerator.Current;
 		}
 	}
+
 }

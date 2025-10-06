@@ -71,12 +71,7 @@
 		},
 	];
 
-	protected override async Task OnInitializedAsync()
-	{
-		await base.OnInitializedAsync();
-
-		ObjectStoreKey = Keys.TokensStakedRPLSnapshot;
-	}
+	protected override string ObjectStoreKey => Keys.TokensStakedRPLSnapshot;
 
 	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
 	{
@@ -97,5 +92,4 @@
 
 		return Task.CompletedTask;
 	}
-
 }

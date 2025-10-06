@@ -29,7 +29,7 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 	[Inject]
 	protected ILogger<PageBase<T>> Logger { get; set; } = null!;
 
-	protected string? ObjectStoreKey { get; set; }
+	protected abstract string? ObjectStoreKey { get; }
 
 	protected string ObjectStoreUrl =>
 		!string.IsNullOrWhiteSpace(ObjectStoreKey) ? GetObjectStoreUrl(ObjectStoreKey) : string.Empty;
@@ -75,13 +75,13 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 				Snapshot = await response.ToSnapshotAsync(cancellationToken);
 
 				await OnAfterSnapshotLoadedAsync(cancellationToken);
-				this.taskCompletionSource.TrySetResult();
 				DeserializeElapsedMilliseconds = (int)stopwatch.ElapsedMilliseconds;
 			}
 		}
 		finally
 		{
 			this.semaphore.Release();
+			this.taskCompletionSource.TrySetResult();
 		}
 	}
 
@@ -91,17 +91,20 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 
 		if (firstRender)
 		{
-			await LoadAsync();
-			this.taskCompletionSource.TrySetResult();
-
-			await InvokeAsync(StateHasChanged);
-
 			AppState.OnAppStateChanged += OnAppStateChanged;
 		}
 	}
 
-	protected abstract Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default);
+	protected virtual Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default) =>
+		Task.CompletedTask;
 
 	protected virtual void OnAppStateChanged(object? sender, AppState e) =>
 		LoadAsync().ContinueWith(async _ => await InvokeAsync(StateHasChanged));
+
+	protected override async Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
+		await LoadAsync();
+		await InvokeAsync(StateHasChanged);
+	}
 }

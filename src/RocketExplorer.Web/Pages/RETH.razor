@@ -93,12 +93,7 @@
 		},
 	];
 
-	protected override async Task OnInitializedAsync()
-	{
-		await base.OnInitializedAsync();
-
-		ObjectStoreKey = Keys.TokensRETHSnapshot;
-	}
+	protected override string ObjectStoreKey => Keys.TokensRETHSnapshot;
 
 	private void OnSearch(string text)
 	{

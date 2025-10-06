@@ -1,7 +1,6 @@
 @page "/node/{address}"
 @using MessagePack
 @using RocketExplorer.Shared
-@using RocketExplorer.Shared.Nodes
 @using RocketExplorer.Shared.Validators
 @inherits PageBase<RocketExplorer.Shared.Nodes.Node>
 
@@ -143,15 +142,7 @@
 	private ValidatorIndexViewModel[] minipoolValidators = [];
 	private ValidatorIndexViewModel[] megapoolValidators = [];
 
-	protected override async Task OnParametersSetAsync()
-	{
-		await base.OnParametersSetAsync();
-
-		if (!string.IsNullOrWhiteSpace(Address))
-		{
-			ObjectStoreKey = $"nodes/{Address.ToLowerInvariant()}.msgpack";
-		}
-	}
+	protected override string? ObjectStoreKey => !string.IsNullOrWhiteSpace(Address) ? Keys.Node(Address.ToLowerInvariant()) : null;
 
 	private void OnMinipoolSearch(string text)
 	{

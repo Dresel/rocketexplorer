@@ -30,7 +30,7 @@
 
 		<MudGrid>
 			<MudItem lg="6" md="12">
-				
+
 				@*
 					Node Operator
 					Minipool Address
@@ -119,20 +119,24 @@
 	[Parameter]
 	public int? MegapoolIndex { get; set; }
 
-	protected override async Task OnParametersSetAsync()
-	{
-		await base.OnParametersSetAsync();
+	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-		if (!string.IsNullOrWhiteSpace(MinipoolAddress))
+	protected override string? ObjectStoreKey
+	{
+		get
 		{
-			ObjectStoreKey = Keys.MinipoolValidator(MinipoolAddress);
-		}
-		else if (!string.IsNullOrWhiteSpace(MegapoolAddress) && MegapoolIndex != null)
-		{
-			ObjectStoreKey = Keys.MegapoolValidator(MegapoolAddress, MegapoolIndex.Value);
+			if (!string.IsNullOrWhiteSpace(MinipoolAddress))
+			{
+				return Keys.MinipoolValidator(MinipoolAddress);
+			}
+
+			if (!string.IsNullOrWhiteSpace(MegapoolAddress) && MegapoolIndex != null)
+			{
+				return Keys.MegapoolValidator(MegapoolAddress, MegapoolIndex.Value);
+			}
+
+			return null;
 		}
 	}
-
-	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
 }

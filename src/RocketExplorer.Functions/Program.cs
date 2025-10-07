@@ -44,7 +44,7 @@ IHostBuilder builder = new HostBuilder()
 
 		services.AddTransient<ContractsSync>();
 		services.AddTransient<TokensSync>();
-		services.AddTransient<NodesSync>();
+		services.AddTransient<ENSSync>();
 
 		services.AddTransient<Storage>();
 

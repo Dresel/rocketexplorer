@@ -12,4 +12,7 @@ public record class HolderEntry
 
 	[Key(1)]
 	public required BigInteger Balance { get; init; }
+
+	[Key(2)]
+	public required string? AddressEnsName { get; set; }
 }

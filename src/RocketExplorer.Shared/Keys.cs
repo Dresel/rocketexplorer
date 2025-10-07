@@ -33,4 +33,6 @@ public static class Keys
 	public static string Node(string nodeAddress) => $"nodes/{nodeAddress.ToLowerInvariant()}.msgpack";
 
 	public static string NGram(string key) => $"index/{key}.msgpack";
+
+	public static string EnsNGram(string key) => $"index/ens/{key}.msgpack";
 }

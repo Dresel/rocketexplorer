@@ -273,7 +273,7 @@ public class ContractsSync(IOptions<SyncOptions> options)
 
 		try
 		{
-			executionHeight = await Helper.FindFirstBlock(
+			executionHeight = await Helper.FindFirstBlockAsync(
 				blockParameter => context.Policy.ExecuteAsync(() => executionFunc(blockParameter)),
 				activationHeight,
 				context.LatestBlockHeight,
@@ -287,7 +287,7 @@ public class ContractsSync(IOptions<SyncOptions> options)
 
 		if (executionHeight is null)
 		{
-			executionHeight = await Helper.FindFirstBlock(
+			executionHeight = await Helper.FindFirstBlockAsync(
 				blockParameter => context.Policy.ExecuteAsync(async () =>
 				{
 					string version = await context.RocketStorage.GetStringQueryAsync(
@@ -332,7 +332,7 @@ public class ContractsSync(IOptions<SyncOptions> options)
 		string address = await context.Policy.ExecuteAsync(() =>
 			context.RocketStorage.GetAddressQueryAsync(contractName, new BlockParameter((ulong)currentBlock)));
 
-		if (address is null or "0x0000000000000000000000000000000000000000")
+		if (address.IsNullOrZeroAddress())
 		{
 			return false;
 		}

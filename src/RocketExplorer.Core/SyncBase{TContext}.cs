@@ -7,7 +7,7 @@ namespace RocketExplorer.Core;
 public abstract class SyncBase<TContext>(IOptions<SyncOptions> options)
 	where TContext : ContextBase
 {
-	private const long BlockRange = 25_000;
+	private const long BlockRange = 10000;
 
 	protected SyncOptions Options { get; set; } = options.Value;
 

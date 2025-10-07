@@ -22,6 +22,7 @@ public static class NodeRegisteredEventHandler
 			@event.Node, new NodeIndexEntry
 			{
 				ContractAddress = @event.Node.HexToByteArray(),
+				ContractAddressEnsName = null, // TODO: ENS Lookup
 				RegistrationTimestamp = (long)@event.Time,
 			});
 

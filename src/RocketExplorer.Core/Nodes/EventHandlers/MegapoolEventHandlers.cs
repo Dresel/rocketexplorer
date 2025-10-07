@@ -269,6 +269,8 @@ public class MegapoolEventHandlers
 				x.MegapoolIndex = eventValidatorId;
 			}, cancellationToken);
 
+		// TODO: Add Validator Index to Global Index
+
 		context.ValidatorInfo.Data.MegapoolValidatorIndex.Add(
 			(megapoolAddress, (int)eventLog.Event.ValidatorId), entry);
 

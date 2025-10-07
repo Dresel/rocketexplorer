@@ -23,14 +23,14 @@ public class SyncFunction
 	private readonly ContractsSync contracts;
 	private readonly GlobalIndexService globalIndexService;
 	private readonly ILogger logger;
-	private readonly NodesSync nodes;
+	private readonly ENSSync nodes;
 	private readonly SyncOptions options;
 	private readonly Storage storage;
 	private readonly TokensSync tokens;
 
 	public SyncFunction(
 		IOptions<SyncOptions> options, Storage storage, BeaconChainService beaconChainService,
-		GlobalIndexService globalIndexService, ContractsSync contracts, TokensSync tokens, NodesSync nodes,
+		GlobalIndexService globalIndexService, ContractsSync contracts, TokensSync tokens, ENSSync nodes,
 		ILogger<SyncFunction> logger)
 	{
 		this.options = options.Value;

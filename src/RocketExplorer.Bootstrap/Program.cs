@@ -28,7 +28,7 @@ IHost host = Host.CreateDefaultBuilder(args)
 	{
 		logging.ClearProviders();
 
-		Logger logger = new LoggerConfiguration().MinimumLevel.Information().WriteTo
+		Logger logger = new LoggerConfiguration().MinimumLevel.Debug().WriteTo
 			.Console(theme: AnsiConsoleTheme.Code)
 			.CreateLogger();
 		logging.AddSerilog(logger);
@@ -50,7 +50,7 @@ IHost host = Host.CreateDefaultBuilder(args)
 
 		services.AddTransient<ContractsSync>();
 		services.AddTransient<TokensSync>();
-		services.AddTransient<NodesSync>();
+		services.AddTransient<ENSSync>();
 
 		services.AddTransient<Storage>();
 
@@ -142,6 +142,10 @@ DashboardInfo dashboardInfo = new()
 	RPLMegapoolStakedTotal = dashboardSnapshot.Data.RPLMegapoolStakedTotal,
 };
 
+BlobObject<ContractsSnapshot> snapshot =
+	await storage.ReadAsync<ContractsSnapshot>(Keys.ContractsSnapshotKey) ??
+	throw new InvalidOperationException("Cannot read contracts snapshot from storage.");
+
 ContextBase contextBase = new()
 {
 	Storage = storage,
@@ -154,26 +158,27 @@ ContextBase contextBase = new()
 	Logger = logger,
 	Policy = NethereumPolicies.Retry(logger),
 	Web3 = web3,
-	LatestBlockHeight = (long)latestBlock.Number.Value,
+	LatestBlockHeight = snapshot.ProcessedBlockNumber,
 };
 
-ContractsSync contracts = host.Services.GetRequiredService<ContractsSync>();
-await contracts.HandleBlocksAsync(contextBase);
-
-BlobObject<ContractsSnapshot> snapshot =
-	await storage.ReadAsync<ContractsSnapshot>(Keys.ContractsSnapshotKey) ??
-	throw new InvalidOperationException("Cannot read contracts snapshot from storage.");
+//ContractsSync contracts = host.Services.GetRequiredService<ContractsSync>();
+//await contracts.HandleBlocksAsync(contextBase);
 
 contextBase = contextBase with
 {
 	Contracts = snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
 };
 
-TokensSync tokens = host.Services.GetRequiredService<TokensSync>();
-await tokens.HandleBlocksAsync(contextBase);
+//TokensSync tokens = host.Services.GetRequiredService<TokensSync>();
+//await tokens.HandleBlocksAsync(contextBase);
 
-NodesSync nodes = host.Services.GetRequiredService<NodesSync>();
-await nodes.HandleBlocksAsync(contextBase);
+//NodesSync nodes = host.Services.GetRequiredService<NodesSync>();
+//await nodes.HandleBlocksAsync(contextBase);
+
+ENSSync ens = host.Services.GetRequiredService<ENSSync>();
+await ens.HandleBlocksAsync(contextBase);
+
+return;
 
 logger.LogInformation("Writing {snapshot}", Keys.DashboardSnapshot);
 await storage.WriteAsync(

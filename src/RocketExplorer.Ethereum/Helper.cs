@@ -4,7 +4,7 @@ namespace RocketExplorer.Ethereum;
 
 public class Helper
 {
-	public static async Task<long?> FindFirstBlock(
+	public static async Task<long?> FindFirstBlockAsync(
 		Func<BlockParameter, Task<bool>> smartContractCall, long initialBlock, long latestBlock,
 		uint blockIncrement = 150)
 	{

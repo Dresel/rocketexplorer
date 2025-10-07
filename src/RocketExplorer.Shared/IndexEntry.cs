@@ -20,6 +20,9 @@ public record class IndexEntry
 	[Key(4)]
 	public required int? MegapoolIndex { get; init; }
 
+	[Key(5)]
+	public required string? AddressEnsName { get; init; }
+
 	public virtual bool Equals(IndexEntry? other)
 	{
 		if (other is null)
@@ -36,7 +39,7 @@ public record class IndexEntry
 			Address.SequenceEqual(other.Address) &&
 			((ValidatorPubKey is null && other.ValidatorPubKey is null) || (ValidatorPubKey is not null &&
 				other.ValidatorPubKey is not null && ValidatorPubKey.SequenceEqual(other.ValidatorPubKey))) &&
-			ValidatorIndex == other.ValidatorIndex && MegapoolIndex == other.MegapoolIndex;
+			ValidatorIndex == other.ValidatorIndex && MegapoolIndex == other.MegapoolIndex && AddressEnsName == other.AddressEnsName;
 	}
 
 	public override int GetHashCode()
@@ -52,6 +55,7 @@ public record class IndexEntry
 
 		hashCode.Add(ValidatorIndex);
 		hashCode.Add(MegapoolIndex);
+		hashCode.Add(AddressEnsName);
 
 		return hashCode.ToHashCode();
 	}

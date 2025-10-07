@@ -265,6 +265,7 @@ public class TokensSync(IOptions<SyncOptions> options)
 						Holders = context.RPLOldTokenInfo.Holders.Select(x => new HolderEntry
 						{
 							Address = x.Key,
+							AddressEnsName = null, // TODO: ENS Lookup
 							Balance = x.Value,
 						}).ToArray(),
 						SupplyTotal = context.RPLOldTokenInfo.SupplyTotal,
@@ -290,6 +291,7 @@ public class TokensSync(IOptions<SyncOptions> options)
 						Holders = context.RPLTokenInfo.Holders.Select(x => new HolderEntry
 						{
 							Address = x.Key,
+							AddressEnsName = null, // TODO: ENS Lookup
 							Balance = x.Value,
 						}).ToArray(),
 						SupplyTotal = context.RPLTokenInfo.SupplyTotal,
@@ -313,6 +315,7 @@ public class TokensSync(IOptions<SyncOptions> options)
 						Holders = context.RETHTokenInfo.Holders.Select(x => new HolderEntry
 						{
 							Address = x.Key,
+							AddressEnsName = null, // TODO: ENS Lookup
 							Balance = x.Value,
 						}).ToArray(),
 						SupplyTotal = context.RETHTokenInfo.SupplyTotal,

@@ -13,4 +13,7 @@ public record class NodeIndexEntry
 
 	[Key(2)]
 	public byte[]? MegapoolAddress { get; init; }
+
+	[Key(3)]
+	public required string? ContractAddressEnsName { get; init; }
 }

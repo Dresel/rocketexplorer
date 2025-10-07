@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 namespace RocketExplorer.Web.Pages;
 
@@ -18,11 +19,17 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 	protected int DeserializeElapsedMilliseconds { get; private set; }
 
 	[Inject]
+	protected IWebAssemblyHostEnvironment HostEnvironment { get; set; } = null!;
+
+	[Inject]
 	protected HttpClient HttpClient { get; set; } = null!;
 
 	protected bool IsLoaded => this.taskCompletionSource.Task.IsCompletedSuccessfully;
 
 	protected bool IsLoading => !IsLoaded;
+
+	protected bool IsPrerendering =>
+		HostEnvironment.Environment.Equals("Prerendering", StringComparison.OrdinalIgnoreCase);
 
 	protected Task LoadedTask => this.taskCompletionSource.Task;
 
@@ -105,6 +112,5 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 	{
 		await base.OnInitializedAsync();
 		await LoadAsync();
-		await InvokeAsync(StateHasChanged);
 	}
 }

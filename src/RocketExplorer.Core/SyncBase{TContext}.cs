@@ -17,7 +17,7 @@ public abstract class SyncBase<TContext>(IOptions<SyncOptions> options)
 	{
 		TContext context = await LoadContextAsync(contextBase, cancellationToken);
 
-		if (context.CurrentBlockHeight == contextBase.LatestBlockHeight)
+		if (context.CurrentBlockHeight == context.LatestBlockHeight)
 		{
 			context.Logger.LogInformation("Up to date, nothing to do");
 			return;
@@ -26,7 +26,7 @@ public abstract class SyncBase<TContext>(IOptions<SyncOptions> options)
 		await BeforeHandleBlocksAsync(context, cancellationToken);
 
 		long startBlock = context.CurrentBlockHeight + 1;
-		long totalBlocks = contextBase.LatestBlockHeight - startBlock + 2;
+		long totalBlocks = context.LatestBlockHeight - startBlock + 2;
 
 		long currentBlock = startBlock;
 
@@ -34,13 +34,13 @@ public abstract class SyncBase<TContext>(IOptions<SyncOptions> options)
 
 		do
 		{
-			long toBlock = Math.Min(currentBlock + BlockRange - 1, contextBase.LatestBlockHeight);
+			long toBlock = Math.Min(currentBlock + BlockRange - 1, context.LatestBlockHeight);
 			long processedBlocks = toBlock - startBlock + 1;
 
 			double remainingTimeInMilliseconds = (double)stopwatch.ElapsedMilliseconds / processedBlocks *
 				(totalBlocks - processedBlocks);
 
-			context.Logger.LogDebug(
+			context.Logger.LogInformation(
 				"Processing block {FromBlock} to {ToBlock}, estimated remaining time: {RemainingTime}", currentBlock,
 				toBlock,
 				double.IsNormal(remainingTimeInMilliseconds)
@@ -52,7 +52,7 @@ public abstract class SyncBase<TContext>(IOptions<SyncOptions> options)
 
 			currentBlock = toBlock + 1;
 		}
-		while (currentBlock <= contextBase.LatestBlockHeight);
+		while (currentBlock <= context.LatestBlockHeight);
 
 		await SaveContextAsync(context, cancellationToken);
 	}

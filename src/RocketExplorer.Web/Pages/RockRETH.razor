@@ -1,0 +1,164 @@
+@page "/rock-reth"
+@using System.Diagnostics
+@using System.Numerics
+@using LiveChartsCore.Defaults
+@using Nethereum.Util
+@using RocketExplorer.Shared
+@using RocketExplorer.Shared.Tokens
+@inherits PageBase<RocketExplorer.Shared.Tokens.TokensRockRETHSnapshot>
+
+<PageTitle>Rocket Explorer - ROCK.RETH</PageTitle>
+<MudStack>
+	<MudContainer Class="mud-typography-align-center">
+		<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">ROCK.RETH</MudText>
+		@if (Snapshot != null)
+		{
+			<Address Typo="Typo.body1" Expanded="true" ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.RockRETH.Address)" AppendEtherscanCodeAnchor="true"></Address>
+		}
+	</MudContainer>
+	<MudGrid Justify="Justify.Center">
+		<MudItem>
+			<ChartTotal Title="Supply" YAxesName="ROCK.RETH" Data="supplyTotal" MinLimit="null"></ChartTotal>
+		</MudItem>
+		<MudItem>
+			<ChartDelta Title="Mints & Burns" YAxesName="ROCK.RETH" Data="mintsAndBurns" DataTransform="dataTransform" Series="series" MinLimit="null"></ChartDelta>
+		</MudItem>
+	</MudGrid>
+	<MudText Typo="Typo.h2" Class="mud-typography-h3 mt-8" Align="Align.Center">Holders</MudText>
+	<MudContainer MaxWidth="MaxWidth.Medium">
+		<MudStack>
+			<MudTable Class="mt-0" ServerData="LoadHolders" Dense="true" Hover="true" @ref="table" Elevation="0" Outlined="true" LoadingProgressColor="Color.Primary">
+				<ToolBarContent>
+					<MudTextField DebounceInterval="500" T="string" ValueChanged="@(s => OnSearch(s))" Placeholder="Search" Adornment="Adornment.Start"
+						AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+					</MudTextField>
+				</ToolBarContent>
+				<HeaderContent>
+					<MudTh>
+						<MudTableSortLabel T="HolderEntry" SortLabel="@nameof(HolderEntry.Address)">Holder Address</MudTableSortLabel>
+					</MudTh>
+					<MudTh>
+						<MudTableSortLabel T="HolderEntry" SortLabel="@nameof(HolderEntry.Balance)" InitialDirection="SortDirection.Descending">Amount</MudTableSortLabel>
+					</MudTh>
+				</HeaderContent>
+				<RowTemplate>
+					<MudTd>
+						<Address ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" HighlightedText="@searchString"></Address>
+					</MudTd>
+					<MudTd Style="text-align:right">@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") ROCK.RETH</MudTd>
+				</RowTemplate>
+				<NoRecordsContent>
+					<MudText>No matching records found</MudText>
+				</NoRecordsContent>
+				<LoadingContent>
+					<MudText>Loading...</MudText>
+				</LoadingContent>
+				<PagerContent>
+					<MudTablePager />
+				</PagerContent>
+			</MudTable>
+			<MudText Typo="Typo.body2">Load: @(DeserializeElapsedMilliseconds)ms, Sort & Filtering: @(sortAndFilterElapsedMilliseconds)ms</MudText>
+		</MudStack>
+	</MudContainer>
+</MudStack>
+
+@code {
+
+	private MudTable<HolderEntry> table = null!;
+	private string? searchString;
+
+	private HolderEntry[] holders = null!;
+	private HolderEntry[] holdersByBalance = null!;
+
+	private SortedList<DateOnly, int>[]? supplyTotal;
+	private SortedList<DateOnly, int>[]? mintsAndBurns;
+
+	private readonly Func<int, int>[] dataTransform = [x => x, x => x * -1,];
+
+	private int sortAndFilterElapsedMilliseconds;
+
+	private readonly ISeries[] series =
+	[
+		new ColumnSeries<DateTimePoint>
+		{
+			Name = "Mints",
+			Padding = 3,
+			MaxBarWidth = 20,
+		},
+		new ColumnSeries<DateTimePoint>
+		{
+			Name = "Burns",
+			Padding = 3,
+			MaxBarWidth = 20,
+		},
+	];
+
+	protected override async Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
+
+		ObjectStoreKey = Keys.TokensRockRETHSnapshot;
+	}
+
+	private void OnSearch(string text)
+	{
+		searchString = text;
+		table.ReloadServerData();
+	}
+
+	private async Task<TableData<HolderEntry>> LoadHolders(TableState state, CancellationToken token)
+	{
+		await LoadedTask;
+
+		Stopwatch stopwatch = Stopwatch.StartNew();
+
+		IEnumerable<HolderEntry> items = holders;
+
+		if (state.SortLabel is nameof(HolderEntry.Address))
+		{
+			items = state.SortDirection == SortDirection.Ascending ? items : items.Reverse();
+		}
+
+		if (state.SortLabel is nameof(HolderEntry.Balance))
+		{
+			items = state.SortDirection == SortDirection.Ascending ? holdersByBalance : holdersByBalance.Reverse();
+		}
+
+		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
+		{
+			searchString = searchString.ToUpperInvariant();
+
+			items = items.Where(x => x.Address.Contains(searchString, StringComparison.Ordinal)).ToArray();
+		}
+
+		items = items as HolderEntry[] ?? items.ToArray();
+
+		int count = items.Count();
+		items = items.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList();
+
+		sortAndFilterElapsedMilliseconds = (int)stopwatch.ElapsedMilliseconds;
+
+		return new TableData<HolderEntry>
+		{
+			TotalItems = count,
+			Items = items,
+		};
+	}
+
+	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
+	{
+		supplyTotal = [new SortedList<DateOnly, int>(Snapshot!.Data.RockRETH.SupplyTotal.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),];
+
+		mintsAndBurns =
+		[
+			new SortedList<DateOnly, int>(Snapshot!.Data.RockRETH.MintsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot!.Data.RockRETH.BurnsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+		];
+
+		holders = Snapshot!.Data.RockRETH.Holders;
+		holdersByBalance = holders.OrderBy(x => x.Balance).ToArray();
+
+		return Task.CompletedTask;
+	}
+
+}

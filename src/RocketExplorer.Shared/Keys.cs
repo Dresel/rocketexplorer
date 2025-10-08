@@ -16,6 +16,8 @@ public static class Keys
 
 	public const string TokensRETHSnapshot = "tokens-reth-snapshot.msgpack";
 
+	public const string TokensRockRETHSnapshot = "tokens-rock-reth-snapshot.msgpack";
+
 	public const string TokensRPLOldSnapshot = "tokens-rpl-old-snapshot.msgpack";
 
 	public const string TokensRPLSnapshot = "tokens-rpl-snapshot.msgpack";
@@ -30,7 +32,7 @@ public static class Keys
 	public static string MinipoolValidator(string minipoolAddress) =>
 		$"validators/{minipoolAddress.ToLowerInvariant()}.msgpack";
 
-	public static string Node(string nodeAddress) => $"nodes/{nodeAddress.ToLowerInvariant()}.msgpack";
-
 	public static string NGram(string key) => $"index/{key}.msgpack";
+
+	public static string Node(string nodeAddress) => $"nodes/{nodeAddress.ToLowerInvariant()}.msgpack";
 }

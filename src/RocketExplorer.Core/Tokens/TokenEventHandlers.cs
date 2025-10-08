@@ -41,6 +41,15 @@ public class TokenEventHandlers
 		context.DashboardInfo.RETHSupplyTotal = context.RETHTokenInfo.SupplyTotal.GetLatestValueOrDefault();
 	}
 
+	public static async Task HandleRockRETHAsync(
+		TokensSyncContext context, EventLog<TransferEventDTO> eventLog,
+		CancellationToken cancellationToken = default)
+	{
+		await HandleAsync(context, context.RockRETHTokenInfo, TokenType.RockRETH, eventLog, cancellationToken);
+
+		context.DashboardInfo.RockRETHSupplyTotal = context.RockRETHTokenInfo.SupplyTotal.GetLatestValueOrDefault();
+	}
+
 	public static async Task HandleRPLAsync(
 		TokensSyncContext context, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
@@ -86,6 +95,7 @@ public class TokenEventHandlers
 							TokenType.RPL => IndexEntryType.RPLHolder,
 							TokenType.RPLOld => IndexEntryType.RPLOldHolder,
 							TokenType.RETH => IndexEntryType.RETHHolder,
+							TokenType.RockRETH => IndexEntryType.RockRETHHolder,
 							_ => throw new InvalidOperationException("Unknown token type"),
 						};
 
@@ -121,6 +131,7 @@ public class TokenEventHandlers
 							TokenType.RPL => IndexEntryType.RPLHolder,
 							TokenType.RPLOld => IndexEntryType.RPLOldHolder,
 							TokenType.RETH => IndexEntryType.RETHHolder,
+							TokenType.RockRETH => IndexEntryType.RockRETHHolder,
 							_ => throw new InvalidOperationException("Unknown token type"),
 						};
 					}, cancellationToken);

@@ -14,6 +14,8 @@ public class DashboardInfo
 
 	public required BigInteger RETHSupplyTotal { get; set; }
 
+	public required BigInteger RockRETHSupplyTotal { get; set; }
+
 	public required BigInteger RPLLegacyStakedTotal { get; set; }
 
 	public required BigInteger RPLMegapoolStakedTotal { get; set; }

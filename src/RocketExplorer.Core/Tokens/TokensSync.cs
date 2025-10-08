@@ -87,6 +87,16 @@ public class TokensSync(IOptions<SyncOptions> options)
 			eventLog.WhenIs<RPLUnstakedEventDTO, TokensSyncContext>(
 				StakingEventHandlers.HandleRPLMegapoolUnstaked, context);
 		}
+
+		IEnumerable<IEventLog> rockRETHEvents = await context.Web3.FilterAsync(
+			fromBlock, toBlock, [typeof(TransferEventDTO),],
+			[TokensSyncContext.RockRETHTokenAddress,], context.Policy);
+
+		foreach (IEventLog eventLog in rockRETHEvents)
+		{
+			await eventLog.WhenIsAsync<TransferEventDTO, TokensSyncContext>(
+				TokenEventHandlers.HandleRockRETHAsync, context, cancellationToken);
+		}
 	}
 
 	protected override async Task<TokensSyncContext> LoadContextAsync(
@@ -97,6 +107,7 @@ public class TokensSync(IOptions<SyncOptions> options)
 		string rplOldContractAddress =
 			contextBase.Contracts["rocketTokenRPLFixedSupply"].Versions.Select(x => x.Address).Single();
 		string rethContractAddress = contextBase.Contracts["rocketTokenRETH"].Versions.Select(x => x.Address).Single();
+		string rockRETHContractAddress = TokensSyncContext.RockRETHTokenAddress;
 
 		contextBase.Logger.LogInformation("Loading token snapshots");
 
@@ -108,8 +119,10 @@ public class TokensSync(IOptions<SyncOptions> options)
 			contextBase.Storage.ReadAsync<TokensRETHSnapshot>(Keys.TokensRETHSnapshot, cancellationToken);
 		Task<BlobObject<StakedRPLSnapshot>?> readStakedRPLTask =
 			contextBase.Storage.ReadAsync<StakedRPLSnapshot>(Keys.TokensStakedRPLSnapshot, cancellationToken);
+		Task<BlobObject<TokensRockRETHSnapshot>?> readRockRETHTask =
+			contextBase.Storage.ReadAsync<TokensRockRETHSnapshot>(Keys.TokensRockRETHSnapshot, cancellationToken);
 
-		await Task.WhenAll(readRPLOldTask, readRPLTask, readRETHTask, readStakedRPLTask);
+		await Task.WhenAll(readRPLOldTask, readRPLTask, readRETHTask, readStakedRPLTask, readRockRETHTask);
 
 		BlobObject<TokensRPLOldSnapshot> rplOldSnapshot =
 			await readRPLOldTask ??
@@ -183,6 +196,24 @@ public class TokensSync(IOptions<SyncOptions> options)
 				},
 			};
 
+		BlobObject<TokensRockRETHSnapshot> rockRETHSnapshot =
+			await readRockRETHTask ??
+			new BlobObject<TokensRockRETHSnapshot>
+			{
+				ProcessedBlockNumber = 0,
+				Data = new TokensRockRETHSnapshot
+				{
+					RockRETH = new Token
+					{
+						Address = rockRETHContractAddress,
+						Holders = [],
+						SupplyTotal = [],
+						MintsDaily = [],
+						BurnsDaily = [],
+					},
+				},
+			};
+
 		return new TokensSyncContext
 		{
 			Storage = contextBase.Storage,
@@ -244,6 +275,16 @@ public class TokensSync(IOptions<SyncOptions> options)
 				MegapoolStakedTotal = stakedRPLSnapshot.Data.MegapoolStakedTotal,
 				MegapoolStakedDaily = stakedRPLSnapshot.Data.MegapoolStakedDaily,
 				MegapoolUnstakedDaily = stakedRPLSnapshot.Data.MegapoolUnstakedDaily,
+			},
+			RockRETHTokenInfo = new TokenInfo
+			{
+				Holders = new SortedDictionary<string, BigInteger>(
+					rockRETHSnapshot.Data.RockRETH.Holders.Select(entry =>
+						new KeyValuePair<string, BigInteger>(entry.Address, entry.Balance)).ToDictionary(),
+					StringComparer.OrdinalIgnoreCase),
+				SupplyTotal = rockRETHSnapshot.Data.RockRETH.SupplyTotal,
+				MintsDaily = rockRETHSnapshot.Data.RockRETH.MintsDaily,
+				BurnsDaily = rockRETHSnapshot.Data.RockRETH.BurnsDaily,
 			},
 		};
 	}
@@ -339,6 +380,29 @@ public class TokensSync(IOptions<SyncOptions> options)
 				},
 			}, cancellationToken: cancellationToken);
 
-		await Task.WhenAll(writeRplOldTask, writeRPLTask, writeRETHTask, writeStakedRPLTask);
+		context.Logger.LogInformation("Writing {snapshot}", Keys.TokensRockRETHSnapshot);
+
+		Task writeRockRETHTask = context.Storage.WriteAsync(
+			Keys.TokensRockRETHSnapshot, new BlobObject<TokensRockRETHSnapshot>
+			{
+				ProcessedBlockNumber = context.CurrentBlockHeight,
+				Data = new TokensRockRETHSnapshot
+				{
+					RockRETH = new Token
+					{
+						Address = TokensSyncContext.RockRETHTokenAddress,
+						Holders = context.RockRETHTokenInfo.Holders.Select(x => new HolderEntry
+						{
+							Address = x.Key,
+							Balance = x.Value,
+						}).ToArray(),
+						SupplyTotal = context.RockRETHTokenInfo.SupplyTotal,
+						MintsDaily = context.RockRETHTokenInfo.MintsDaily,
+						BurnsDaily = context.RockRETHTokenInfo.BurnsDaily,
+					},
+				},
+			}, cancellationToken: cancellationToken);
+
+		await Task.WhenAll(writeRplOldTask, writeRPLTask, writeRETHTask, writeStakedRPLTask, writeRockRETHTask);
 	}
 }

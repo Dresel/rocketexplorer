@@ -107,6 +107,7 @@ public class SyncFunction
 			QueueLength = dashboardSnapshot.Data.QueueLength,
 			RPLLegacyStakedTotal = dashboardSnapshot.Data.RPLLegacyStakedTotal,
 			RPLMegapoolStakedTotal = dashboardSnapshot.Data.RPLMegapoolStakedTotal,
+			RockRETHSupplyTotal = dashboardSnapshot.Data.RockRETHTotalSupply,
 		};
 
 		ContextBase contextBase = new()

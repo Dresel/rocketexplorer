@@ -10,6 +10,10 @@ public record class TokensSyncContext : ContextBase
 
 	public required TokenInfo RETHTokenInfo { get; init; }
 
+	public static string RockRETHTokenAddress => "0x936faCdf10c8c36294e7b9d28345255539d81bc7";
+
+	public required TokenInfo RockRETHTokenInfo { get; init; }
+
 	public string RPLOldTokenAddress => Contracts["rocketTokenRPLFixedSupply"].Versions.Select(x => x.Address).Single();
 
 	public required RPLOldTokenInfo RPLOldTokenInfo { get; init; }

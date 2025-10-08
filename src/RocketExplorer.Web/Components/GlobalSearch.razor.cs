@@ -84,6 +84,7 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			IndexEntryType.RETHHolder => "RETH Holder",
 			IndexEntryType.RPLHolder => "RPL Holder",
 			IndexEntryType.RPLOldHolder => "RPLv1 Holder",
+			IndexEntryType.RockRETHHolder => "ROCK.RETH Holder",
 			_ => throw new ArgumentOutOfRangeException(nameof(type)),
 		};
 

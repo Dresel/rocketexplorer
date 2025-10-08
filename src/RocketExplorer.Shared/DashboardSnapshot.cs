@@ -35,4 +35,7 @@ public record class DashboardSnapshot
 
 	[Key(9)]
 	public required int QueueLength { get; init; }
+
+	[Key(10)]
+	public BigInteger RockRETHTotalSupply { get; set; }
 }

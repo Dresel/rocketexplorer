@@ -7,4 +7,6 @@ public enum TokenType
 	RPLOld,
 
 	RETH,
+
+	RockRETH,
 }

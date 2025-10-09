@@ -3,6 +3,7 @@
 	<PropertyGroup>
 		<!-- Explicit reference required for CI/CD -->
 		<TargetFramework>net9.0</TargetFramework>
+		<BlazorWasmPrerenderingEnvironment>$(BlazorWasmPrerenderingEnvironment)</BlazorWasmPrerenderingEnvironment>
 	</PropertyGroup>
 
 	<ItemGroup>

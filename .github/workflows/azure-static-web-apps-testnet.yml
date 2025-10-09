@@ -25,3 +25,5 @@ jobs:
           app_location: "./src/RocketExplorer.Web"
           api_location: ""
           output_location: "wwwroot"
+        env:
+          BlazorWasmPrerenderingEnvironment: Prerendering-Testnet

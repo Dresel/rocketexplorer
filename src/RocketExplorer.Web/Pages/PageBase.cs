@@ -29,7 +29,7 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 	protected bool IsLoading => !IsLoaded;
 
 	protected bool IsPrerendering =>
-		HostEnvironment.Environment.Equals("Prerendering", StringComparison.OrdinalIgnoreCase);
+		HostEnvironment.Environment.Contains("Prerendering", StringComparison.OrdinalIgnoreCase);
 
 	protected Task LoadedTask => this.taskCompletionSource.Task;
 

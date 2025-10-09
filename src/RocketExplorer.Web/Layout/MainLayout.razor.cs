@@ -47,7 +47,7 @@ public partial class MainLayout : LayoutComponentBase
 
 		SetLiveChartsTheme();
 
-		if (!HostEnvironment.Environment.Equals("Prerendering", StringComparison.OrdinalIgnoreCase))
+		if (!HostEnvironment.Environment.Contains("Prerendering", StringComparison.OrdinalIgnoreCase))
 		{
 			LiveCharts.DefaultSettings.HasGlobalSKTypeface(
 				SKTypeface.FromStream(new MemoryStream(await HttpClient.GetByteArrayAsync("fonts/Manrope.ttf"))));

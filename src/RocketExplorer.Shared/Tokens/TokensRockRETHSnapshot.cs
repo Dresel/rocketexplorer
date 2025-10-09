@@ -6,5 +6,5 @@ namespace RocketExplorer.Shared.Tokens;
 public record class TokensRockRETHSnapshot
 {
 	[Key(0)]
-	public required Token RockRETH { get; init; }
+	public required Token? RockRETH { get; init; }
 }

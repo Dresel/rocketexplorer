@@ -13,7 +13,14 @@
 		<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">ROCK.RETH</MudText>
 		@if (Snapshot != null)
 		{
-			<Address Typo="Typo.body1" Expanded="true" ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.RockRETH.Address)" AppendEtherscanCodeAnchor="true"></Address>
+			@if (Snapshot.Data.RockRETH != null)
+			{
+				<Address Typo="Typo.body1" Expanded="true" ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.RockRETH.Address)" AppendEtherscanCodeAnchor="true"></Address>
+			}
+			else
+			{
+				<MudText>Not available</MudText>
+			}
 		}
 	</MudContainer>
 	<MudGrid Justify="Justify.Center">
@@ -62,7 +69,7 @@
 	</MudContainer>
 </MudStack>
 
-@code {
+	@code {
 
 	private MudTable<HolderEntry> table = null!;
 	private string? searchString;
@@ -147,15 +154,15 @@
 
 	protected override Task OnAfterSnapshotLoadedAsync(CancellationToken cancellationToken = default)
 	{
-		supplyTotal = [new SortedList<DateOnly, int>(Snapshot!.Data.RockRETH.SupplyTotal.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),];
+		supplyTotal = [new SortedList<DateOnly, int>(Snapshot!.Data.RockRETH?.SupplyTotal.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),];
 
 		mintsAndBurns =
 		[
-			new SortedList<DateOnly, int>(Snapshot!.Data.RockRETH.MintsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
-			new SortedList<DateOnly, int>(Snapshot!.Data.RockRETH.BurnsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []) ?? [],
+			new SortedList<DateOnly, int>(Snapshot!.Data.RockRETH?.MintsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),
+			new SortedList<DateOnly, int>(Snapshot!.Data.RockRETH?.BurnsDaily.ToDictionary(x => x.Key, x => (int)(x.Value / BigInteger.Pow(10, 18))) ?? []),
 		];
 
-		holders = Snapshot!.Data.RockRETH.Holders;
+		holders = Snapshot!.Data.RockRETH?.Holders ?? [];
 		holdersByBalance = holders.OrderBy(x => x.Balance).ToArray();
 
 		return Task.CompletedTask;

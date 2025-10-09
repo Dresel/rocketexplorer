@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -12,9 +13,22 @@ using TransferEventDTO = Nethereum.Contracts.Standards.ERC20.ContractDefinition.
 
 namespace RocketExplorer.Core.Tokens;
 
-public class TokensSync(IOptions<SyncOptions> options)
-	: SyncBase<TokensSyncContext>(options)
+public class TokensSync : SyncBase<TokensSyncContext>
 {
+	private readonly string? rockRETHTokenAddress;
+
+	public TokensSync(IOptions<SyncOptions> options) : base(options)
+	{
+		this.rockRETHTokenAddress = options.Value.Environment.ToLower(CultureInfo.InvariantCulture) switch
+		{
+			"testnet" => "0x066b118c1A8012E6E5DFf4274c91A4B85F5f3CC2",
+			"local-testnet" => "0x066b118c1A8012E6E5DFf4274c91A4B85F5f3CC2",
+			"mainnet" => "0x936faCdf10c8c36294e7b9d28345255539d81bc7",
+			"local-mainnet" => "0x936faCdf10c8c36294e7b9d28345255539d81bc7",
+			_ => null,
+		};
+	}
+
 	protected override async Task HandleBlocksAsync(
 		TokensSyncContext context, long fromBlock, long toBlock,
 		CancellationToken cancellationToken = default)
@@ -88,14 +102,17 @@ public class TokensSync(IOptions<SyncOptions> options)
 				StakingEventHandlers.HandleRPLMegapoolUnstaked, context);
 		}
 
-		IEnumerable<IEventLog> rockRETHEvents = await context.Web3.FilterAsync(
-			fromBlock, toBlock, [typeof(TransferEventDTO),],
-			[TokensSyncContext.RockRETHTokenAddress,], context.Policy);
-
-		foreach (IEventLog eventLog in rockRETHEvents)
+		if (this.rockRETHTokenAddress is not null)
 		{
-			await eventLog.WhenIsAsync<TransferEventDTO, TokensSyncContext>(
-				TokenEventHandlers.HandleRockRETHAsync, context, cancellationToken);
+			IEnumerable<IEventLog> rockRETHEvents = await context.Web3.FilterAsync(
+				fromBlock, toBlock, [typeof(TransferEventDTO),],
+				[this.rockRETHTokenAddress,], context.Policy);
+
+			foreach (IEventLog eventLog in rockRETHEvents)
+			{
+				await eventLog.WhenIsAsync<TransferEventDTO, TokensSyncContext>(
+					TokenEventHandlers.HandleRockRETHAsync, context, cancellationToken);
+			}
 		}
 	}
 
@@ -107,7 +124,6 @@ public class TokensSync(IOptions<SyncOptions> options)
 		string rplOldContractAddress =
 			contextBase.Contracts["rocketTokenRPLFixedSupply"].Versions.Select(x => x.Address).Single();
 		string rethContractAddress = contextBase.Contracts["rocketTokenRETH"].Versions.Select(x => x.Address).Single();
-		string rockRETHContractAddress = TokensSyncContext.RockRETHTokenAddress;
 
 		contextBase.Logger.LogInformation("Loading token snapshots");
 
@@ -203,14 +219,16 @@ public class TokensSync(IOptions<SyncOptions> options)
 				ProcessedBlockNumber = 0,
 				Data = new TokensRockRETHSnapshot
 				{
-					RockRETH = new Token
-					{
-						Address = rockRETHContractAddress,
-						Holders = [],
-						SupplyTotal = [],
-						MintsDaily = [],
-						BurnsDaily = [],
-					},
+					RockRETH = this.rockRETHTokenAddress is null
+						? null
+						: new Token
+						{
+							Address = this.rockRETHTokenAddress,
+							Holders = [],
+							SupplyTotal = [],
+							MintsDaily = [],
+							BurnsDaily = [],
+						},
 				},
 			};
 
@@ -279,12 +297,12 @@ public class TokensSync(IOptions<SyncOptions> options)
 			RockRETHTokenInfo = new TokenInfo
 			{
 				Holders = new SortedDictionary<string, BigInteger>(
-					rockRETHSnapshot.Data.RockRETH.Holders.Select(entry =>
-						new KeyValuePair<string, BigInteger>(entry.Address, entry.Balance)).ToDictionary(),
+					rockRETHSnapshot.Data.RockRETH?.Holders.Select(entry =>
+						new KeyValuePair<string, BigInteger>(entry.Address, entry.Balance)).ToDictionary() ?? [],
 					StringComparer.OrdinalIgnoreCase),
-				SupplyTotal = rockRETHSnapshot.Data.RockRETH.SupplyTotal,
-				MintsDaily = rockRETHSnapshot.Data.RockRETH.MintsDaily,
-				BurnsDaily = rockRETHSnapshot.Data.RockRETH.BurnsDaily,
+				SupplyTotal = rockRETHSnapshot.Data.RockRETH?.SupplyTotal ?? [],
+				MintsDaily = rockRETHSnapshot.Data.RockRETH?.MintsDaily ?? [],
+				BurnsDaily = rockRETHSnapshot.Data.RockRETH?.BurnsDaily ?? [],
 			},
 		};
 	}
@@ -388,18 +406,20 @@ public class TokensSync(IOptions<SyncOptions> options)
 				ProcessedBlockNumber = context.CurrentBlockHeight,
 				Data = new TokensRockRETHSnapshot
 				{
-					RockRETH = new Token
-					{
-						Address = TokensSyncContext.RockRETHTokenAddress,
-						Holders = context.RockRETHTokenInfo.Holders.Select(x => new HolderEntry
+					RockRETH = this.rockRETHTokenAddress is null
+						? null
+						: new Token
 						{
-							Address = x.Key,
-							Balance = x.Value,
-						}).ToArray(),
-						SupplyTotal = context.RockRETHTokenInfo.SupplyTotal,
-						MintsDaily = context.RockRETHTokenInfo.MintsDaily,
-						BurnsDaily = context.RockRETHTokenInfo.BurnsDaily,
-					},
+							Address = this.rockRETHTokenAddress,
+							Holders = context.RockRETHTokenInfo.Holders.Select(x => new HolderEntry
+							{
+								Address = x.Key,
+								Balance = x.Value,
+							}).ToArray(),
+							SupplyTotal = context.RockRETHTokenInfo.SupplyTotal,
+							MintsDaily = context.RockRETHTokenInfo.MintsDaily,
+							BurnsDaily = context.RockRETHTokenInfo.BurnsDaily,
+						},
 				},
 			}, cancellationToken: cancellationToken);
 

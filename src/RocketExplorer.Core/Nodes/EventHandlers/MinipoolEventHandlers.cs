@@ -13,7 +13,7 @@ namespace RocketExplorer.Core.Nodes.EventHandlers;
 public class MinipoolEventHandlers
 {
 	public static async Task HandleAsync(
-		NodesSyncContext context, EventLog<MinipoolEnqueuedEventDTO> eventLog, CancellationToken cancellationToken)
+		GlobalContext globalContext, EventLog<MinipoolEnqueuedEventDTO> eventLog, CancellationToken cancellationToken)
 	{
 		MinipoolUpdatedEvent updatedEvent = new()
 		{
@@ -23,14 +23,16 @@ public class MinipoolEventHandlers
 			Status = ValidatorStatus.InQueue,
 		};
 
-		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(context, updatedEvent, cancellationToken);
+		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(globalContext, updatedEvent, cancellationToken);
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
 			return;
 		}
 
-		context.DashboardInfo.QueueLength++;
+		globalContext.DashboardContext.QueueLength++;
+
+		NodesContext context = await globalContext.NodesContextFactory;
 
 		MinipoolValidatorIndexEntry indexEntry =
 			context.ValidatorInfo.Data.MinipoolValidatorIndex[updatedEvent.MinipoolAddress];
@@ -64,7 +66,7 @@ public class MinipoolEventHandlers
 	}
 
 	public static async Task HandleAsync(
-		NodesSyncContext context, EventLog<MinipoolDequeuedEventDTO> eventLog, CancellationToken cancellationToken)
+		GlobalContext globalContext, EventLog<MinipoolDequeuedEventDTO> eventLog, CancellationToken cancellationToken)
 	{
 		string minipoolAddress = eventLog.Event.Minipool;
 
@@ -76,14 +78,16 @@ public class MinipoolEventHandlers
 			Status = ValidatorStatus.Dequeued,
 		};
 
-		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(context, updatedEvent, cancellationToken);
+		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(globalContext, updatedEvent, cancellationToken);
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
 			return;
 		}
 
-		context.DashboardInfo.QueueLength--;
+		globalContext.DashboardContext.QueueLength--;
+
+		NodesContext context = await globalContext.NodesContextFactory;
 
 		if ("minipools.available.half".Sha3().SequenceEqual(eventLog.Event.QueueId))
 		{
@@ -124,12 +128,12 @@ public class MinipoolEventHandlers
 	}
 
 	public static async Task HandleAsync(
-		NodesSyncContext context, EventLog<MinipoolPrestakedEventDTO> eventLog, CancellationToken cancellationToken)
+		GlobalContext globalContext, EventLog<MinipoolPrestakedEventDTO> eventLog, CancellationToken cancellationToken)
 	{
 		string minipoolAddress = eventLog.Log.Address;
 
 		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(
-			context, new MinipoolUpdatedEvent
+			globalContext, new MinipoolUpdatedEvent
 			{
 				Log = eventLog.Log,
 				Time = eventLog.Event.Time,
@@ -141,6 +145,8 @@ public class MinipoolEventHandlers
 		{
 			return;
 		}
+
+		NodesContext context = await globalContext.NodesContextFactory;
 
 		context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress] =
 			context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress] with
@@ -161,7 +167,7 @@ public class MinipoolEventHandlers
 				PubKey = eventLog.Event.ValidatorPubkey,
 			});
 
-		await context.GlobalIndexService.AddOrUpdateEntryAsync(
+		await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 			minipoolAddress.HexToByteArray(), eventLog.Event.ValidatorPubkey.ToHex(),
 			x =>
 			{
@@ -171,13 +177,13 @@ public class MinipoolEventHandlers
 	}
 
 	public static async Task HandleAsync(
-		NodesSyncContext context, EventLog<EtherWithdrawalProcessedEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<EtherWithdrawalProcessedEventDTO> eventLog,
 		CancellationToken cancellationToken)
 	{
 		string minipoolAddress = eventLog.Log.Address;
 
 		await EventMinipoolValidatorUpdateAsync(
-			context, new MinipoolUpdatedEvent
+			globalContext, new MinipoolUpdatedEvent
 			{
 				Log = eventLog.Log,
 				Time = eventLog.Event.Time,
@@ -187,7 +193,7 @@ public class MinipoolEventHandlers
 	}
 
 	public static async Task HandleAsync(
-		NodesSyncContext context, EventLog<StatusUpdatedEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<StatusUpdatedEventDTO> eventLog,
 		CancellationToken cancellationToken)
 	{
 		string minipoolAddress = eventLog.Log.Address;
@@ -195,7 +201,7 @@ public class MinipoolEventHandlers
 		ValidatorStatus validatorStatus = eventLog.Event.Status.ToValidatorStatus();
 
 		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(
-			context, new MinipoolUpdatedEvent
+			globalContext, new MinipoolUpdatedEvent
 			{
 				Log = eventLog.Log,
 				Time = eventLog.Event.Time,
@@ -210,9 +216,11 @@ public class MinipoolEventHandlers
 
 		if (validatorStatus == ValidatorStatus.Staking)
 		{
+			NodesContext context = await globalContext.NodesContextFactory;
+
 			try
 			{
-				long validatorIndex = await context.BeaconChainService.GetValidatorIndex(
+				long validatorIndex = await globalContext.Services.BeaconChainService.GetValidatorIndex(
 						context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress].PubKey!) ??
 					throw new InvalidOperationException();
 
@@ -228,7 +236,7 @@ public class MinipoolEventHandlers
 						ValidatorIndex = validatorIndex,
 					};
 
-				await context.GlobalIndexService.AddOrUpdateEntryAsync(
+				await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 					minipoolAddress.HexToByteArray(), validatorIndex.ToString(CultureInfo.InvariantCulture),
 					x =>
 					{
@@ -238,22 +246,24 @@ public class MinipoolEventHandlers
 			}
 			catch
 			{
-				context.Logger.LogDebug("Couldn't query validator index for {Address}", minipoolAddress);
+				globalContext.GetLogger<NodesSync>().LogDebug("Couldn't query validator index for {Address}", minipoolAddress);
 			}
 
-			context.DashboardInfo.MinipoolValidatorsStaking++;
+			globalContext.DashboardContext.MinipoolValidatorsStaking++;
 		}
 
 		if (validatorStatus == ValidatorStatus.Exited)
 		{
-			context.DashboardInfo.MinipoolValidatorsStaking--;
+			globalContext.DashboardContext.MinipoolValidatorsStaking--;
 		}
 	}
 
 	private static async Task<string?> EventMinipoolValidatorUpdateAsync(
-		NodesSyncContext context, MinipoolUpdatedEvent updatedEvent,
+		GlobalContext globalContext, MinipoolUpdatedEvent updatedEvent,
 		CancellationToken cancellationToken = default)
 	{
+		NodesContext context = await globalContext.NodesContextFactory;
+
 		if (!context.ValidatorInfo.Data.MinipoolValidatorIndex.TryGetValue(
 				updatedEvent.MinipoolAddress, out MinipoolValidatorIndexEntry? indexEntry))
 		{
@@ -266,7 +276,7 @@ public class MinipoolEventHandlers
 		if (!context.ValidatorInfo.Partial.UpdatedMinipoolValidators.ContainsKey(updatedEvent.MinipoolAddress))
 		{
 			context.ValidatorInfo.Partial.UpdatedMinipoolValidators[updatedEvent.MinipoolAddress] =
-				(await context.Storage.ReadAsync<Validator>(
+				(await globalContext.Services.Storage.ReadAsync<Validator>(
 					Keys.MinipoolValidator(updatedEvent.MinipoolAddress), cancellationToken))?.Data ??
 				throw new InvalidOperationException("Cannot read node operator from storage.");
 		}

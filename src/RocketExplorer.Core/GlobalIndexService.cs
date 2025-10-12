@@ -9,115 +9,142 @@ public class GlobalIndexService(Storage storage, ILogger<GlobalIndexService> log
 	private readonly ILogger<GlobalIndexService> logger = logger;
 	private readonly Storage storage = storage;
 
+	private readonly SemaphoreSlim semaphore = new(1, 1);
+
 	private ConcurrentDictionary<string, Dictionary<byte[], IndexEntry>?> Entries { get; } = new();
 
 	public Task AddOrUpdateEntryAsync(
 		byte[] address, string key, Action<IndexEntry> action,
-		CancellationToken cancellationToken = default) =>
-		Parallel.ForEachAsync(
-			key.NGrams(), cancellationToken, async (nGram, innerCancellationToken) =>
-			{
-				if (!Entries.TryGetValue(nGram, out Dictionary<byte[], IndexEntry>? bucket))
+		CancellationToken cancellationToken = default)
+	{
+		this.semaphore.WaitAsync(cancellationToken);
+
+		try
+		{
+			return Parallel.ForEachAsync(
+				key.NGrams(), cancellationToken, async (nGram, innerCancellationToken) =>
 				{
-					this.logger.LogDebug("Loading {snapshot}", Keys.NGram(nGram));
-					BlobObject<GlobalIndexShardSnapshot>? globalIndexShard
-						= await this.storage.ReadAsync<GlobalIndexShardSnapshot>(
-							Keys.NGram(nGram), innerCancellationToken);
-
-					if (globalIndexShard != null)
+					if (!Entries.TryGetValue(nGram, out Dictionary<byte[], IndexEntry>? bucket))
 					{
-						bucket = globalIndexShard.Data.Index.ToDictionary(
-							x => x.Address, x => new IndexEntry
-							{
-								Type = x.Type,
-								Address = x.Address,
-								ValidatorPubKey = x.ValidatorPubKey,
-								ValidatorIndex = x.ValidatorIndex,
-								MegapoolIndex = x.MegapoolIndex,
-							}, new FastByteArrayComparer());
-					}
-					else
-					{
-						bucket = new Dictionary<byte[], IndexEntry>(new FastByteArrayComparer());
-					}
+						this.logger.LogDebug("Loading {snapshot}", Keys.NGram(nGram));
+						BlobObject<GlobalIndexShardSnapshot>? globalIndexShard
+							= await this.storage.ReadAsync<GlobalIndexShardSnapshot>(
+								Keys.NGram(nGram), innerCancellationToken);
 
-					Entries[nGram] = bucket;
-				}
-
-				// Could be if bucket was marked for deletion
-				if (bucket == null)
-				{
-					bucket = new Dictionary<byte[], IndexEntry>(new FastByteArrayComparer());
-					Entries[nGram] = bucket;
-				}
-
-				if (!bucket.TryGetValue(address, out IndexEntry? entry))
-				{
-					entry = new IndexEntry
-					{
-						Address = address,
-					};
-
-					bucket[address] = entry;
-				}
-
-				action(entry);
-			});
-
-	public Task UpdateOrRemoveEntryAsync(
-		byte[] address, string key, Action<IndexEntry> action, CancellationToken cancellationToken = default) =>
-		Parallel.ForEachAsync(
-			key.NGrams(), cancellationToken, async (nGram, innerCancellationToken) =>
-			{
-				if (!Entries.TryGetValue(nGram, out Dictionary<byte[], IndexEntry>? bucket))
-				{
-					this.logger.LogDebug("Loading {snapshot}", Keys.NGram(nGram));
-					BlobObject<GlobalIndexShardSnapshot>? globalIndexShard
-						= await this.storage.ReadAsync<GlobalIndexShardSnapshot>(
-							Keys.NGram(nGram), innerCancellationToken);
-
-					if (globalIndexShard != null)
-					{
-						bucket = globalIndexShard.Data.Index.ToDictionary(
-							x => x.Address, x => new IndexEntry
-							{
-								Type = x.Type,
-								Address = x.Address,
-								ValidatorPubKey = x.ValidatorPubKey,
-								ValidatorIndex = x.ValidatorIndex,
-								MegapoolIndex = x.MegapoolIndex,
-							}, new FastByteArrayComparer());
+						if (globalIndexShard != null)
+						{
+							bucket = globalIndexShard.Data.Index.ToDictionary(
+								x => x.Address, x => new IndexEntry
+								{
+									Type = x.Type,
+									Address = x.Address,
+									ValidatorPubKey = x.ValidatorPubKey,
+									ValidatorIndex = x.ValidatorIndex,
+									MegapoolIndex = x.MegapoolIndex,
+								}, new FastByteArrayComparer());
+						}
+						else
+						{
+							bucket = new Dictionary<byte[], IndexEntry>(new FastByteArrayComparer());
+						}
 
 						Entries[nGram] = bucket;
 					}
-				}
 
-				if (bucket == null)
-				{
-					throw new InvalidOperationException();
-				}
-
-				if (!bucket.TryGetValue(address, out IndexEntry? entry))
-				{
-					throw new InvalidOperationException();
-				}
-
-				action(entry);
-
-				if (entry.Type == 0)
-				{
-					bucket.Remove(address);
-
-					if (bucket.Count == 0)
+					// Could be if bucket was marked for deletion
+					if (bucket == null)
 					{
-						// Mark for deletion
-						Entries[nGram] = null;
+						bucket = new Dictionary<byte[], IndexEntry>(new FastByteArrayComparer());
+						Entries[nGram] = bucket;
 					}
-				}
-			});
 
-	public Task WriteAsync(long processedBlockNumber, CancellationToken cancellationToken = default) =>
-		Parallel.ForEachAsync(
+					if (!bucket.TryGetValue(address, out IndexEntry? entry))
+					{
+						entry = new IndexEntry
+						{
+							Address = address,
+						};
+
+						bucket[address] = entry;
+					}
+
+					action(entry);
+				});
+		}
+		finally
+		{
+			this.semaphore.Release();
+		}
+	}
+
+	public Task UpdateOrRemoveEntryAsync(
+		byte[] address, string key, Action<IndexEntry> action, CancellationToken cancellationToken = default)
+	{
+		this.semaphore.WaitAsync(cancellationToken);
+
+		try
+		{
+			return Parallel.ForEachAsync(
+				key.NGrams(), cancellationToken, async (nGram, innerCancellationToken) =>
+				{
+					if (!Entries.TryGetValue(nGram, out Dictionary<byte[], IndexEntry>? bucket))
+					{
+						this.logger.LogDebug("Loading {snapshot}", Keys.NGram(nGram));
+						BlobObject<GlobalIndexShardSnapshot>? globalIndexShard
+							= await this.storage.ReadAsync<GlobalIndexShardSnapshot>(
+								Keys.NGram(nGram), innerCancellationToken);
+
+						if (globalIndexShard != null)
+						{
+							bucket = globalIndexShard.Data.Index.ToDictionary(
+								x => x.Address, x => new IndexEntry
+								{
+									Type = x.Type,
+									Address = x.Address,
+									ValidatorPubKey = x.ValidatorPubKey,
+									ValidatorIndex = x.ValidatorIndex,
+									MegapoolIndex = x.MegapoolIndex,
+								}, new FastByteArrayComparer());
+
+							Entries[nGram] = bucket;
+						}
+					}
+
+					if (bucket == null)
+					{
+						throw new InvalidOperationException();
+					}
+
+					if (!bucket.TryGetValue(address, out IndexEntry? entry))
+					{
+						throw new InvalidOperationException();
+					}
+
+					action(entry);
+
+					if (entry.Type == 0)
+					{
+						bucket.Remove(address);
+
+						if (bucket.Count == 0)
+						{
+							// Mark for deletion
+							Entries[nGram] = null;
+						}
+					}
+				});
+		}
+		finally
+		{
+			this.semaphore.Release();
+		}
+	}
+
+	public async Task WriteAsync(long processedBlockNumber, CancellationToken cancellationToken = default)
+	{
+		logger.LogInformation("Writing global index shards");
+
+		await Parallel.ForEachAsync(
 			Entries, cancellationToken, async (entry, innerCancellationToken) =>
 			{
 				if (entry.Value == null)
@@ -146,4 +173,5 @@ public class GlobalIndexService(Storage storage, ILogger<GlobalIndexService> log
 						}, cancellationToken: innerCancellationToken);
 				}
 			});
+	}
 }

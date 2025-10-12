@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.Net.Http.Headers;
 using System.Text;
 using Amazon.Runtime;
@@ -8,16 +7,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Web3;
 using RocketExplorer.Core;
 using RocketExplorer.Core.BeaconChain;
 using RocketExplorer.Core.Contracts;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Core.Tokens;
-using RocketExplorer.Ethereum.RocketStorage;
 using RocketExplorer.Shared;
-using RocketExplorer.Shared.Contracts;
 using Serilog;
 using Serilog.Core;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -52,6 +48,36 @@ IHost host = Host.CreateDefaultBuilder(args)
 		services.AddTransient<TokensSync>();
 		services.AddTransient<NodesSync>();
 
+		services.AddTransient<Web3>(serviceProvider =>
+		{
+			ILogger<Web3> logger = serviceProvider.GetRequiredService<ILogger<Web3>>();
+			SyncOptions options = serviceProvider.GetRequiredService<IOptions<SyncOptions>>().Value;
+
+			Web3 web3;
+
+			if (!string.IsNullOrWhiteSpace(options.RpcBasicAuthUsername) &&
+				!string.IsNullOrWhiteSpace(options.RpcBasicAuthPassword))
+			{
+				logger.LogInformation("Using BasicAuth...");
+
+				byte[] byteArray =
+					Encoding.ASCII.GetBytes($"{options.RpcBasicAuthUsername}:{options.RpcBasicAuthPassword}");
+				AuthenticationHeaderValue authenticationHeaderValue = new("Basic", Convert.ToBase64String(byteArray));
+				web3 = new Web3(options.RPCUrl, authenticationHeader: authenticationHeaderValue);
+			}
+			else
+			{
+				web3 = new Web3(options.RPCUrl);
+			}
+
+			return web3;
+		});
+
+		services.AddScoped<GlobalContextAccessor>();
+		services.AddScoped<GlobalContext>(serviceProvider =>
+			serviceProvider.GetRequiredService<GlobalContextAccessor>().GlobalContext ??
+			throw new InvalidOperationException("GlobalContext not initialized or set"));
+
 		services.AddTransient<Storage>();
 
 		services.AddTransient(_ =>
@@ -73,141 +99,42 @@ IHost host = Host.CreateDefaultBuilder(args)
 	})
 	.Build();
 
+GlobalContext globalContext = await host.Services.CreateGlobalContextAsync();
+host.Services.GetRequiredService<GlobalContextAccessor>().GlobalContext = globalContext;
+
 ILogger<Program> logger = host.Services.GetRequiredService<ILogger<Program>>();
-SyncOptions options = host.Services.GetRequiredService<IOptions<SyncOptions>>().Value;
 
-logger.LogInformation(
-	"Using Rocket Pool environment {Environment} with rpc endpoint {RPCUrl}", options.Environment, options.RPCUrl);
+Task contractsSyncTask = host.Services.GetRequiredService<ContractsSync>().HandleBlocksAsync();
+Task tokensSyncTask = host.Services.GetRequiredService<TokensSync>().HandleBlocksAsync();
+Task nodesSyncTask = host.Services.GetRequiredService<NodesSync>().HandleBlocksAsync();
 
-Web3 web3;
+await Task.WhenAll(contractsSyncTask, tokensSyncTask, nodesSyncTask);
 
-if (!string.IsNullOrWhiteSpace(options.RpcBasicAuthUsername) &&
-	!string.IsNullOrWhiteSpace(options.RpcBasicAuthPassword))
-{
-	logger.LogInformation("Using BasicAuth...");
-
-	byte[] byteArray = Encoding.ASCII.GetBytes($"{options.RpcBasicAuthUsername}:{options.RpcBasicAuthPassword}");
-	AuthenticationHeaderValue authenticationHeaderValue = new("Basic", Convert.ToBase64String(byteArray));
-	web3 = new Web3(options.RPCUrl, authenticationHeader: authenticationHeaderValue);
-}
-else
-{
-	web3 = new Web3(options.RPCUrl);
-}
-
-BlockWithTransactions latestBlock =
-	await web3.Eth.Blocks.GetBlockWithTransactionsByNumber.SendRequestAsync(BlockParameter.CreateLatest());
-latestBlock = await web3.Eth.Blocks
-	.GetBlockWithTransactionsByNumber
-	.SendRequestAsync(new BlockParameter((ulong)(latestBlock.Number.Value - 12)));
-
-logger.LogInformation("Latest block: {Block}", latestBlock.Number);
-
-RocketStorageService rocketStorage = new(web3, options.RocketStorageContractAddress);
 Storage storage = host.Services.GetRequiredService<Storage>();
 
-logger.LogInformation("Loading {snapshot}", Keys.DashboardSnapshot);
+Task writeContractsTask = globalContext.ContractsContext.SaveAsync(
+	storage, host.Services.GetRequiredService<ILogger<ContractsContext>>());
+NodesContext nodesContext = await globalContext.NodesContextFactory;
+Task writeNodesTask = nodesContext.SaveAsync(storage, host.Services.GetRequiredService<ILogger<NodesContext>>());
+TokensContext tokensContext = await globalContext.TokensContextFactory;
+Task writeTokensTask = tokensContext.SaveAsync(storage, host.Services.GetRequiredService<ILogger<TokensContext>>());
 
-BlobObject<DashboardSnapshot> dashboardSnapshot =
-	await storage.ReadAsync<DashboardSnapshot>(Keys.DashboardSnapshot) ??
-	new BlobObject<DashboardSnapshot>
-	{
-		ProcessedBlockNumber = (long)latestBlock.Number.Value,
-		Data = new DashboardSnapshot
-		{
-			RPLOldTotalSupply = 0,
-			RPLTotalSupply = 0,
-			RETHTotalSupply = 0,
-			RPLSwapped = 0,
-			RPLLegacyStakedTotal = 0,
-			RPLMegapoolStakedTotal = 0,
-			NodeOperators = 0,
-			MinipoolValidatorsStaking = 0,
-			MegapoolValidatorsStaking = 0,
-			QueueLength = 0,
-		},
-	};
-
-DashboardInfo dashboardInfo = new()
-{
-	RPLOldSupplyTotal = dashboardSnapshot.Data.RPLOldTotalSupply,
-	RPLSupplyTotal = dashboardSnapshot.Data.RPLTotalSupply,
-	RETHSupplyTotal = dashboardSnapshot.Data.RETHTotalSupply,
-	RPLSwappedTotal = dashboardSnapshot.Data.RPLSwapped,
-	NodeOperators = dashboardSnapshot.Data.NodeOperators,
-	MinipoolValidatorsStaking = dashboardSnapshot.Data.MinipoolValidatorsStaking,
-	MegapoolValidatorsStaking = dashboardSnapshot.Data.MegapoolValidatorsStaking,
-	QueueLength = dashboardSnapshot.Data.QueueLength,
-	RPLLegacyStakedTotal = dashboardSnapshot.Data.RPLLegacyStakedTotal,
-	RPLMegapoolStakedTotal = dashboardSnapshot.Data.RPLMegapoolStakedTotal,
-	RockRETHSupplyTotal = dashboardSnapshot.Data.RockRETHTotalSupply,
-};
-
-ContextBase contextBase = new()
-{
-	Storage = storage,
-	RocketStorage = rocketStorage,
-	BeaconChainService = host.Services.GetRequiredService<BeaconChainService>(),
-	Contracts = new ReadOnlyDictionary<string, RocketPoolContract>(new Dictionary<string, RocketPoolContract>()),
-	CurrentBlockHeight = 0,
-	GlobalIndexService = host.Services.GetRequiredService<GlobalIndexService>(),
-	DashboardInfo = dashboardInfo,
-	Logger = logger,
-	Policy = NethereumPolicies.Retry(logger),
-	Web3 = web3,
-	LatestBlockHeight = (long)latestBlock.Number.Value,
-};
-
-ContractsSync contracts = host.Services.GetRequiredService<ContractsSync>();
-await contracts.HandleBlocksAsync(contextBase);
-
-BlobObject<ContractsSnapshot> snapshot =
-	await storage.ReadAsync<ContractsSnapshot>(Keys.ContractsSnapshotKey) ??
-	throw new InvalidOperationException("Cannot read contracts snapshot from storage.");
-
-contextBase = contextBase with
-{
-	Contracts = snapshot.Data.Contracts.ToDictionary(x => x.Name, x => x).AsReadOnly(),
-};
-
-TokensSync tokens = host.Services.GetRequiredService<TokensSync>();
-await tokens.HandleBlocksAsync(contextBase);
-
-NodesSync nodes = host.Services.GetRequiredService<NodesSync>();
-await nodes.HandleBlocksAsync(contextBase);
-
-logger.LogInformation("Writing {snapshot}", Keys.DashboardSnapshot);
-await storage.WriteAsync(
-	Keys.DashboardSnapshot,
-	new BlobObject<DashboardSnapshot>
-	{
-		ProcessedBlockNumber = (long)latestBlock.Number.Value,
-		Data = new DashboardSnapshot
-		{
-			RPLOldTotalSupply = dashboardInfo.RPLOldSupplyTotal,
-			RPLTotalSupply = dashboardInfo.RPLSupplyTotal,
-			RETHTotalSupply = dashboardInfo.RETHSupplyTotal,
-			RPLSwapped = dashboardInfo.RPLSwappedTotal,
-			RPLLegacyStakedTotal = dashboardInfo.RPLLegacyStakedTotal,
-			RPLMegapoolStakedTotal = dashboardInfo.RPLMegapoolStakedTotal,
-			NodeOperators = dashboardInfo.NodeOperators,
-			MinipoolValidatorsStaking = dashboardInfo.MinipoolValidatorsStaking,
-			MegapoolValidatorsStaking = dashboardInfo.MegapoolValidatorsStaking,
-			QueueLength = dashboardInfo.QueueLength,
-		},
-	});
+Task writeDashboardTask = globalContext.DashboardContext.SaveAsync(
+	storage, globalContext.LatestBlockHeight, host.Services.GetRequiredService<ILogger<DashboardInfo>>());
 
 logger.LogInformation("Writing {snapshot}", Keys.SnapshotMetadata);
-await storage.WriteAsync(
+Task writeMetadataTask = storage.WriteAsync(
 	Keys.SnapshotMetadata, new BlobObject<SnapshotMetadata>
 	{
-		ProcessedBlockNumber = (long)latestBlock.Number.Value,
+		ProcessedBlockNumber = globalContext.LatestBlockHeight,
 		Data = new SnapshotMetadata
 		{
-			BlockNumber = (long)latestBlock.Number.Value,
-			Timestamp = (long)latestBlock.Timestamp.Value,
+			BlockNumber = globalContext.LatestBlockHeight,
+			Timestamp = (long)globalContext.LatestBlock.Timestamp.Value,
 		},
 	}, 10);
 
-logger.LogInformation("Writing global index shards");
-await contextBase.GlobalIndexService.WriteAsync((long)latestBlock.Number.Value);
+await Task.WhenAll(writeContractsTask, writeNodesTask, writeTokensTask, writeDashboardTask, writeMetadataTask);
+await globalContext.Services.GlobalIndexService.WriteAsync(globalContext.LatestBlockHeight);
+
+logger.LogInformation("Finished");

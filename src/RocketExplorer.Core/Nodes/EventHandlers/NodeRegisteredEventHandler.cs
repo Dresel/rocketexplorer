@@ -7,16 +7,18 @@ using RocketExplorer.Shared.Nodes;
 
 namespace RocketExplorer.Core.Nodes.EventHandlers;
 
-public static class NodeRegisteredEventHandler
+public class NodeRegisteredEventHandler
 {
 	public static async Task HandleAsync(
-		this NodesSyncContext context, EventLog<NodeRegisteredEventDTO> eventLog, CancellationToken cancellationToken)
+		GlobalContext globalContext, EventLog<NodeRegisteredEventDTO> eventLog, CancellationToken cancellationToken)
 	{
 		NodeRegisteredEventDTO @event = eventLog.Event;
 
-		context.Logger.LogInformation("Node registered {Address}", @event.Node);
+		globalContext.GetLogger<NodeRegisteredEventHandler>().LogInformation("Node registered {Address}", @event.Node);
 
-		context.DashboardInfo.NodeOperators++;
+		NodesContext context = await globalContext.NodesContextFactory;
+
+		globalContext.DashboardContext.NodeOperators++;
 
 		context.Nodes.Data.Index.Add(
 			@event.Node, new NodeIndexEntry
@@ -25,7 +27,7 @@ public static class NodeRegisteredEventHandler
 				RegistrationTimestamp = (long)@event.Time,
 			});
 
-		await context.GlobalIndexService.AddOrUpdateEntryAsync(
+		await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 			@event.Node.HexToByteArray(), @event.Node.RemoveHexPrefix(),
 			x => x.Type |= IndexEntryType.NodeOperator, cancellationToken);
 

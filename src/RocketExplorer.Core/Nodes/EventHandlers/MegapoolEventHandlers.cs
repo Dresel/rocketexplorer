@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Nethereum.Contracts;
 using Nethereum.Hex.HexConvertors.Extensions;
@@ -15,7 +16,7 @@ namespace RocketExplorer.Core.Nodes.EventHandlers;
 public class MegapoolEventHandlers
 {
 	public static async Task HandleAsync(
-		NodesSyncContext context, EventLog<MegapoolValidatorAssignedEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<MegapoolValidatorAssignedEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
 		string megapoolAddress = eventLog.Log.Address;
@@ -23,7 +24,7 @@ public class MegapoolEventHandlers
 		long time = (long)eventLog.Event.Time;
 
 		string? nodeOperatorAddress = await EventMegapoolValidatorUpdateAsync(
-			context, new MegapoolUpdatedEvent
+			globalContext, new MegapoolUpdatedEvent
 			{
 				Log = eventLog.Log,
 				Time = time,
@@ -37,9 +38,11 @@ public class MegapoolEventHandlers
 			return;
 		}
 
-		context.DashboardInfo.QueueLength--;
+		globalContext.DashboardContext.QueueLength--;
 
 		int h = 0;
+
+		NodesContext context = await globalContext.NodesContextFactory;
 
 		h += context.QueueInfo.MegapoolStandardQueue.RemoveAll(x =>
 			x.PubKey.SequenceEqual(
@@ -56,7 +59,7 @@ public class MegapoolEventHandlers
 	}
 
 	public static async Task HandleAsync(
-		NodesSyncContext context, EventLog<MegapoolValidatorStakedEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<MegapoolValidatorStakedEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
 		string megapoolAddress = eventLog.Log.Address;
@@ -64,7 +67,7 @@ public class MegapoolEventHandlers
 		long time = (long)eventLog.Event.Time;
 
 		string? nodeOperatorAddress = await EventMegapoolValidatorUpdateAsync(
-			context, new MegapoolUpdatedEvent
+			globalContext, new MegapoolUpdatedEvent
 			{
 				Log = eventLog.Log,
 				Time = time,
@@ -78,10 +81,12 @@ public class MegapoolEventHandlers
 			return;
 		}
 
-		RocketMegapoolDelegateService megapoolDelegate = new(context.Web3, megapoolAddress);
+		RocketMegapoolDelegateService megapoolDelegate = new(globalContext.Services.Web3, megapoolAddress);
 
 		GetValidatorInfoOutputDTO validatorInfo = await megapoolDelegate.GetValidatorInfoQueryAsync(
 			(uint)validatorId, new BlockParameter(eventLog.Log.BlockNumber));
+
+		NodesContext context = await globalContext.NodesContextFactory;
 
 		context.ValidatorInfo.Data.MegapoolValidatorIndex[(megapoolAddress, validatorId)] =
 			context.ValidatorInfo.Data.MegapoolValidatorIndex[(megapoolAddress, validatorId)] with
@@ -95,11 +100,20 @@ public class MegapoolEventHandlers
 				ValidatorIndex = (long)validatorInfo.ReturnValue1.ValidatorIndex,
 			};
 
-		context.DashboardInfo.MegapoolValidatorsStaking++;
+		await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+			megapoolAddress.HexToByteArray(), validatorInfo.ReturnValue1.ValidatorIndex.ToString(CultureInfo.InvariantCulture),
+			x =>
+			{
+				x.Type |= IndexEntryType.MegapoolValidator;
+				x.ValidatorIndex = (long)validatorInfo.ReturnValue1.ValidatorIndex;
+				x.MegapoolIndex = validatorId;
+			}, cancellationToken);
+
+		globalContext.DashboardContext.MegapoolValidatorsStaking++;
 	}
 
 	public static async Task HandleAsync(
-		NodesSyncContext context, EventLog<MegapoolValidatorDissolvedEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<MegapoolValidatorDissolvedEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
 		string megapoolAddress = eventLog.Log.Address;
@@ -107,7 +121,7 @@ public class MegapoolEventHandlers
 		long time = (long)eventLog.Event.Time;
 
 		string? nodeOperatorAddress = await EventMegapoolValidatorUpdateAsync(
-			context, new MegapoolUpdatedEvent
+			globalContext, new MegapoolUpdatedEvent
 			{
 				Log = eventLog.Log,
 				Time = time,
@@ -123,7 +137,7 @@ public class MegapoolEventHandlers
 	}
 
 	public static async Task HandleAsync(
-		NodesSyncContext context, EventLog<MegapoolValidatorExitingEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<MegapoolValidatorExitingEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
 		string megapoolAddress = eventLog.Log.Address;
@@ -131,7 +145,7 @@ public class MegapoolEventHandlers
 		long time = (long)eventLog.Event.Time;
 
 		string? nodeOperatorAddress = await EventMegapoolValidatorUpdateAsync(
-			context, new MegapoolUpdatedEvent
+			globalContext, new MegapoolUpdatedEvent
 			{
 				Log = eventLog.Log,
 				Time = time,
@@ -145,11 +159,11 @@ public class MegapoolEventHandlers
 			return;
 		}
 
-		context.DashboardInfo.MegapoolValidatorsStaking--;
+		globalContext.DashboardContext.MegapoolValidatorsStaking--;
 	}
 
 	public static async Task HandleAsync(
-		NodesSyncContext context, EventLog<MegapoolValidatorExitedEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<MegapoolValidatorExitedEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
 		string megapoolAddress = eventLog.Log.Address;
@@ -157,7 +171,7 @@ public class MegapoolEventHandlers
 		long time = (long)eventLog.Event.Time;
 
 		string? nodeOperatorAddress = await EventMegapoolValidatorUpdateAsync(
-			context, new MegapoolUpdatedEvent
+			globalContext, new MegapoolUpdatedEvent
 			{
 				Log = eventLog.Log,
 				Time = time,
@@ -168,11 +182,12 @@ public class MegapoolEventHandlers
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
+			return;
 		}
 	}
 
 	public static async Task HandleAsync(
-		NodesSyncContext context, EventLog<MegapoolValidatorDequeuedEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<MegapoolValidatorDequeuedEventDTO> eventLog,
 		CancellationToken cancellationToken)
 	{
 		string megapoolAddress = eventLog.Log.Address;
@@ -180,7 +195,7 @@ public class MegapoolEventHandlers
 		long time = (long)eventLog.Event.Time;
 
 		string? nodeOperatorAddress = await EventMegapoolValidatorUpdateAsync(
-			context, new MegapoolUpdatedEvent
+			globalContext, new MegapoolUpdatedEvent
 			{
 				Log = eventLog.Log,
 				Time = time,
@@ -194,7 +209,9 @@ public class MegapoolEventHandlers
 			return;
 		}
 
-		context.DashboardInfo.QueueLength--;
+		globalContext.DashboardContext.QueueLength--;
+
+		NodesContext context = await globalContext.NodesContextFactory;
 
 		int h = 0;
 
@@ -213,11 +230,13 @@ public class MegapoolEventHandlers
 	}
 
 	public static async Task HandleAsync(
-		NodesSyncContext context, EventLog<MegapoolValidatorEnqueuedEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<MegapoolValidatorEnqueuedEventDTO> eventLog,
 		CancellationToken cancellationToken)
 	{
 		string megapoolAddress = eventLog.Log.Address;
 		int eventValidatorId = (int)eventLog.Event.ValidatorId;
+
+		NodesContext context = await globalContext.NodesContextFactory;
 
 		KeyValuePair<string, NodeIndexEntry>? indexEntry = context.Nodes.Data.Index
 			.Where(node => node.Value.MegapoolAddress?.SequenceEqual(eventLog.Log.Address.HexToByteArray()) == true)
@@ -226,7 +245,8 @@ public class MegapoolEventHandlers
 
 		if (indexEntry == null)
 		{
-			nodeOperatorAddress = await TryGetNodeOperator(context, megapoolAddress, eventLog.Log, cancellationToken);
+			nodeOperatorAddress = await TryGetNodeOperator(
+				globalContext, megapoolAddress, eventLog.Log, cancellationToken);
 		}
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
@@ -234,9 +254,9 @@ public class MegapoolEventHandlers
 			return;
 		}
 
-		context.DashboardInfo.QueueLength++;
+		globalContext.DashboardContext.QueueLength++;
 
-		RocketMegapoolDelegateService megapoolDelegate = new(context.Web3, megapoolAddress);
+		RocketMegapoolDelegateService megapoolDelegate = new(globalContext.Services.Web3, megapoolAddress);
 
 		byte[] pubKey = await megapoolDelegate.GetValidatorPubkeyQueryAsync(
 			(uint)eventValidatorId, new BlockParameter(eventLog.Log.BlockNumber));
@@ -252,15 +272,12 @@ public class MegapoolEventHandlers
 			ValidatorIndex = null,
 		};
 
-		await context.GlobalIndexService.AddOrUpdateEntryAsync(
+		await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 			megapoolAddress.HexToByteArray(),
 			megapoolAddress.RemoveHexPrefix(),
-			x =>
-			{
-				x.Type |= IndexEntryType.Megapool;
-			}, cancellationToken);
+			x => { x.Type |= IndexEntryType.Megapool; }, cancellationToken);
 
-		await context.GlobalIndexService.AddOrUpdateEntryAsync(
+		await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 			megapoolAddress.HexToByteArray(), pubKey.ToHex(),
 			x =>
 			{
@@ -306,7 +323,8 @@ public class MegapoolEventHandlers
 		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
 		{
 			context.Nodes.Partial.Updated[nodeOperatorAddress] =
-				(await context.Storage.ReadAsync<Node>(Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
+				(await globalContext.Services.Storage.ReadAsync<Node>(
+					Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
 				throw new InvalidOperationException("Cannot read node operator from storage.");
 		}
 
@@ -348,8 +366,10 @@ public class MegapoolEventHandlers
 	}
 
 	private static async Task<string?> EventMegapoolValidatorUpdateAsync(
-		NodesSyncContext context, MegapoolUpdatedEvent updatedEvent, CancellationToken cancellationToken)
+		GlobalContext globalContext, MegapoolUpdatedEvent updatedEvent, CancellationToken cancellationToken)
 	{
+		NodesContext context = await globalContext.NodesContextFactory;
+
 		if (!context.ValidatorInfo.Data.MegapoolValidatorIndex.ContainsKey(
 				(updatedEvent.MegapoolAddress, updatedEvent.ValidatorId)))
 		{
@@ -365,7 +385,7 @@ public class MegapoolEventHandlers
 		if (!megapoolValidators.ContainsKey((updatedEvent.MegapoolAddress, updatedEvent.ValidatorId)))
 		{
 			megapoolValidators[(updatedEvent.MegapoolAddress, updatedEvent.ValidatorId)] =
-				(await context.Storage.ReadAsync<Validator>(
+				(await globalContext.Services.Storage.ReadAsync<Validator>(
 					Keys.MegapoolValidator(updatedEvent.MegapoolAddress, updatedEvent.ValidatorId), cancellationToken))
 				?.Data ??
 				throw new InvalidOperationException("Cannot read node operator from storage.");
@@ -390,16 +410,18 @@ public class MegapoolEventHandlers
 	}
 
 	private static async Task<string?> FetchNodeOperatorAddressFromMegapoolAddress(
-		NodesSyncContext context, HexBigInteger blockNumber, string megapoolAddress,
+		GlobalContext globalContext, HexBigInteger blockNumber, string megapoolAddress,
 		RocketMegapoolDelegateService megapoolDelegate, CancellationToken cancellationToken = default)
 	{
 		string nodeOperatorAddress =
 			await megapoolDelegate.GetNodeAddressQueryAsync(new BlockParameter(blockNumber));
 
+		NodesContext context = await globalContext.NodesContextFactory;
+
 		// If not found might be megapool from different rocket pool version
 		if (!context.Nodes.Data.Index.ContainsKey(nodeOperatorAddress))
 		{
-			context.Logger.LogDebug(
+			globalContext.GetLogger<MegapoolEventHandlers>().LogDebug(
 				"Node operator {NodeOperatorAddress} for {MegapoolAddress} not found in index.", nodeOperatorAddress,
 				megapoolAddress);
 			return null;
@@ -409,10 +431,11 @@ public class MegapoolEventHandlers
 		{
 			// Can happen if the same node operator address is used for multiple rocket pool deployments
 			if (!string.Equals(
-					await context.RocketNodeManager.GetMegapoolAddressQueryAsync(nodeOperatorAddress), megapoolAddress,
+					await globalContext.Services.RocketNodeManager.GetMegapoolAddressQueryAsync(nodeOperatorAddress),
+					megapoolAddress,
 					StringComparison.OrdinalIgnoreCase))
 			{
-				context.Logger.LogDebug(
+				globalContext.GetLogger<MegapoolEventHandlers>().LogDebug(
 					"Node operator {NodeOperatorAddress} found in index but megapool address {MegapoolAddress} does not match.",
 					nodeOperatorAddress, megapoolAddress);
 				return null;
@@ -428,10 +451,10 @@ public class MegapoolEventHandlers
 	}
 
 	private static async Task<string?> TryGetNodeOperator(
-		NodesSyncContext context, string megapoolAddress, FilterLog filterLog,
+		GlobalContext context, string megapoolAddress, FilterLog filterLog,
 		CancellationToken cancellationToken)
 	{
-		RocketMegapoolDelegateService megapoolDelegate = new(context.Web3, megapoolAddress);
+		RocketMegapoolDelegateService megapoolDelegate = new(context.Services.Web3, megapoolAddress);
 
 		string? nodeOperatorAddress = await FetchNodeOperatorAddressFromMegapoolAddress(
 			context, filterLog.BlockNumber, megapoolAddress, megapoolDelegate, cancellationToken);

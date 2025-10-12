@@ -14,18 +14,20 @@ namespace RocketExplorer.Core.Nodes.EventHandlers;
 public class MinipoolCreatedEventHandler
 {
 	public static async Task HandleAsync(
-		NodesSyncContext context, EventLog<MinipoolCreatedEventDTO> eventLog, CancellationToken cancellationToken)
+		GlobalContext globalContext, EventLog<MinipoolCreatedEventDTO> eventLog, CancellationToken cancellationToken)
 	{
 		MinipoolCreatedEventDTO @event = eventLog.Event;
 
-		RocketMinipoolDelegateService minipoolDelegate = new(context.Web3, @event.Minipool);
+		RocketMinipoolDelegateService minipoolDelegate = new(globalContext.Services.Web3, @event.Minipool);
 		string nodeOperatorAddress =
 			await minipoolDelegate.GetNodeAddressQueryAsync(new BlockParameter(eventLog.Log.BlockNumber));
+
+		NodesContext context = await globalContext.NodesContextFactory;
 
 		// This should not happen
 		if (!context.Nodes.Data.Index.ContainsKey(nodeOperatorAddress))
 		{
-			context.Logger.LogError(
+			globalContext.GetLogger<MinipoolCreatedEventHandler>().LogError(
 				"Node operator {NodeOperatorAddress} for {Minipool} not found in index.", nodeOperatorAddress,
 				@event.Minipool);
 			return;
@@ -41,7 +43,7 @@ public class MinipoolCreatedEventHandler
 
 		context.ValidatorInfo.Data.MinipoolValidatorIndex.Add(@event.Minipool, entry);
 
-		await context.GlobalIndexService.AddOrUpdateEntryAsync(
+		await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 			@event.Minipool.HexToByteArray(), @event.Minipool.RemoveHexPrefix(),
 			x => x.Type |= IndexEntryType.MinipoolValidator, cancellationToken);
 
@@ -70,7 +72,7 @@ public class MinipoolCreatedEventHandler
 		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
 		{
 			context.Nodes.Partial.Updated[nodeOperatorAddress] =
-				(await context.Storage.ReadAsync<Node>(Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
+				(await globalContext.Services.Storage.ReadAsync<Node>(Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
 				throw new InvalidOperationException("Cannot read node operator from storage.");
 		}
 

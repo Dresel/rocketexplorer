@@ -9,95 +9,103 @@ namespace RocketExplorer.Core.Nodes.EventHandlers;
 public class StakingEventHandlers
 {
 	public static async Task HandleRPLLegacyStakedAsync(
-		NodesSyncContext context, EventLog<RPLLegacyStakedEventDto> eventLog,
+		GlobalContext globalContext, EventLog<RPLLegacyStakedEventDto> eventLog,
 		CancellationToken cancellationToken = default)
 	{
 		string nodeOperatorAddress = eventLog.Event.From;
 
-		if (!await EnsureNodeOperatorLoadedAsync(context, cancellationToken, nodeOperatorAddress))
+		if (!await EnsureNodeOperatorLoadedAsync(globalContext, cancellationToken, nodeOperatorAddress))
 		{
 			return;
 		}
 
+		NodesContext context = await globalContext.NodesContextFactory;
+
 		context.Nodes.Partial.Updated[nodeOperatorAddress].RPLLegacyStaked += eventLog.Event.Amount;
-		context.DashboardInfo.RPLLegacyStakedTotal += eventLog.Event.Amount;
+		globalContext.DashboardContext.RPLLegacyStakedTotal += eventLog.Event.Amount;
 	}
 
 	public static async Task HandleRPLLegacyUnstakedAsync(
-		NodesSyncContext context, EventLog<RPLLegacyWithdrawnEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<RPLLegacyWithdrawnEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
 		string nodeOperatorAddress = eventLog.Event.To;
 
-		if (!await EnsureNodeOperatorLoadedAsync(context, cancellationToken, nodeOperatorAddress))
+		if (!await EnsureNodeOperatorLoadedAsync(globalContext, cancellationToken, nodeOperatorAddress))
 		{
 			return;
 		}
 
+		NodesContext context = await globalContext.NodesContextFactory;
 		context.Nodes.Partial.Updated[nodeOperatorAddress].RPLLegacyStaked += eventLog.Event.Amount;
-		context.DashboardInfo.RPLLegacyStakedTotal -= eventLog.Event.Amount;
+		globalContext.DashboardContext.RPLLegacyStakedTotal -= eventLog.Event.Amount;
 	}
 
 	public static async Task HandleRPLLegacyUnstakedAsync(
-		NodesSyncContext context, EventLog<RPLOrRPLLegacyWithdrawnEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<RPLOrRPLLegacyWithdrawnEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
 		string nodeOperatorAddress = eventLog.Event.To;
 
-		if (!await EnsureNodeOperatorLoadedAsync(context, cancellationToken, nodeOperatorAddress))
+		if (!await EnsureNodeOperatorLoadedAsync(globalContext, cancellationToken, nodeOperatorAddress))
 		{
 			return;
 		}
 
+		NodesContext context = await globalContext.NodesContextFactory;
 		context.Nodes.Partial.Updated[nodeOperatorAddress].RPLLegacyStaked -= eventLog.Event.Amount;
-		context.DashboardInfo.RPLLegacyStakedTotal -= eventLog.Event.Amount;
+		globalContext.DashboardContext.RPLLegacyStakedTotal -= eventLog.Event.Amount;
 	}
 
 	public static async Task HandleRPLMegapoolStakedAsync(
-		NodesSyncContext context, EventLog<RPLStakedEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<RPLStakedEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
 		string nodeOperatorAddress = eventLog.Event.Node;
 
-		if (!await EnsureNodeOperatorLoadedAsync(context, cancellationToken, nodeOperatorAddress))
+		if (!await EnsureNodeOperatorLoadedAsync(globalContext, cancellationToken, nodeOperatorAddress))
 		{
 			return;
 		}
 
+		NodesContext context = await globalContext.NodesContextFactory;
 		context.Nodes.Partial.Updated[nodeOperatorAddress].RPLMegapoolStaked += eventLog.Event.Amount;
-		context.DashboardInfo.RPLMegapoolStakedTotal += eventLog.Event.Amount;
+		globalContext.DashboardContext.RPLMegapoolStakedTotal += eventLog.Event.Amount;
 	}
 
 	public static async Task HandleRPLMegapoolUnstakedAsync(
-		NodesSyncContext context, EventLog<RPLUnstakedEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<RPLUnstakedEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
 		string nodeOperatorAddress = eventLog.Event.From;
 
-		if (!await EnsureNodeOperatorLoadedAsync(context, cancellationToken, nodeOperatorAddress))
+		if (!await EnsureNodeOperatorLoadedAsync(globalContext, cancellationToken, nodeOperatorAddress))
 		{
 			return;
 		}
 
+		NodesContext context = await globalContext.NodesContextFactory;
 		context.Nodes.Partial.Updated[nodeOperatorAddress].RPLMegapoolStaked -= eventLog.Event.Amount;
-		context.DashboardInfo.RPLMegapoolStakedTotal -= eventLog.Event.Amount;
+		globalContext.DashboardContext.RPLMegapoolStakedTotal -= eventLog.Event.Amount;
 	}
 
 	private static async Task<bool> EnsureNodeOperatorLoadedAsync(
-		NodesSyncContext context, CancellationToken cancellationToken,
+		GlobalContext globalContext, CancellationToken cancellationToken,
 		string nodeOperatorAddress)
 	{
+		NodesContext context = await globalContext.NodesContextFactory;
+
 		// This should not happen
 		if (!context.Nodes.Data.Index.ContainsKey(nodeOperatorAddress))
 		{
-			context.Logger.LogError("Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
+			globalContext.GetLogger<StakingEventHandlers>().LogError("Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
 			return false;
 		}
 
 		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
 		{
 			context.Nodes.Partial.Updated[nodeOperatorAddress] =
-				(await context.Storage.ReadAsync<Node>(Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
+				(await globalContext.Services.Storage.ReadAsync<Node>(Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
 				throw new InvalidOperationException("Cannot read node operator from storage.");
 		}
 

@@ -11,8 +11,8 @@ public static class NethereumPolicies
 {
 	public static AsyncRetryPolicy Retry(ILogger logger) => Policy
 		.Handle<RpcClientTimeoutException>()
-		.Or<RpcClientUnknownException>(
-			x => (x.InnerException as HttpRequestException)?.StatusCode == HttpStatusCode.TooManyRequests)
+		.Or<RpcClientUnknownException>(x =>
+			(x.InnerException as HttpRequestException)?.StatusCode == HttpStatusCode.TooManyRequests)
 		.WaitAndRetryAsync(
 			Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(30), 5),
 			(exception, timeSpan, retryCount, _) =>

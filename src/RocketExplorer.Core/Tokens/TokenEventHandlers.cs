@@ -11,11 +11,14 @@ namespace RocketExplorer.Core.Tokens;
 
 public class TokenEventHandlers
 {
-	public static Task Handle(
-		TokensSyncContext context, EventLog<RPLFixedSupplyBurnEventDTO> eventLog,
+	public static async Task Handle(
+		GlobalContext globalContext, EventLog<RPLFixedSupplyBurnEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
+
+		TokensContext context = await globalContext.TokensContextFactory;
+
 		context.RPLOldTokenInfo.SwappedDaily[key] =
 			context.RPLOldTokenInfo.SwappedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
 		context.RPLOldTokenInfo.SwappedTotal[key] =
@@ -27,49 +30,51 @@ public class TokenEventHandlers
 		context.RPLOldTokenInfo.BurnsDaily[key] =
 			context.RPLOldTokenInfo.SwappedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
 
-		context.DashboardInfo.RPLSwappedTotal = context.RPLOldTokenInfo.SwappedTotal.GetLatestValueOrDefault();
-
-		return Task.CompletedTask;
+		globalContext.DashboardContext.RPLSwappedTotal = context.RPLOldTokenInfo.SwappedTotal.GetLatestValueOrDefault();
 	}
 
 	public static async Task HandleRETHAsync(
-		TokensSyncContext context, EventLog<TransferEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
-		await HandleAsync(context, context.RETHTokenInfo, TokenType.RETH, eventLog, cancellationToken);
+		TokensContext context = await globalContext.TokensContextFactory;
+		await HandleAsync(globalContext, context.RETHTokenInfo, TokenType.RETH, eventLog, cancellationToken);
 
-		context.DashboardInfo.RETHSupplyTotal = context.RETHTokenInfo.SupplyTotal.GetLatestValueOrDefault();
+		globalContext.DashboardContext.RETHSupplyTotal = context.RETHTokenInfo.SupplyTotal.GetLatestValueOrDefault();
 	}
 
 	public static async Task HandleRockRETHAsync(
-		TokensSyncContext context, EventLog<TransferEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
-		await HandleAsync(context, context.RockRETHTokenInfo, TokenType.RockRETH, eventLog, cancellationToken);
+		TokensContext context = await globalContext.TokensContextFactory;
+		await HandleAsync(globalContext, context.RockRETHTokenInfo, TokenType.RockRETH, eventLog, cancellationToken);
 
-		context.DashboardInfo.RockRETHSupplyTotal = context.RockRETHTokenInfo.SupplyTotal.GetLatestValueOrDefault();
+		globalContext.DashboardContext.RockRETHSupplyTotal = context.RockRETHTokenInfo.SupplyTotal.GetLatestValueOrDefault();
 	}
 
 	public static async Task HandleRPLAsync(
-		TokensSyncContext context, EventLog<TransferEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
-		await HandleAsync(context, context.RPLTokenInfo, TokenType.RPL, eventLog, cancellationToken);
+		TokensContext context = await globalContext.TokensContextFactory;
+		await HandleAsync(globalContext, context.RPLTokenInfo, TokenType.RPL, eventLog, cancellationToken);
 
-		context.DashboardInfo.RPLSupplyTotal = context.RPLTokenInfo.SupplyTotal.GetLatestValueOrDefault();
+		globalContext.DashboardContext.RPLSupplyTotal = context.RPLTokenInfo.SupplyTotal.GetLatestValueOrDefault();
 	}
 
 	public static async Task HandleRPLOldAsync(
-		TokensSyncContext context, EventLog<TransferEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
-		await HandleAsync(context, context.RPLOldTokenInfo, TokenType.RPLOld, eventLog, cancellationToken);
+		TokensContext context = await globalContext.TokensContextFactory;
+		await HandleAsync(globalContext, context.RPLOldTokenInfo, TokenType.RPLOld, eventLog, cancellationToken);
 
-		context.DashboardInfo.RPLOldSupplyTotal = context.RPLOldTokenInfo.SupplyTotal.GetLatestValueOrDefault();
+		globalContext.DashboardContext.RPLOldSupplyTotal = context.RPLOldTokenInfo.SupplyTotal.GetLatestValueOrDefault();
 	}
 
 	private static async Task HandleAsync(
-		TokensSyncContext context,
+		GlobalContext globalContext,
 		TokenInfo tokenInfo, TokenType tokenType, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
@@ -86,7 +91,7 @@ public class TokenEventHandlers
 			{
 				tokenInfo.Holders.Remove(eventLog.Event.From);
 
-				await context.GlobalIndexService.UpdateOrRemoveEntryAsync(
+				await globalContext.Services.GlobalIndexService.UpdateOrRemoveEntryAsync(
 					eventLog.Event.From.HexToByteArray(), eventLog.Event.From.RemoveHexPrefix(),
 					entry =>
 					{
@@ -109,7 +114,7 @@ public class TokenEventHandlers
 		}
 		else
 		{
-			BlockWithTransactions block = await context.Web3.Eth.Blocks.GetBlockWithTransactionsByNumber
+			BlockWithTransactions block = await globalContext.Services.Web3.Eth.Blocks.GetBlockWithTransactionsByNumber
 				.SendRequestAsync(eventLog.Log.BlockNumber);
 			DateOnly key =
 				DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)block.Timestamp.Value).DateTime);
@@ -122,7 +127,7 @@ public class TokenEventHandlers
 		{
 			if (!tokenInfo.Holders.ContainsKey(eventLog.Event.To))
 			{
-				await context.GlobalIndexService.AddOrUpdateEntryAsync(
+				await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 					eventLog.Event.To.HexToByteArray(), eventLog.Event.To.RemoveHexPrefix(),
 					entry =>
 					{
@@ -142,7 +147,7 @@ public class TokenEventHandlers
 		}
 		else
 		{
-			BlockWithTransactions block = await context.Web3.Eth.Blocks.GetBlockWithTransactionsByNumber
+			BlockWithTransactions block = await globalContext.Services.Web3.Eth.Blocks.GetBlockWithTransactionsByNumber
 				.SendRequestAsync(eventLog.Log.BlockNumber);
 			DateOnly key =
 				DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)block.Timestamp.Value).DateTime);

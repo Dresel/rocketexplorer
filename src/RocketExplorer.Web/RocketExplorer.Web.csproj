@@ -26,15 +26,18 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TARGET_ENV)' != 'devnet' AND '$(TARGET_ENV)' != 'testnet'">
-		<Content Include="sitemap.xml" Link="wwwroot/sitemap.xml" CopyToOutputDirectory="Always" />
+		<Content Include="sitemap.xml" Link="wwwroot/sitemap.xml" />
+		<Content Include="robots.txt" Link="wwwroot/robots.txt" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TARGET_ENV)' == 'testnet'">
-		<Content Include="sitemap.testnet.xml" Link="wwwroot/sitemap.xml" CopyToOutputDirectory="Always" />
+		<Content Include="sitemap.testnet.xml" Link="wwwroot/sitemap.xml" />
+		<Content Include="robots.testnet.txt" Link="wwwroot/robots.txt" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TARGET_ENV)' == 'devnet'">
-		<Content Include="sitemap.devnet.xml" Link="wwwroot/sitemap.xml" CopyToOutputDirectory="Always" />
+		<Content Include="sitemap.devnet.xml" Link="wwwroot/sitemap.xml" />
+		<Content Include="robots.devnet.txt" Link="wwwroot/robots.txt" />
 	</ItemGroup>
 
 </Project>

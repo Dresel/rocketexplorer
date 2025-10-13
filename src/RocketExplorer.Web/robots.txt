@@ -1,0 +1,4 @@
+User-agent: *
+Disallow:
+
+Sitemap: https://rocketexplorer.net/sitemap.xml

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	<url>
+		<loc>https://testnet.rocketexplorer.net/</loc>
+	</url>
+	<url>
+		<loc>https://testnet.rocketexplorer.net/reth</loc>
+	</url>
+	<url>
+		<loc>https://testnet.rocketexplorer.net/rock-reth</loc>
+	</url>
+	<url>
+		<loc>https://testnet.rocketexplorer.net/rpl</loc>
+	</url>
+	<url>
+		<loc>https://testnet.rocketexplorer.net/rpl-v1</loc>
+	</url>
+	<url>
+		<loc>https://testnet.rocketexplorer.net/nodes</loc>
+	</url>
+	<url>
+		<loc>https://testnet.rocketexplorer.net/rpl-staked</loc>
+	</url>
+	<url>
+		<loc>https://testnet.rocketexplorer.net/queue</loc>
+	</url>
+	<url>
+		<loc>https://testnet.rocketexplorer.net/contracts</loc>
+	</url>
+</urlset>

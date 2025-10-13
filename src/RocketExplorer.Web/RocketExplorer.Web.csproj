@@ -25,4 +25,16 @@
 		<ProjectReference Include="..\RocketExplorer.Shared\RocketExplorer.Shared.csproj" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(TARGET_ENV)' != 'devnet' AND '$(TARGET_ENV)' != 'testnet'">
+		<Content Include="sitemap.xml" Link="wwwroot/sitemap.xml" CopyToOutputDirectory="Always" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TARGET_ENV)' == 'testnet'">
+		<Content Include="sitemap.testnet.xml" Link="wwwroot/sitemap.xml" CopyToOutputDirectory="Always" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TARGET_ENV)' == 'devnet'">
+		<Content Include="sitemap.devnet.xml" Link="wwwroot/sitemap.xml" CopyToOutputDirectory="Always" />
+	</ItemGroup>
+
 </Project>

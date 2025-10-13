@@ -28,4 +28,5 @@ jobs:
           api_location: ""
           output_location: "wwwroot"
         env:
+          TARGET_ENV: testnet
           BlazorWasmPrerenderingEnvironment: Prerendering-Testnet

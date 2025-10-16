@@ -1,5 +1,4 @@
 @page "/nodes"
-
 @using RocketExplorer.Shared
 @inherits PageBase<RocketExplorer.Shared.Nodes.NodesSnapshot>
 
@@ -68,9 +67,9 @@
 
 	protected override string ObjectStoreKey => Keys.NodesSnapshot;
 
-	protected override async Task OnInitializedAsync()
+	protected override async Task OnParametersSetAsync()
 	{
-		await base.OnInitializedAsync();
+		await base.OnParametersSetAsync();
 
 		if (IsPrerendering)
 		{

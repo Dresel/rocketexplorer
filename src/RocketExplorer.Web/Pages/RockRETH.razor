@@ -102,6 +102,16 @@
 
 	protected override string ObjectStoreKey => Keys.TokensRockRETHSnapshot;
 
+	protected override async Task OnParametersSetAsync()
+	{
+		await base.OnParametersSetAsync();
+
+		if (IsPrerendering)
+		{
+			await table.ReloadServerData();
+		}
+	}
+
 	private void OnSearch(string text)
 	{
 		searchString = text;

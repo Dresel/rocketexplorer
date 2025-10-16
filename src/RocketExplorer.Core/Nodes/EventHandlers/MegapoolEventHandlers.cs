@@ -100,14 +100,19 @@ public class MegapoolEventHandlers
 				ValidatorIndex = (long)validatorInfo.ReturnValue1.ValidatorIndex,
 			};
 
-		await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-			megapoolAddress.HexToByteArray(), validatorInfo.ReturnValue1.ValidatorIndex.ToString(CultureInfo.InvariantCulture),
+		_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+			validatorInfo.ReturnValue1.ValidatorIndex.ToString(CultureInfo.InvariantCulture),
+			megapoolAddress.HexToByteArray().Concat(BitConverter.GetBytes(validatorId)).ToArray(),
+			new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
 			x =>
 			{
 				x.Type |= IndexEntryType.MegapoolValidator;
+				x.Address = context.ValidatorInfo.Data.MegapoolValidatorIndex[(megapoolAddress, validatorId)]
+					.NodeAddress;
+				x.MegapoolAddress = megapoolAddress.HexToByteArray();
 				x.ValidatorIndex = (long)validatorInfo.ReturnValue1.ValidatorIndex;
 				x.MegapoolIndex = validatorId;
-			}, cancellationToken);
+			}, cancellationToken: cancellationToken);
 
 		globalContext.DashboardContext.MegapoolValidatorsStaking++;
 	}
@@ -132,7 +137,6 @@ public class MegapoolEventHandlers
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
-			return;
 		}
 	}
 
@@ -182,7 +186,6 @@ public class MegapoolEventHandlers
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
-			return;
 		}
 	}
 
@@ -272,19 +275,27 @@ public class MegapoolEventHandlers
 			ValidatorIndex = null,
 		};
 
-		await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-			megapoolAddress.HexToByteArray(),
-			megapoolAddress.RemoveHexPrefix(),
-			x => { x.Type |= IndexEntryType.Megapool; }, cancellationToken);
+		_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+			megapoolAddress.RemoveHexPrefix(), megapoolAddress.HexToByteArray(),
+			new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
+			x =>
+			{
+				x.Type |= IndexEntryType.Megapool;
+				x.Address = nodeOperatorAddress.HexToByteArray();
+				x.MegapoolAddress = megapoolAddress.HexToByteArray();
+			}, cancellationToken: cancellationToken);
 
-		await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-			megapoolAddress.HexToByteArray(), pubKey.ToHex(),
+		_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+			pubKey.ToHex(), megapoolAddress.HexToByteArray().Concat(BitConverter.GetBytes(eventValidatorId)).ToArray(),
+			new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
 			x =>
 			{
 				x.Type |= IndexEntryType.MegapoolValidator;
+				x.Address = nodeOperatorAddress.HexToByteArray();
+				x.MegapoolAddress = megapoolAddress.HexToByteArray();
 				x.ValidatorPubKey = pubKey;
 				x.MegapoolIndex = eventValidatorId;
-			}, cancellationToken);
+			}, cancellationToken: cancellationToken);
 
 		context.ValidatorInfo.Data.MegapoolValidatorIndex.Add(
 			(megapoolAddress, (int)eventLog.Event.ValidatorId), entry);

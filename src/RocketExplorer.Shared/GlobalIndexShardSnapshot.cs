@@ -3,8 +3,8 @@ using MessagePack;
 namespace RocketExplorer.Shared;
 
 [MessagePackObject]
-public class GlobalIndexShardSnapshot
+public class GlobalIndexShardSnapshot<TEntry>
 {
 	[Key(0)]
-	public required IndexEntry[] Index { get; init; }
+	public required TEntry[] Index { get; init; }
 }

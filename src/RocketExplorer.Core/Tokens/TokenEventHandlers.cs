@@ -50,7 +50,8 @@ public class TokenEventHandlers
 		TokensContext context = await globalContext.TokensContextFactory;
 		await HandleAsync(globalContext, context.RockRETHTokenInfo, TokenType.RockRETH, eventLog, cancellationToken);
 
-		globalContext.DashboardContext.RockRETHSupplyTotal = context.RockRETHTokenInfo.SupplyTotal.GetLatestValueOrDefault();
+		globalContext.DashboardContext.RockRETHSupplyTotal =
+			context.RockRETHTokenInfo.SupplyTotal.GetLatestValueOrDefault();
 	}
 
 	public static async Task HandleRPLAsync(
@@ -70,7 +71,8 @@ public class TokenEventHandlers
 		TokensContext context = await globalContext.TokensContextFactory;
 		await HandleAsync(globalContext, context.RPLOldTokenInfo, TokenType.RPLOld, eventLog, cancellationToken);
 
-		globalContext.DashboardContext.RPLOldSupplyTotal = context.RPLOldTokenInfo.SupplyTotal.GetLatestValueOrDefault();
+		globalContext.DashboardContext.RPLOldSupplyTotal =
+			context.RPLOldTokenInfo.SupplyTotal.GetLatestValueOrDefault();
 	}
 
 	private static async Task HandleAsync(
@@ -91,8 +93,9 @@ public class TokenEventHandlers
 			{
 				tokenInfo.Holders.Remove(eventLog.Event.From);
 
-				await globalContext.Services.GlobalIndexService.UpdateOrRemoveEntryAsync(
-					eventLog.Event.From.HexToByteArray(), eventLog.Event.From.RemoveHexPrefix(),
+				_ = globalContext.Services.GlobalIndexService.UpdateEntryAsync(
+					eventLog.Event.From.RemoveHexPrefix(), eventLog.Event.From.HexToByteArray(),
+					new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
 					entry =>
 					{
 						IndexEntryType indexEntryType = tokenType switch
@@ -105,7 +108,7 @@ public class TokenEventHandlers
 						};
 
 						entry.Type &= ~indexEntryType;
-					}, cancellationToken);
+					}, entry => entry.Type == 0, cancellationToken);
 			}
 			else
 			{
@@ -127,8 +130,9 @@ public class TokenEventHandlers
 		{
 			if (!tokenInfo.Holders.ContainsKey(eventLog.Event.To))
 			{
-				await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-					eventLog.Event.To.HexToByteArray(), eventLog.Event.To.RemoveHexPrefix(),
+				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+					eventLog.Event.To.RemoveHexPrefix(), eventLog.Event.To.HexToByteArray(),
+					new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
 					entry =>
 					{
 						entry.Type |= tokenType switch
@@ -139,7 +143,8 @@ public class TokenEventHandlers
 							TokenType.RockRETH => IndexEntryType.RockRETHHolder,
 							_ => throw new InvalidOperationException("Unknown token type"),
 						};
-					}, cancellationToken);
+						entry.Address = eventLog.Event.To.HexToByteArray();
+					}, cancellationToken: cancellationToken);
 			}
 
 			tokenInfo.Holders[eventLog.Event.To] =

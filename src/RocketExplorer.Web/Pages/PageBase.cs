@@ -108,9 +108,9 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 	protected virtual void OnAppStateChanged(object? sender, AppState e) =>
 		LoadAsync().ContinueWith(async _ => await InvokeAsync(StateHasChanged));
 
-	protected override async Task OnInitializedAsync()
+	protected override async Task OnParametersSetAsync()
 	{
-		await base.OnInitializedAsync();
+		await base.OnParametersSetAsync();
 		await LoadAsync();
 	}
 }

@@ -100,9 +100,9 @@
 		Selector = e => e.ContractName,
 	};
 
-	protected override async Task OnInitializedAsync()
+	protected override async Task OnParametersSetAsync()
 	{
-		await base.OnInitializedAsync();
+		await base.OnParametersSetAsync();
 
 		if (IsPrerendering)
 		{

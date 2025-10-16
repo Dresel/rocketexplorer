@@ -43,7 +43,9 @@
 				<MudTd>
 					<Address ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" HighlightedText="@searchString"></Address>
 				</MudTd>
-				<MudTd Style="text-align:right">@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") <Unit>RPL</Unit></MudTd>
+				<MudTd Style="text-align:right">
+					@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") <Unit>RPL</Unit>
+				</MudTd>
 			</RowTemplate>
 			<NoRecordsContent>
 				<MudText>No matching records found</MudText>
@@ -89,9 +91,9 @@
 
 	protected override string ObjectStoreKey => Keys.TokensRPLSnapshot;
 
-	protected override async Task OnInitializedAsync()
+	protected override async Task OnParametersSetAsync()
 	{
-		await base.OnInitializedAsync();
+		await base.OnParametersSetAsync();
 
 		if (IsPrerendering)
 		{

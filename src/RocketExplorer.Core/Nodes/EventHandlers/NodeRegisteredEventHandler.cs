@@ -27,9 +27,14 @@ public class NodeRegisteredEventHandler
 				RegistrationTimestamp = (long)@event.Time,
 			});
 
-		await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-			@event.Node.HexToByteArray(), @event.Node.RemoveHexPrefix(),
-			x => x.Type |= IndexEntryType.NodeOperator, cancellationToken);
+		_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+			@event.Node.RemoveHexPrefix(), @event.Node.HexToByteArray(),
+			new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
+			x =>
+			{
+				x.Type |= IndexEntryType.NodeOperator;
+				x.Address = @event.Node.HexToByteArray();
+			}, cancellationToken: cancellationToken);
 
 		// TODO: Removed, replace
 		// Fetch latest node details (otherwise we would have to use the current latestRocketNodeManager of log.BlockNumber via contractsSnapshot)

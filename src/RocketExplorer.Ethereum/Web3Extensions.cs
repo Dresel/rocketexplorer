@@ -63,7 +63,6 @@ public static class Web3Extensions
 
 		return results
 			.OrderBy(x => (long)x.Log.BlockNumber.Value)
-			.ThenBy(x => (long)x.Log.TransactionIndex.Value)
 			.ThenBy(x => (long)x.Log.LogIndex.Value);
 	}
 }

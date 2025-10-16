@@ -32,7 +32,7 @@ public static class Keys
 	public static string MinipoolValidator(string minipoolAddress) =>
 		$"validators/{minipoolAddress.ToLowerInvariant()}.msgpack";
 
-	public static string NGram(string key) => $"index/{key}.msgpack";
+	public static string GlobalIndexTemplate(string key) => $"index/{key}.msgpack";
 
 	public static string Node(string nodeAddress) => $"nodes/{nodeAddress.ToLowerInvariant()}.msgpack";
 }

@@ -96,6 +96,7 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			Data = new IndexEntryViewModel
 			{
 				Address = entry.Address,
+				MegapoolAddress = entry.MegapoolAddress,
 				MegapoolIndex = entry.MegapoolIndex,
 				DisplayText = displayText.Ellipsize(this.prefixLength, this.suffixLength),
 				HighlightedTexts = displayText.ExtractHighlightTexts(searchText, this.prefixLength, this.suffixLength),
@@ -129,7 +130,8 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 
 		if (result.Data!.Type.HasFlag(IndexEntryType.MegapoolValidator))
 		{
-			NavigationManager.NavigateTo($"/validator/{address}/{result.Data.MegapoolIndex}");
+			string megapoolAddress = AddressUtil.Current.ConvertToChecksumAddress(result.Data.MegapoolAddress);
+			NavigationManager.NavigateTo($"/validator/{megapoolAddress}/{result.Data.MegapoolIndex}");
 			return;
 		}
 
@@ -148,7 +150,7 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 		await Task.Delay(100, cancellationToken);
 
 		// TODO: Handle 0x input, check valid address / number and do ENS only
-		string[] ngrams = search.NGrams().Take(1).ToArray();
+		string[] ngrams = search.NGrams(4).Take(1).ToArray();
 
 		ConcurrentBag<IndexEntry> indexes = [];
 
@@ -160,16 +162,17 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 				MaxDegreeOfParallelism = 16,
 			}, async (nGram, innerCancellationToken) =>
 			{
-				SnapshotResponse<GlobalIndexShardSnapshot> response =
-					await HttpClient.GetSnapshotResponse<GlobalIndexShardSnapshot>(
-						$"{Configuration.ObjectStoreBaseUrl}/{Keys.NGram(nGram)}", innerCancellationToken);
+				SnapshotResponse<GlobalIndexShardSnapshot<IndexEntry>> response =
+					await HttpClient.GetSnapshotResponse<GlobalIndexShardSnapshot<IndexEntry>>(
+						$"{Configuration.ObjectStoreBaseUrl}/{Keys.GlobalIndexTemplate(nGram)}",
+						innerCancellationToken);
 
 				if (!response.IsSuccess)
 				{
 					return;
 				}
 
-				Snapshot<GlobalIndexShardSnapshot> snapshotAsync =
+				Snapshot<GlobalIndexShardSnapshot<IndexEntry>> snapshotAsync =
 					await response.ToSnapshotAsync(innerCancellationToken);
 
 				foreach (IndexEntry indexEntry in snapshotAsync.Data.Index)
@@ -253,6 +256,8 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 		public required string DisplayText { get; init; }
 
 		public required IEnumerable<string> HighlightedTexts { get; init; }
+
+		public required byte[]? MegapoolAddress { get; set; }
 
 		public required int? MegapoolIndex { get; init; }
 

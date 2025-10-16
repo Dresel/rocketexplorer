@@ -23,7 +23,8 @@ public class MinipoolEventHandlers
 			Status = ValidatorStatus.InQueue,
 		};
 
-		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(globalContext, updatedEvent, cancellationToken);
+		string? nodeOperatorAddress =
+			await EventMinipoolValidatorUpdateAsync(globalContext, updatedEvent, cancellationToken);
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
@@ -78,7 +79,8 @@ public class MinipoolEventHandlers
 			Status = ValidatorStatus.Dequeued,
 		};
 
-		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(globalContext, updatedEvent, cancellationToken);
+		string? nodeOperatorAddress =
+			await EventMinipoolValidatorUpdateAsync(globalContext, updatedEvent, cancellationToken);
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
 		{
@@ -167,13 +169,15 @@ public class MinipoolEventHandlers
 				PubKey = eventLog.Event.ValidatorPubkey,
 			});
 
-		await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-			minipoolAddress.HexToByteArray(), eventLog.Event.ValidatorPubkey.ToHex(),
+		_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+			eventLog.Event.ValidatorPubkey.ToHex(), minipoolAddress.HexToByteArray(),
+			new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
 			x =>
 			{
 				x.Type |= IndexEntryType.MinipoolValidator;
+				x.Address = minipoolAddress.HexToByteArray();
 				x.ValidatorPubKey = eventLog.Event.ValidatorPubkey;
-			}, cancellationToken);
+			}, cancellationToken: cancellationToken);
 	}
 
 	public static async Task HandleAsync(
@@ -236,17 +240,20 @@ public class MinipoolEventHandlers
 						ValidatorIndex = validatorIndex,
 					};
 
-				await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-					minipoolAddress.HexToByteArray(), validatorIndex.ToString(CultureInfo.InvariantCulture),
+				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+					validatorIndex.ToString(CultureInfo.InvariantCulture), minipoolAddress.HexToByteArray(),
+					new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
 					x =>
 					{
 						x.Type |= IndexEntryType.MinipoolValidator;
+						x.Address = minipoolAddress.HexToByteArray();
 						x.ValidatorIndex = validatorIndex;
-					}, cancellationToken);
+					}, cancellationToken: cancellationToken);
 			}
 			catch
 			{
-				globalContext.GetLogger<NodesSync>().LogDebug("Couldn't query validator index for {Address}", minipoolAddress);
+				globalContext.GetLogger<NodesSync>().LogDebug(
+					"Couldn't query validator index for {Address}", minipoolAddress);
 			}
 
 			globalContext.DashboardContext.MinipoolValidatorsStaking++;

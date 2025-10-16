@@ -43,9 +43,14 @@ public class MinipoolCreatedEventHandler
 
 		context.ValidatorInfo.Data.MinipoolValidatorIndex.Add(@event.Minipool, entry);
 
-		await globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-			@event.Minipool.HexToByteArray(), @event.Minipool.RemoveHexPrefix(),
-			x => x.Type |= IndexEntryType.MinipoolValidator, cancellationToken);
+		_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+			@event.Minipool.RemoveHexPrefix(), @event.Minipool.HexToByteArray(),
+			new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
+			x =>
+			{
+				x.Type |= IndexEntryType.MinipoolValidator;
+				x.Address = @event.Minipool.HexToByteArray();
+			}, cancellationToken: cancellationToken);
 
 		context.ValidatorInfo.Partial.UpdatedMinipoolValidators.Add(
 			@event.Minipool, new Validator
@@ -72,7 +77,8 @@ public class MinipoolCreatedEventHandler
 		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
 		{
 			context.Nodes.Partial.Updated[nodeOperatorAddress] =
-				(await globalContext.Services.Storage.ReadAsync<Node>(Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
+				(await globalContext.Services.Storage.ReadAsync<Node>(
+					Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
 				throw new InvalidOperationException("Cannot read node operator from storage.");
 		}
 

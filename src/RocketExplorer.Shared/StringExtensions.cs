@@ -2,7 +2,7 @@ namespace RocketExplorer.Shared;
 
 public static class StringExtensions
 {
-	public static HashSet<string> NGrams(this string value)
+	public static HashSet<string> NGrams(this string value, int nGramLength)
 	{
 		HashSet<string> ngrams = [];
 
@@ -13,9 +13,9 @@ public static class StringExtensions
 
 		string mappedValue = value.ToLowerInvariant().Map();
 
-		for (int i = 0; i <= mappedValue.Length - 4; i++)
+		for (int i = 0; i <= mappedValue.Length - nGramLength; i++)
 		{
-			ngrams.Add(mappedValue[i..(i + 4)]);
+			ngrams.Add(mappedValue[i..(i + nGramLength)]);
 		}
 
 		return ngrams;

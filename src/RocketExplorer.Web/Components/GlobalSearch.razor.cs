@@ -197,6 +197,16 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 					result.Add(CreateGroupListItem(entry, byAddress, address, search));
 				}
 
+				if (entry.MegapoolAddress is not null)
+				{
+					string megapoolAddress = AddressUtil.Current.ConvertToChecksumAddress(entry.MegapoolAddress);
+
+					if (megapoolAddress.Contains(search, StringComparison.OrdinalIgnoreCase))
+					{
+						result.Add(CreateGroupListItem(entry, byAddress, megapoolAddress, search));
+					}
+				}
+
 				if (entry.ValidatorPubKey is not null)
 				{
 					string pubKey = Convert.ToHexString(entry.ValidatorPubKey);

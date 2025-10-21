@@ -88,16 +88,18 @@ public class MegapoolEventHandlers
 
 		NodesContext context = await globalContext.NodesContextFactory;
 
+		long validatorIndex = (long)validatorInfo.ReturnValue1.ValidatorIndex;
+
 		context.ValidatorInfo.Data.MegapoolValidatorIndex[(megapoolAddress, validatorId)] =
 			context.ValidatorInfo.Data.MegapoolValidatorIndex[(megapoolAddress, validatorId)] with
 			{
-				ValidatorIndex = (long)validatorInfo.ReturnValue1.ValidatorIndex,
+				ValidatorIndex = validatorIndex,
 			};
 
 		context.ValidatorInfo.Partial.UpdatedMegapoolValidators[(megapoolAddress, validatorId)] =
 			context.ValidatorInfo.Partial.UpdatedMegapoolValidators[(megapoolAddress, validatorId)] with
 			{
-				ValidatorIndex = (long)validatorInfo.ReturnValue1.ValidatorIndex,
+				ValidatorIndex = validatorIndex,
 			};
 
 		_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(

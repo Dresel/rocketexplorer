@@ -119,7 +119,7 @@
 
 		if (state.SortLabel is nameof(HolderEntry.Balance))
 		{
-			items = state.SortDirection == SortDirection.Ascending ? holdersByBalance : holdersByBalance.Reverse();
+			items = state.SortDirection == SortDirection.Ascending ? holdersByBalance : ((IEnumerable<HolderEntry>)holdersByBalance).Reverse();
 		}
 
 		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)

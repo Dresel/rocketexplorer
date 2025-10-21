@@ -237,7 +237,7 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 
 		try
 		{
-			executionHeight = await Helper.FindFirstBlock(
+			executionHeight = await Helper.FindFirstBlockAsync(
 				blockParameter => globalContext.Policy.ExecuteAsync(() => executionFunc(blockParameter)),
 				activationHeight,
 				globalContext.LatestBlockHeight,
@@ -249,7 +249,7 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 				"Executed property not found for upgrade contract {ContractName}", activationMethod);
 		}
 
-		executionHeight ??= await Helper.FindFirstBlock(
+		executionHeight ??= await Helper.FindFirstBlockAsync(
 			blockParameter => globalContext.Policy.ExecuteAsync(async () =>
 			{
 				string version = await globalContext.Services.RocketStorage.GetStringQueryAsync(

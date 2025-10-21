@@ -19,7 +19,7 @@ public record class ContractsContext
 
 	public required long CurrentBlockHeight { get; set; }
 
-	public Task Finished => ProcessingCompletionSource.Task;
+	public Task IsFinished => ProcessingCompletionSource.Task;
 
 	public TaskCompletionSource ProcessingCompletionSource { get; } = new();
 

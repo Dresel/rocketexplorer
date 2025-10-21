@@ -2,6 +2,9 @@ namespace RocketExplorer.Shared;
 
 public static class StringExtensions
 {
+	public static bool IsNullOrZeroAddress(this string? address) =>
+		address is null or "0x0000000000000000000000000000000000000000";
+
 	public static HashSet<string> NGrams(this string value, int nGramLength)
 	{
 		HashSet<string> ngrams = [];

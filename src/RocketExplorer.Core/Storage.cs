@@ -66,6 +66,28 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 		this.logger.LogDebug($"DeleteObject took {stopwatch.ElapsedMilliseconds}ms");
 	}
 
+	public async Task MigrateAsync<TOld, TNew>(
+		string key, Func<TOld, TNew> migrator, CancellationToken cancellationToken = default)
+		where TOld : class
+		where TNew : class
+	{
+		BlobObject<TOld>? blobObject = await ReadAsync<TOld>(key, cancellationToken);
+
+		if (blobObject == null)
+		{
+			throw new InvalidOperationException($"Snapshot '{key}' not found");
+		}
+
+		TNew migratedSnapshot = migrator(blobObject.Data);
+
+		await WriteAsync(
+			key, new BlobObject<TNew>
+			{
+				ProcessedBlockNumber = blobObject.ProcessedBlockNumber,
+				Data = migratedSnapshot,
+			}, cancellationToken: cancellationToken);
+	}
+
 	public async Task<BlobObject<T>?> ReadAsync<T>(string key, CancellationToken cancellationToken = default)
 		where T : class
 	{

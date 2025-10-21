@@ -31,3 +31,34 @@ public record class Node
 	[Key(8)]
 	public BigInteger RPLMegapoolStaked { get; set; } = 0;
 }
+
+[MessagePackObject]
+public record class Nodev2
+{
+	[Key(0)]
+	public required byte[] ContractAddress { get; init; }
+
+	[Key(1)]
+	public required string? ContractAddressEnsName { get; init; }
+
+	[Key(2)]
+	public long RegistrationTimestamp { get; set; }
+
+	[Key(3)]
+	public byte[]? MegapoolAddress { get; init; }
+
+	[Key(4)]
+	public MinipoolValidatorIndexEntry[] MinipoolValidators { get; set; } = [];
+
+	[Key(5)]
+	public MegapoolValidatorIndexEntry[] MegapoolValidators { get; set; } = [];
+
+	[Key(6)]
+	public required string Timezone { get; set; }
+
+	[Key(7)]
+	public BigInteger RPLLegacyStaked { get; set; } = 0;
+
+	[Key(8)]
+	public BigInteger RPLMegapoolStaked { get; set; } = 0;
+}

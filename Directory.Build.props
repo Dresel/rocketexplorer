@@ -1,7 +1,8 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
-		<LanguageVersion>Latest</LanguageVersion>
+		<LangVersion>preview</LangVersion>
+
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<!-- https://github.com/dotnet/roslyn-analyzers -->

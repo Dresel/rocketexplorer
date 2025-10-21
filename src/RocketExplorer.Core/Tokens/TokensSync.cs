@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Nethereum.Contracts;
+using Nethereum.Hex.HexTypes;
 using RocketExplorer.Core.Contracts;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
@@ -10,6 +11,14 @@ namespace RocketExplorer.Core.Tokens;
 
 public class TokensSync(IOptions<SyncOptions> options, GlobalContext globalContext) : SyncBase(options, globalContext)
 {
+	protected override async Task AfterHandleBlocksAsync(CancellationToken cancellationToken)
+	{
+		await base.AfterHandleBlocksAsync(cancellationToken);
+
+		TokensContext context = await GlobalContext.TokensContextFactory;
+		context.ProcessingCompletionSource.TrySetResult();
+	}
+
 	protected override async Task<long> GetCurrentBlockHeightAsync(CancellationToken cancellationToken = default)
 	{
 		TokensContext context = await GlobalContext.TokensContextFactory;
@@ -65,10 +74,10 @@ public class TokensSync(IOptions<SyncOptions> options, GlobalContext globalConte
 		foreach (IEventLog eventLog in preSaturn1StakingEvents)
 		{
 			await eventLog.WhenIsAsync<RPLLegacyStakedEventDto, GlobalContext>(
-				StakingEventHandlers.HandleRPLLegacyStaked, GlobalContext, cancellationToken: cancellationToken);
+				StakingEventHandlers.HandleRPLLegacyStaked, GlobalContext, cancellationToken);
 
 			await eventLog.WhenIsAsync<RPLOrRPLLegacyWithdrawnEventDTO, GlobalContext>(
-				StakingEventHandlers.HandleRPLLegacyUnstaked, GlobalContext, cancellationToken: cancellationToken);
+				StakingEventHandlers.HandleRPLLegacyUnstaked, GlobalContext, cancellationToken);
 		}
 
 		IEnumerable<IEventLog> postSaturn1StakingEvents = await GlobalContext.Services.Web3.FilterAsync(

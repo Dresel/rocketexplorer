@@ -6,6 +6,8 @@ public class IndexEntry
 {
 	public byte[] Address { get; set; } = null!;
 
+	public string? AddressEnsName { get; set; }
+
 	public byte[]? MegapoolAddress { get; set; }
 
 	public int? MegapoolIndex { get; set; }
@@ -15,4 +17,13 @@ public class IndexEntry
 	public long? ValidatorIndex { get; set; }
 
 	public byte[]? ValidatorPubKey { get; set; }
+}
+
+public class EnsIndexEntry
+{
+	public byte[] Address { get; set; } = null!;
+
+	public string AddressEnsName { get; set; } = null!;
+
+	public IndexEntryType Type { get; set; }
 }

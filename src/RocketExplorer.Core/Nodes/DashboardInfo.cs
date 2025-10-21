@@ -6,6 +6,8 @@ namespace RocketExplorer.Core.Nodes;
 
 public class DashboardInfo
 {
+	public required long CurrentBlockHeight { get; set; }
+
 	public required int MegapoolValidatorsStaking { get; set; }
 
 	public required int MinipoolValidatorsStaking { get; set; }
@@ -55,6 +57,7 @@ public class DashboardInfo
 
 		return new DashboardInfo
 		{
+			CurrentBlockHeight = dashboardSnapshot.ProcessedBlockNumber,
 			RPLOldSupplyTotal = dashboardSnapshot.Data.RPLOldTotalSupply,
 			RPLSupplyTotal = dashboardSnapshot.Data.RPLTotalSupply,
 			RETHSupplyTotal = dashboardSnapshot.Data.RETHTotalSupply,

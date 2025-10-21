@@ -9,7 +9,11 @@ public record class ContextServices
 {
 	public required BeaconChainService BeaconChainService { get; init; }
 
+	public required GlobalEnsIndexService GlobalEnsIndexService { get; init; }
+
 	public required GlobalIndexService GlobalIndexService { get; init; }
+
+	public required ProcessHistory ProcessHistory { get; init; }
 
 	public required RocketNodeManagerService RocketNodeManager { get; init; }
 

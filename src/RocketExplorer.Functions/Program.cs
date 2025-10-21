@@ -11,7 +11,7 @@ using Nethereum.Web3;
 using RocketExplorer.Core;
 using RocketExplorer.Core.BeaconChain;
 using RocketExplorer.Core.Contracts;
-using RocketExplorer.Core.Nodes;
+using RocketExplorer.Core.Ens;
 using RocketExplorer.Core.Tokens;
 
 IHostBuilder builder = new HostBuilder()
@@ -47,7 +47,7 @@ IHostBuilder builder = new HostBuilder()
 
 		services.AddTransient<ContractsSync>();
 		services.AddTransient<TokensSync>();
-		services.AddTransient<NodesSync>();
+		services.AddTransient<EnsSync>();
 
 		services.AddTransient<Web3>(serviceProvider =>
 		{

@@ -15,3 +15,17 @@ public record class NodesSnapshot
 	[Key(2)]
 	public required SortedList<DateOnly, int> TotalNodeCount { get; init; }
 }
+
+[MessagePackObject]
+public record class NodesSnapshotOld
+{
+	[Key(0)]
+	public required NodeIndexEntryOld[] Index { get; init; }
+
+	// TODO: Separate file?
+	[Key(1)]
+	public required SortedList<DateOnly, int> DailyRegistrations { get; init; }
+
+	[Key(2)]
+	public required SortedList<DateOnly, int> TotalNodeCount { get; init; }
+}

@@ -1,3 +1,4 @@
+using System;
 using System.Net.Http.Headers;
 using System.Text;
 using Amazon.Runtime;
@@ -8,9 +9,11 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Web3;
+using RocketExplorer.Bootstrap;
 using RocketExplorer.Core;
 using RocketExplorer.Core.BeaconChain;
 using RocketExplorer.Core.Contracts;
+using RocketExplorer.Core.Ens;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Core.Tokens;
 using RocketExplorer.Shared;
@@ -43,10 +46,12 @@ IHost host = Host.CreateDefaultBuilder(args)
 			}));
 
 		services.AddTransient<GlobalIndexService>();
+		services.AddTransient<GlobalEnsIndexService>();
 
 		services.AddTransient<ContractsSync>();
 		services.AddTransient<TokensSync>();
 		services.AddTransient<NodesSync>();
+		services.AddTransient<EnsSync>();
 
 		services.AddTransient<Web3>(serviceProvider =>
 		{
@@ -99,8 +104,16 @@ IHost host = Host.CreateDefaultBuilder(args)
 	})
 	.Build();
 
+//Storage storage = host.Services.GetRequiredService<Storage>();
+//await Migrator.MigrateAsync(storage);
+
 GlobalContext globalContext = await host.Services.CreateGlobalContextAsync();
 host.Services.GetRequiredService<GlobalContextAccessor>().GlobalContext = globalContext;
+
+//host.Services.GetRequiredService<GlobalEnsIndexService>().SkipLoading = true;
+
+//await IndexBuilder.BuildInitialIndexAsync(globalContext.Services.Storage, globalContext.Services.GlobalIndexService);
+//await globalContext.Services.GlobalIndexService.WriteAsync(globalContext.DashboardContext.CurrentBlockHeight);
 
 ILogger<Program> logger = host.Services.GetRequiredService<ILogger<Program>>();
 
@@ -108,33 +121,39 @@ Task contractsSyncTask = host.Services.GetRequiredService<ContractsSync>().Handl
 Task tokensSyncTask = host.Services.GetRequiredService<TokensSync>().HandleBlocksAsync();
 Task nodesSyncTask = host.Services.GetRequiredService<NodesSync>().HandleBlocksAsync();
 
-await Task.WhenAll(contractsSyncTask, tokensSyncTask, nodesSyncTask);
+Task ensSyncTask = host.Services.GetRequiredService<EnsSync>().HandleBlocksAsync();
 
-Storage storage = host.Services.GetRequiredService<Storage>();
+await Task.WhenAll(contractsSyncTask, nodesSyncTask, tokensSyncTask, ensSyncTask);
 
-Task writeContractsTask = globalContext.ContractsContext.SaveAsync(
-	storage, host.Services.GetRequiredService<ILogger<ContractsContext>>());
-NodesContext nodesContext = await globalContext.NodesContextFactory;
-Task writeNodesTask = nodesContext.SaveAsync(storage, host.Services.GetRequiredService<ILogger<NodesContext>>());
-TokensContext tokensContext = await globalContext.TokensContextFactory;
-Task writeTokensTask = tokensContext.SaveAsync(storage, host.Services.GetRequiredService<ILogger<TokensContext>>());
+//Task writeContractsTask = globalContext.ContractsContext.SaveAsync(
+//	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<ContractsContext>>());
+//NodesContext nodesContext = await globalContext.NodesContextFactory;
+//Task writeNodesTask = nodesContext.SaveAsync(
+//	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<NodesContext>>());
+//TokensContext tokensContext = await globalContext.TokensContextFactory;
+//Task writeTokensTask = tokensContext.SaveAsync(
+//	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<TokensContext>>());
 
-Task writeDashboardTask = globalContext.DashboardContext.SaveAsync(
-	storage, globalContext.LatestBlockHeight, host.Services.GetRequiredService<ILogger<DashboardInfo>>());
+//Task writeEnsTask = ensContext.SaveAsync(
+//	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<EnsContext>>());
 
-logger.LogInformation("Writing {snapshot}", Keys.SnapshotMetadata);
-Task writeMetadataTask = storage.WriteAsync(
-	Keys.SnapshotMetadata, new BlobObject<SnapshotMetadata>
-	{
-		ProcessedBlockNumber = globalContext.LatestBlockHeight,
-		Data = new SnapshotMetadata
-		{
-			BlockNumber = globalContext.LatestBlockHeight,
-			Timestamp = (long)globalContext.LatestBlock.Timestamp.Value,
-		},
-	}, 10);
+//Task writeDashboardTask = globalContext.DashboardContext.SaveAsync(
+//	globalContext.Services.Storage, globalContext.LatestBlockHeight,
+//	host.Services.GetRequiredService<ILogger<DashboardInfo>>());
 
-await Task.WhenAll(writeContractsTask, writeNodesTask, writeTokensTask, writeDashboardTask, writeMetadataTask);
-await globalContext.Services.GlobalIndexService.WriteAsync(globalContext.LatestBlockHeight);
+//logger.LogInformation("Writing {snapshot}", Keys.SnapshotMetadata);
+//Task writeMetadataTask = globalContext.Services.Storage.WriteAsync(
+//	Keys.SnapshotMetadata, new BlobObject<SnapshotMetadata>
+//	{
+//		ProcessedBlockNumber = globalContext.LatestBlockHeight,
+//		Data = new SnapshotMetadata
+//		{
+//			BlockNumber = globalContext.LatestBlockHeight,
+//			Timestamp = (long)globalContext.LatestBlock.Timestamp.Value,
+//		},
+//	}, 10);
+
+//await Task.WhenAll(writeContractsTask, writeNodesTask, writeTokensTask, writeDashboardTask, writeMetadataTask);
+//await globalContext.Services.GlobalIndexService.WriteAsync(globalContext.LatestBlockHeight);
 
 logger.LogInformation("Finished");

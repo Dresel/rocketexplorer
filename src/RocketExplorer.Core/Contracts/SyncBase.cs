@@ -16,7 +16,7 @@ public abstract class SyncBase(IOptions<SyncOptions> syncOptions, GlobalContext 
 	{
 		long currentBlockHeight = await GetCurrentBlockHeightAsync(cancellationToken);
 
-		if (currentBlockHeight == GlobalContext.LatestBlockHeight)
+		if (currentBlockHeight >= GlobalContext.LatestBlockHeight)
 		{
 			GlobalContext.GetLogger<SyncBase>().LogInformation("Up to date, nothing to do");
 			return;
@@ -54,6 +54,8 @@ public abstract class SyncBase(IOptions<SyncOptions> syncOptions, GlobalContext 
 		while (currentBlock <= GlobalContext.LatestBlockHeight);
 
 		await AfterHandleBlocksAsync(cancellationToken);
+
+		// TODO: OnFinished
 	}
 
 	protected virtual Task AfterHandleBlocksAsync(CancellationToken cancellationToken) => Task.CompletedTask;

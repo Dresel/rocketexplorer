@@ -6,10 +6,10 @@
 @using RocketExplorer.Shared.Tokens
 @inherits PageBase<RocketExplorer.Shared.Tokens.TokensRPLOldSnapshot>
 
-<PageTitle>Rocket Explorer - RPLv1</PageTitle>
+<PageTitle>Rocket Explorer - Rocket Pool Legacy (RPLv1)</PageTitle>
 <MudStack>
 	<MudContainer Class="mud-typography-align-center">
-		<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">RPL v1</MudText>
+		<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center"><MudImage Class="token-icon" Style="filter: grayscale(75%)" Src="images/rpl-primary.svg"></MudImage>Rocket Pool Legacy (RPLv1)</MudText>
 		@if (Snapshot != null)
 		{
 			<Address Typo="Typo.body1" Expanded="true" ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.RPLOld.Address)" AppendEtherscanCodeAnchor="true"></Address>
@@ -44,7 +44,7 @@
 				<MudTd>
 					<Address ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" HighlightedText="@searchString"></Address>
 				</MudTd>
-				<MudTd Style="text-align:right">@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") RPL</MudTd>
+				<MudTd Style="text-align:right">@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") <span style="color: var(--mud-palette-text-secondary)">RPLv1</span></MudTd>
 			</RowTemplate>
 			<NoRecordsContent>
 				<MudText>No matching records found</MudText>

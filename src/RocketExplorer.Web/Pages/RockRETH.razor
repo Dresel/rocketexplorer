@@ -7,10 +7,10 @@
 @using RocketExplorer.Shared.Tokens
 @inherits PageBase<RocketExplorer.Shared.Tokens.TokensRockRETHSnapshot>
 
-<PageTitle>Rocket Explorer - ROCK.RETH</PageTitle>
+<PageTitle>Rocket Explorer - RockSolid rETH (rock.rETH)</PageTitle>
 <MudStack>
 	<MudContainer Class="mud-typography-align-center">
-		<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center">ROCK.RETH</MudText>
+        <MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center"><MudImage Class="token-icon" Src="images/rock-reth.svg"></MudImage>RockSolid rETH (rock.rETH)</MudText>
 		@if (Snapshot != null)
 		{
 			@if (Snapshot.Data.RockRETH != null)
@@ -52,7 +52,7 @@
 					<MudTd>
 						<Address ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" HighlightedText="@searchString"></Address>
 					</MudTd>
-					<MudTd Style="text-align:right">@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") ROCK.RETH</MudTd>
+					<MudTd Style="text-align:right">@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") <span style="color: var(--mud-palette-text-secondary)">rock.rETH</span></MudTd>
 				</RowTemplate>
 				<NoRecordsContent>
 					<MudText>No matching records found</MudText>

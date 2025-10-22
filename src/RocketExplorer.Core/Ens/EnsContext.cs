@@ -44,7 +44,7 @@ public record class EnsContext
 
 		EnsContext ensContext = new()
 		{
-			CurrentBlockHeight = ensSnapshot?.ProcessedBlockNumber ?? 0,
+			CurrentBlockHeight = ensSnapshot?.ProcessedBlockNumber ?? 9400000,
 			InitialSync = initialSync,
 		};
 

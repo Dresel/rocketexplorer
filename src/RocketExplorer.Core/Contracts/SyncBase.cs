@@ -6,7 +6,7 @@ namespace RocketExplorer.Core.Contracts;
 
 public abstract class SyncBase(IOptions<SyncOptions> syncOptions, GlobalContext globalContext)
 {
-	protected const long BlockRange = 25_000;
+	protected const long BlockRange = 10_000;
 
 	public SyncOptions Options { get; } = syncOptions.Value;
 
@@ -19,6 +19,7 @@ public abstract class SyncBase(IOptions<SyncOptions> syncOptions, GlobalContext 
 		if (currentBlockHeight >= GlobalContext.LatestBlockHeight)
 		{
 			GlobalContext.GetLogger<SyncBase>().LogInformation("Up to date, nothing to do");
+			await AfterHandleBlocksAsync(false, cancellationToken);
 			return;
 		}
 
@@ -53,12 +54,12 @@ public abstract class SyncBase(IOptions<SyncOptions> syncOptions, GlobalContext 
 		}
 		while (currentBlock <= GlobalContext.LatestBlockHeight);
 
-		await AfterHandleBlocksAsync(cancellationToken);
+		await AfterHandleBlocksAsync(true, cancellationToken);
 
 		// TODO: OnFinished
 	}
 
-	protected virtual Task AfterHandleBlocksAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+	protected virtual Task AfterHandleBlocksAsync(bool processedBlocks, CancellationToken cancellationToken) => Task.CompletedTask;
 
 	protected virtual Task BeforeHandleBlocksAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 

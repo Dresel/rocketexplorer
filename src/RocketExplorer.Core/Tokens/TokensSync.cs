@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using Nethereum.Contracts;
-using Nethereum.Hex.HexTypes;
 using RocketExplorer.Core.Contracts;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
@@ -11,9 +10,9 @@ namespace RocketExplorer.Core.Tokens;
 
 public class TokensSync(IOptions<SyncOptions> options, GlobalContext globalContext) : SyncBase(options, globalContext)
 {
-	protected override async Task AfterHandleBlocksAsync(CancellationToken cancellationToken)
+	protected override async Task AfterHandleBlocksAsync(bool processedBlocks, CancellationToken cancellationToken)
 	{
-		await base.AfterHandleBlocksAsync(cancellationToken);
+		await base.AfterHandleBlocksAsync(processedBlocks, cancellationToken);
 
 		TokensContext context = await GlobalContext.TokensContextFactory;
 		context.ProcessingCompletionSource.TrySetResult();

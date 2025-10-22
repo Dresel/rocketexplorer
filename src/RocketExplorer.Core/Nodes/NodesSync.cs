@@ -15,9 +15,9 @@ namespace RocketExplorer.Core.Nodes;
 public class NodesSync(IOptions<SyncOptions> options, GlobalContext globalContext)
 	: SyncBase(options, globalContext)
 {
-	protected override async Task AfterHandleBlocksAsync(CancellationToken cancellationToken)
+	protected override async Task AfterHandleBlocksAsync(bool processedBlocks, CancellationToken cancellationToken)
 	{
-		await base.AfterHandleBlocksAsync(cancellationToken);
+		await base.AfterHandleBlocksAsync(processedBlocks, cancellationToken);
 
 		NodesContext context = await GlobalContext.NodesContextFactory;
 		context.ProcessingCompletionSource.TrySetResult();

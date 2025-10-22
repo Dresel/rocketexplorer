@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Contracts;
@@ -20,9 +21,14 @@ namespace RocketExplorer.Core.Ens;
 public class EnsSync(IOptions<SyncOptions> options, GlobalContext globalContext)
 	: SyncBase(options, globalContext)
 {
-	protected override async Task AfterHandleBlocksAsync(CancellationToken cancellationToken)
+	protected override async Task AfterHandleBlocksAsync(bool processedBlocks, CancellationToken cancellationToken)
 	{
-		await base.AfterHandleBlocksAsync(cancellationToken);
+		await base.AfterHandleBlocksAsync(processedBlocks, cancellationToken);
+
+		if (!processedBlocks)
+		{
+			return;
+		}
 
 		EnsUtil ensUtil = new();
 		NodesContext nodesContext = await GlobalContext.NodesContextFactory;
@@ -80,7 +86,7 @@ public class EnsSync(IOptions<SyncOptions> options, GlobalContext globalContext)
 
 			string? targetEns = ensContext.TryGetEnsNameFromAddress(candidateAddress);
 
-			if (candidateEns is not null)
+			if (candidateEns is not null && !candidateEns.Equals(targetEns, StringComparison.OrdinalIgnoreCase))
 			{
 				if (!ensContext.ContainsEnsName(candidateEns))
 				{
@@ -172,7 +178,7 @@ public class EnsSync(IOptions<SyncOptions> options, GlobalContext globalContext)
 			return;
 		}
 
-		IEnumerable<IEventLog> nodeAddedEvents = await GlobalContext.Services.Web3.FilterAsync(
+		IEnumerable<IEventLog> ensEvents = await GlobalContext.Services.Web3.FilterAsync(
 			fromBlock, toBlock,
 			[
 				typeof(AddrChangedEventDTO), typeof(AddressChangedEventDTO), typeof(NameChangedEventDTO),
@@ -180,22 +186,100 @@ public class EnsSync(IOptions<SyncOptions> options, GlobalContext globalContext)
 			], [],
 			GlobalContext.Policy);
 
-		foreach (IEventLog eventLog in nodeAddedEvents)
+		ConcurrentBag<(IEventLog EventLog, EnsEventHandlers.EnsEventResult Result)> resultBag = [];
+
+		await Parallel.ForEachAsync(
+			ensEvents, cancellationToken, async (ensEvent, cancellationTokenInner) =>
+			{
+				EnsEventHandlers.EnsEventResult? t =
+					await ensEvent.WhenIsAsync<AddrChangedEventDTO, GlobalContext, EnsEventHandlers.EnsEventResult?>(
+						EnsEventHandlers.HandleAsync, GlobalContext, cancellationTokenInner);
+
+				t ??= await ensEvent.WhenIsAsync<NewResolverEventDTO, GlobalContext, EnsEventHandlers.EnsEventResult?>(
+					EnsEventHandlers.HandleAsync, GlobalContext, cancellationTokenInner);
+
+				t ??= await ensEvent
+					.WhenIsAsync<ResolverChangedEventDTO, GlobalContext, EnsEventHandlers.EnsEventResult?>(
+						EnsEventHandlers.HandleAsync, GlobalContext, cancellationTokenInner);
+
+				t ??= await ensEvent
+					.WhenIsAsync<AddressChangedEventDTO, GlobalContext, EnsEventHandlers.EnsEventResult?>(
+						EnsEventHandlers.HandleAsync, GlobalContext, cancellationTokenInner);
+
+				t ??= await ensEvent.WhenIsAsync<NameChangedEventDTO, GlobalContext, EnsEventHandlers.EnsEventResult?>(
+					EnsEventHandlers.HandleAsync, GlobalContext, cancellationTokenInner);
+
+				if (t is not null)
+				{
+					resultBag.Add((ensEvent, t));
+				}
+			});
+
+		foreach ((IEventLog EventLog, EnsEventHandlers.EnsEventResult Result) eventLog in resultBag
+					.OrderBy(x => (long)x.EventLog.Log.BlockNumber.Value)
+					.ThenBy(x => (long)x.EventLog.Log.LogIndex.Value))
 		{
-			await eventLog.WhenIsAsync<AddrChangedEventDTO, GlobalContext>(
-				EnsEventHandlers.HandleAsync, GlobalContext, cancellationToken);
+			EnsEventHandlers.EnsEventResult result = eventLog.Result;
 
-			await eventLog.WhenIsAsync<NewResolverEventDTO, GlobalContext>(
-				EnsEventHandlers.HandleAsync, GlobalContext, cancellationToken);
+			if (result.ReverseResult is not null && result.ReverseResult.ReverseResolver is not null)
+			{
+				if (context.TryGetAddressFromReverseAddressNameHash(
+						result.ReverseResult.AddressReverseNameHash, out string? address))
+				{
+					await globalContext.TryRemoveFromReverseAddressNameHashAsync(
+						result.ReverseResult.AddressReverseNameHash, cancellationToken);
 
-			await eventLog.WhenIsAsync<ResolverChangedEventDTO, GlobalContext>(
-				EnsEventHandlers.HandleAsync, GlobalContext, cancellationToken);
+					if (result.ReverseResult.IsValidPrimary)
+					{
+						// New valid primary, remove old forward entry if exists
+						await globalContext.TryRemoveFromEnsNameHashAsync(
+							result.ReverseResult.ReverseResolvedEnsNameHash ??
+							throw new InvalidOperationException("ReverseResolvedEnsNameHash must not be null"),
+							cancellationToken);
 
-			await eventLog.WhenIsAsync<AddressChangedEventDTO, GlobalContext>(
-				EnsEventHandlers.HandleAsync, GlobalContext, cancellationToken);
+						context.AddToEnsMaps(
+							[(address!.HexToByteArray(), result.ReverseResult.ReverseResolvedEnsName!),]);
 
-			await eventLog.WhenIsAsync<NameChangedEventDTO, GlobalContext>(
-				EnsEventHandlers.HandleAsync, GlobalContext, cancellationToken);
+						await globalContext.Services.ProcessHistory.AddAddressEnsCandidateAsync(
+							address.HexToByteArray(),
+							result.ReverseResult.ReverseResolvedEnsName, cancellationToken);
+
+						globalContext.LoggerFactory.CreateLogger<EnsSync>().LogInformation(
+							"Add {EnsName} {Address} ({Block})", result.ReverseResult.ReverseResolvedEnsName, address, eventLog.EventLog.Log.BlockNumber);
+						continue;
+					}
+				}
+			}
+
+			if (result.ForwardResult is not null)
+			{
+				// Remove old forward entry if exists
+				await globalContext.TryRemoveFromEnsNameHashAsync(result.ForwardResult.EnsNameHash, cancellationToken);
+
+				if (!result.ForwardResult.IsValidPrimary ||
+					!context.ContainsReverseAddressNameHash(
+						result.ForwardResult.ForwardResolvedAddressReverseNameHash!))
+				{
+					continue;
+				}
+
+				// Remove old reverse entries if exists
+				await globalContext.TryRemoveFromReverseAddressNameHashAsync(
+					result.ForwardResult.ForwardResolvedAddressReverseNameHash!, cancellationToken);
+
+				context.AddToEnsMaps(
+				[
+					(result.ForwardResult.ForwardResolvedAddress!.HexToByteArray(),
+						result.ForwardResult.ReverseResolvedEnsName!),
+				]);
+
+				await globalContext.Services.ProcessHistory.AddAddressEnsCandidateAsync(
+					result.ForwardResult.ForwardResolvedAddress!.HexToByteArray(),
+					result.ForwardResult.ReverseResolvedEnsName!, cancellationToken);
+
+				globalContext.LoggerFactory.CreateLogger<EnsSync>().LogInformation(
+					"Add {EnsName} {Address} ({Block})", result.ForwardResult.ReverseResolvedEnsName, result.ForwardResult.ForwardResolvedAddress, eventLog.EventLog.Log.BlockNumber);
+			}
 		}
 	}
 

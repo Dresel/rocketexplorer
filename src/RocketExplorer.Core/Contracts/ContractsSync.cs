@@ -12,9 +12,9 @@ namespace RocketExplorer.Core.Contracts;
 public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext globalContext)
 	: SyncBase(syncOptions, globalContext)
 {
-	protected override async Task AfterHandleBlocksAsync(CancellationToken cancellationToken)
+	protected override async Task AfterHandleBlocksAsync(bool processedBlocks, CancellationToken cancellationToken)
 	{
-		await base.AfterHandleBlocksAsync(cancellationToken);
+		await base.AfterHandleBlocksAsync(processedBlocks, cancellationToken);
 		GlobalContext.ContractsContext.ProcessingCompletionSource.TrySetResult();
 	}
 

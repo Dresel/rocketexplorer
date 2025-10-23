@@ -211,6 +211,12 @@ mark {
 	}
 }
 
+.nav-token-icon {
+	height: 24px;
+	vertical-align: middle;
+	margin-right: 0.4em;
+}
+
 .token-icon {
 	height: 40px;
 	vertical-align: middle;

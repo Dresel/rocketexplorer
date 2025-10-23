@@ -44,7 +44,7 @@
 				<MudTd>
 					<Address ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" HighlightedText="@searchString"></Address>
 				</MudTd>
-				<MudTd Style="text-align:right">@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") <span style="color: var(--mud-palette-text-secondary)">RPLv1</span></MudTd>
+				<MudTd Style="text-align:right">@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") <Unit>RPLv1</Unit></MudTd>
 			</RowTemplate>
 			<NoRecordsContent>
 				<MudText>No matching records found</MudText>

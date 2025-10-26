@@ -14,11 +14,15 @@ public record class NodesContext
 {
 	public required long CurrentBlockHeight { get; set; }
 
+	public Task IsFinished => ProcessingCompletionSource.Task;
+
 	public required NodeInfo Nodes { get; init; }
 
 	public required string[] PostSaturn1RocketNodeStakingAddresses { get; init; }
 
 	public required string[] PreSaturn1RocketNodeStakingAddresses { get; init; }
+
+	public TaskCompletionSource ProcessingCompletionSource { get; } = new();
 
 	public required QueueInfo QueueInfo { get; init; }
 
@@ -44,7 +48,7 @@ public record class NodesContext
 
 		await Task.WhenAll(readNodesSnapshotTask, readValidatorSnapshotTask, readQueueSnapshotTask);
 
-		await contractsContext.Finished;
+		await contractsContext.IsFinished;
 
 		ReadOnlyDictionary<string, RocketPoolContract> contracts = contractsContext.ContextContracts.AsReadOnly();
 		long activationHeight = contracts["rocketStorage"].Versions.Single().ActivationHeight;

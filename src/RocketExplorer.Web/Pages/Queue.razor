@@ -43,6 +43,10 @@
 				@context.Index
 			</MudTd>
 			<MudTd>
+				@if (!string.IsNullOrWhiteSpace(context.NodeOperatorAddressEnsName))
+				{
+					<EnsName Name="@context.NodeOperatorAddressEnsName" HighlightedText="@searchString"></EnsName>
+				}
 				<Address ContractAddress="@context.NodeOperatorAddress" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
 			</MudTd>
 			<MudTd>
@@ -168,7 +172,8 @@
 
 		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
 		{
-			items = items.Where(x => x.NodeOperatorAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToArray();
+			items = items.Where(x => x.NodeOperatorAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+				(x.NodeOperatorAddressEnsName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false)).ToArray();
 		}
 
 		int count = items.Count();
@@ -192,6 +197,7 @@
 		{
 			Index = index + 1,
 			NodeOperatorAddress = entry.NodeAddress.ToHex(true),
+			NodeOperatorAddressEnsName = entry.NodeAddressEns,
 			MinipoolAddress = entry.MinipoolAddress.ToHex(true),
 			PubKey = entry.PubKey?.ToHex(),
 			TimeInQueue = DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(entry.EnqueueTimestamp),
@@ -205,6 +211,7 @@
 			{
 				Index = currentIndex + index + 1,
 				NodeOperatorAddress = entry.Item.NodeAddress.ToHex(true),
+				NodeOperatorAddressEnsName = entry.Item.NodeAddressEns,
 				MegapoolAddress = entry.Item.MegapoolAddress.ToHex(true),
 				MegapoolIndex = entry.Item.MegapoolIndex,
 				PubKey = entry.Item.PubKey.ToHex(),
@@ -232,6 +239,8 @@
 		public required TimeSpan TimeInQueue { get; set; }
 
 		public required string NodeOperatorAddress { get; set; }
+
+		public required string? NodeOperatorAddressEnsName { get; set; }
 	}
 
 	[Parameter]

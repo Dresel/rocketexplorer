@@ -1,5 +1,6 @@
 using Nethereum.Web3;
 using RocketExplorer.Core.BeaconChain;
+using RocketExplorer.Core.Ens;
 using RocketExplorer.Ethereum.RocketNodeManager;
 using RocketExplorer.Ethereum.RocketStorage;
 
@@ -9,7 +10,11 @@ public record class ContextServices
 {
 	public required BeaconChainService BeaconChainService { get; init; }
 
+	public required GlobalEnsIndexService GlobalEnsIndexService { get; init; }
+
 	public required GlobalIndexService GlobalIndexService { get; init; }
+
+	public required AddressEnsProcessHistory AddressEnsProcessHistory { get; init; }
 
 	public required RocketNodeManagerService RocketNodeManager { get; init; }
 

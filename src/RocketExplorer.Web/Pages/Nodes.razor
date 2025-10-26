@@ -33,6 +33,10 @@
 		</HeaderContent>
 		<RowTemplate>
 			<MudTd>
+				@if (!string.IsNullOrWhiteSpace(context.ContractAddressEnsName))
+				{
+					<EnsName Name="@context.ContractAddressEnsName" HighlightedText="@searchString"></EnsName>
+				}
 				<Address ContractAddress="@context.ContractAddress" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
 			</MudTd>
 			<MudTd>
@@ -101,7 +105,8 @@
 
 		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
 		{
-			items = items.Where(x => x.ContractAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToArray();
+			items = items.Where(x => x.ContractAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+				x.ContractAddressEnsName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true).ToArray();
 		}
 
 		int count = items.Count();
@@ -119,6 +124,7 @@
 		nodes = Snapshot!.Data.Index.Select(x => new NodeIndexViewModel
 		{
 			ContractAddress = "0x" + Convert.ToHexString(x.ContractAddress),
+			ContractAddressEnsName = x.ContractAddressEnsName,
 			MegapoolAddress = x.MegapoolAddress == null ? null : "0x" + Convert.ToHexString(x.MegapoolAddress),
 			RegistrationDate = DateTimeOffset.FromUnixTimeSeconds(x.RegistrationTimestamp),
 		}).ToArray();
@@ -131,6 +137,8 @@
 
 	public class NodeIndexViewModel
 	{
+		public required string? ContractAddressEnsName { get; init; }
+
 		public required string ContractAddress { get; init; }
 
 		public required string? MegapoolAddress { get; init; }

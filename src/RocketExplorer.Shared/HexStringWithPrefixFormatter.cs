@@ -20,6 +20,7 @@ public sealed class HexStringWithPrefixFormatter : IMessagePackFormatter<string?
 		writer.Write(Convert.FromHexString(value));
 	}
 
+	// TODO: Upper?
 	public string Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) =>
-		$"0X{Convert.ToHexString(reader.ReadBytes()!.Value.FirstSpan)}";
+		$"0x{Convert.ToHexString(reader.ReadBytes()!.Value.FirstSpan)}";
 }

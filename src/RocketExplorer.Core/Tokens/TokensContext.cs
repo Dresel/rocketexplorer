@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Nethereum.Util;
 using RocketExplorer.Core.Contracts;
@@ -14,9 +13,13 @@ public record class TokensContext
 {
 	public required long CurrentBlockHeight { get; set; }
 
+	public Task IsFinished => ProcessingCompletionSource.Task;
+
 	public required string[] PostSaturn1RocketNodeStakingAddresses { get; set; }
 
 	public required string[] PreSaturn1RocketNodeStakingAddresses { get; set; }
+
+	public TaskCompletionSource ProcessingCompletionSource { get; } = new();
 
 	public required string RETHTokenAddress { get; init; }
 
@@ -55,7 +58,7 @@ public record class TokensContext
 
 		await Task.WhenAll(readRPLOldTask, readRPLTask, readRETHTask, readStakedRPLTask, readRockRETHTask);
 
-		await contractsContext.Finished;
+		await contractsContext.IsFinished;
 
 		ReadOnlyDictionary<string, RocketPoolContract> contracts = contractsContext.ContextContracts.AsReadOnly();
 
@@ -182,9 +185,9 @@ public record class TokensContext
 
 			RPLOldTokenInfo = new RPLOldTokenInfo
 			{
-				Holders = new SortedDictionary<string, BigInteger>(
+				Holders = new SortedDictionary<string, HolderEntry>(
 					rplOldSnapshot.Data.RPLOld.Holders.Select(entry =>
-						new KeyValuePair<string, BigInteger>(entry.Address, entry.Balance)).ToDictionary(),
+						new KeyValuePair<string, HolderEntry>(entry.Address, entry)).ToDictionary(),
 					StringComparer.OrdinalIgnoreCase),
 				SupplyTotal = rplOldSnapshot.Data.RPLOld.SupplyTotal,
 				MintsDaily = rplOldSnapshot.Data.RPLOld.MintsDaily,
@@ -194,9 +197,9 @@ public record class TokensContext
 			},
 			RPLTokenInfo = new TokenInfo
 			{
-				Holders = new SortedDictionary<string, BigInteger>(
+				Holders = new SortedDictionary<string, HolderEntry>(
 					rplSnapshot.Data.RPL.Holders.Select(entry =>
-						new KeyValuePair<string, BigInteger>(entry.Address, entry.Balance)).ToDictionary(),
+						new KeyValuePair<string, HolderEntry>(entry.Address, entry)).ToDictionary(),
 					StringComparer.OrdinalIgnoreCase),
 				SupplyTotal = rplSnapshot.Data.RPL.SupplyTotal,
 				MintsDaily = rplSnapshot.Data.RPL.MintsDaily,
@@ -204,9 +207,9 @@ public record class TokensContext
 			},
 			RETHTokenInfo = new TokenInfo
 			{
-				Holders = new SortedDictionary<string, BigInteger>(
+				Holders = new SortedDictionary<string, HolderEntry>(
 					rethSnapshot.Data.RETH.Holders.Select(entry =>
-						new KeyValuePair<string, BigInteger>(entry.Address, entry.Balance)).ToDictionary(),
+						new KeyValuePair<string, HolderEntry>(entry.Address, entry)).ToDictionary(),
 					StringComparer.OrdinalIgnoreCase),
 				SupplyTotal = rethSnapshot.Data.RETH.SupplyTotal,
 				MintsDaily = rethSnapshot.Data.RETH.MintsDaily,
@@ -223,9 +226,9 @@ public record class TokensContext
 			},
 			RockRETHTokenInfo = new TokenInfo
 			{
-				Holders = new SortedDictionary<string, BigInteger>(
+				Holders = new SortedDictionary<string, HolderEntry>(
 					rockRETHSnapshot.Data.RockRETH?.Holders.Select(entry =>
-						new KeyValuePair<string, BigInteger>(entry.Address, entry.Balance)).ToDictionary() ?? [],
+						new KeyValuePair<string, HolderEntry>(entry.Address, entry)).ToDictionary() ?? [],
 					StringComparer.OrdinalIgnoreCase),
 				SupplyTotal = rockRETHSnapshot.Data.RockRETH?.SupplyTotal ?? [],
 				MintsDaily = rockRETHSnapshot.Data.RockRETH?.MintsDaily ?? [],
@@ -247,11 +250,7 @@ public record class TokensContext
 					RPLOld = new RPLOldToken
 					{
 						Address = RPLOldTokenAddress,
-						Holders = RPLOldTokenInfo.Holders.Select(x => new HolderEntry
-						{
-							Address = x.Key,
-							Balance = x.Value,
-						}).ToArray(),
+						Holders = RPLOldTokenInfo.Holders.Select(x => x.Value).ToArray(),
 						SupplyTotal = RPLOldTokenInfo.SupplyTotal,
 						MintsDaily = RPLOldTokenInfo.MintsDaily,
 						BurnsDaily = RPLOldTokenInfo.BurnsDaily,
@@ -271,11 +270,7 @@ public record class TokensContext
 					RPL = new Token
 					{
 						Address = RPLTokenAddress,
-						Holders = RPLTokenInfo.Holders.Select(x => new HolderEntry
-						{
-							Address = x.Key,
-							Balance = x.Value,
-						}).ToArray(),
+						Holders = RPLTokenInfo.Holders.Select(x => x.Value).ToArray(),
 						SupplyTotal = RPLTokenInfo.SupplyTotal,
 						MintsDaily = RPLTokenInfo.MintsDaily,
 						BurnsDaily = RPLTokenInfo.BurnsDaily,
@@ -293,11 +288,7 @@ public record class TokensContext
 					RETH = new Token
 					{
 						Address = RETHTokenAddress,
-						Holders = RETHTokenInfo.Holders.Select(x => new HolderEntry
-						{
-							Address = x.Key,
-							Balance = x.Value,
-						}).ToArray(),
+						Holders = RETHTokenInfo.Holders.Select(x => x.Value).ToArray(),
 						SupplyTotal = RETHTokenInfo.SupplyTotal,
 						MintsDaily = RETHTokenInfo.MintsDaily,
 						BurnsDaily = RETHTokenInfo.BurnsDaily,
@@ -333,11 +324,7 @@ public record class TokensContext
 						: new Token
 						{
 							Address = RockRETHTokenAddress,
-							Holders = RockRETHTokenInfo.Holders.Select(x => new HolderEntry
-							{
-								Address = x.Key,
-								Balance = x.Value,
-							}).ToArray(),
+							Holders = RockRETHTokenInfo.Holders.Select(x => x.Value).ToArray(),
 							SupplyTotal = RockRETHTokenInfo.SupplyTotal,
 							MintsDaily = RockRETHTokenInfo.MintsDaily,
 							BurnsDaily = RockRETHTokenInfo.BurnsDaily,

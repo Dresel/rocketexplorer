@@ -41,6 +41,10 @@
 			</HeaderContent>
 			<RowTemplate>
 				<MudTd>
+					@if (!string.IsNullOrWhiteSpace(context.AddressEnsName))
+					{
+						<EnsName Name="@context.AddressEnsName" HighlightedText="@searchString"></EnsName>
+					}
 					<Address ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" HighlightedText="@searchString"></Address>
 				</MudTd>
 				<MudTd Style="text-align:right">
@@ -120,14 +124,13 @@
 
 		if (state.SortLabel is nameof(HolderEntry.Balance))
 		{
-			items = state.SortDirection == SortDirection.Ascending ? holdersByBalance : holdersByBalance.Reverse();
+			items = state.SortDirection == SortDirection.Ascending ? holdersByBalance : ((IEnumerable<HolderEntry>)holdersByBalance).Reverse();
 		}
 
 		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
 		{
-			searchString = searchString.ToUpperInvariant();
-
-			items = items.Where(x => x.Address.Contains(searchString, StringComparison.Ordinal)).ToArray();
+			items = items.Where(x => x.Address.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+				x.AddressEnsName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true).ToArray();
 		}
 
 		items = items as HolderEntry[] ?? items.ToArray();

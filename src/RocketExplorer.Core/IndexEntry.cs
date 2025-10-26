@@ -6,6 +6,8 @@ public class IndexEntry
 {
 	public byte[] Address { get; set; } = null!;
 
+	public string? AddressEnsName { get; set; }
+
 	public byte[]? MegapoolAddress { get; set; }
 
 	public int? MegapoolIndex { get; set; }

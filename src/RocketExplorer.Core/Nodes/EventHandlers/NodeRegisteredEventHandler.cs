@@ -27,6 +27,8 @@ public class NodeRegisteredEventHandler
 				RegistrationTimestamp = (long)@event.Time,
 			});
 
+		await globalContext.Services.AddressEnsProcessHistory.AddAddressEnsRecordAsync(@event.Node.HexToByteArray(), cancellationToken: cancellationToken);
+
 		_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 			@event.Node.RemoveHexPrefix(), @event.Node.HexToByteArray(),
 			new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),

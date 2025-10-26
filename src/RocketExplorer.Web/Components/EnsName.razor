@@ -1,0 +1,16 @@
+<MudText Typo="Typo" Color="Color.Primary" Style="font-family: monospace;">
+	<MudHighlighter Text="@Name" HighlightedText="@HighlightedText"></MudHighlighter>
+</MudText>
+
+@code {
+
+	[Parameter]
+	public string Name { get; set; } = string.Empty;
+
+	[Parameter]
+	public Typo Typo { get; set; } = Typo.body2;
+
+	[Parameter]
+	public string HighlightedText { get; set; } = string.Empty;
+
+}

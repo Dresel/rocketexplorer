@@ -8,7 +8,6 @@ public record class NodesSnapshot
 	[Key(0)]
 	public required NodeIndexEntry[] Index { get; init; }
 
-	// TODO: Separate file?
 	[Key(1)]
 	public required SortedList<DateOnly, int> DailyRegistrations { get; init; }
 

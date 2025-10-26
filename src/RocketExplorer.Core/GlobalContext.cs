@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Nethereum.RPC.Eth.DTOs;
 using Polly.Retry;
 using RocketExplorer.Core.Contracts;
+using RocketExplorer.Core.Ens;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Core.Tokens;
 using RocketExplorer.Shared.Contracts;
@@ -16,6 +17,8 @@ public record class GlobalContext
 	public required ContractsContext ContractsContext { get; init; }
 
 	public required DashboardInfo DashboardContext { get; init; }
+
+	public required Task<EnsContext> EnsContextFactory { get; init; }
 
 	public required BlockWithTransactions LatestBlock { get; init; }
 

@@ -12,15 +12,18 @@ public record class IndexEntry
 	public required byte[] Address { get; init; }
 
 	[Key(2)]
-	public required byte[]? MegapoolAddress { get; init; }
+	public string? AddressEnsName { get; init; }
 
 	[Key(3)]
-	public required byte[]? ValidatorPubKey { get; init; }
+	public required byte[]? MegapoolAddress { get; init; }
 
 	[Key(4)]
-	public required long? ValidatorIndex { get; init; }
+	public required byte[]? ValidatorPubKey { get; init; }
 
 	[Key(5)]
+	public required long? ValidatorIndex { get; init; }
+
+	[Key(6)]
 	public required int? MegapoolIndex { get; init; }
 
 	public virtual bool Equals(IndexEntry? other)
@@ -41,7 +44,7 @@ public record class IndexEntry
 				other.MegapoolAddress is not null && MegapoolAddress.SequenceEqual(other.MegapoolAddress))) &&
 			((ValidatorPubKey is null && other.ValidatorPubKey is null) || (ValidatorPubKey is not null &&
 				other.ValidatorPubKey is not null && ValidatorPubKey.SequenceEqual(other.ValidatorPubKey))) &&
-			ValidatorIndex == other.ValidatorIndex && MegapoolIndex == other.MegapoolIndex;
+			ValidatorIndex == other.ValidatorIndex && MegapoolIndex == other.MegapoolIndex && AddressEnsName == other.AddressEnsName;
 	}
 
 	public override int GetHashCode()
@@ -49,6 +52,7 @@ public record class IndexEntry
 		HashCode hashCode = default;
 		hashCode.Add(Type);
 		hashCode.AddBytes(Address);
+		hashCode.AddBytes(MegapoolAddress);
 
 		if (ValidatorPubKey is not null)
 		{
@@ -57,6 +61,7 @@ public record class IndexEntry
 
 		hashCode.Add(ValidatorIndex);
 		hashCode.Add(MegapoolIndex);
+		hashCode.Add(AddressEnsName);
 
 		return hashCode.ToHashCode();
 	}

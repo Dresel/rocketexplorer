@@ -2,7 +2,8 @@ using Nethereum.Hex.HexTypes;
 
 namespace RocketExplorer.Core;
 
-public readonly struct EventIndex(HexBigInteger blockNumber, HexBigInteger logIndex) : IComparable<EventIndex>, IEquatable<EventIndex>
+public readonly struct EventIndex(HexBigInteger blockNumber, HexBigInteger logIndex)
+	: IComparable<EventIndex>, IEquatable<EventIndex>
 {
 	public readonly HexBigInteger BlockNumber = blockNumber;
 	public readonly HexBigInteger LogIndex = logIndex;
@@ -36,6 +37,8 @@ public readonly struct EventIndex(HexBigInteger blockNumber, HexBigInteger logIn
 	{
 		return a.CompareTo(b) >= 0;
 	}
+
+	public static EventIndex Zero => new(new HexBigInteger(0), new HexBigInteger(0));
 
 	public int CompareTo(EventIndex other)
 	{

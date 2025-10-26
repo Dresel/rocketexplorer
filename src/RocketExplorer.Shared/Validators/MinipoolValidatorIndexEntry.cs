@@ -9,11 +9,14 @@ public record class MinipoolValidatorIndexEntry
 	public required byte[] NodeAddress { get; init; }
 
 	[Key(1)]
-	public required byte[] MinipoolAddress { get; init; }
+	public required string? NodeAddressEnsName { get; init; }
 
 	[Key(2)]
-	public byte[]? PubKey { get; init; }
+	public required byte[] MinipoolAddress { get; init; }
 
 	[Key(3)]
+	public byte[]? PubKey { get; init; }
+
+	[Key(4)]
 	public long? ValidatorIndex { get; init; }
 }

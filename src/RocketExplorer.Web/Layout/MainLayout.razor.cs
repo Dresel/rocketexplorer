@@ -32,7 +32,7 @@ public partial class MainLayout : LayoutComponentBase
 
 		if (firstRender)
 		{
-			await this.themeProvider.WatchSystemPreference(ThemeService.OnSystemPreferenceChanged);
+			await this.themeProvider!.WatchSystemPreference(ThemeService.OnSystemPreferenceChanged);
 		}
 	}
 

@@ -12,9 +12,9 @@ namespace RocketExplorer.Core.Contracts;
 public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext globalContext)
 	: SyncBase(syncOptions, globalContext)
 {
-	protected override async Task AfterHandleBlocksAsync(CancellationToken cancellationToken)
+	protected override async Task AfterHandleBlocksAsync(bool processedBlocks, CancellationToken cancellationToken)
 	{
-		await base.AfterHandleBlocksAsync(cancellationToken);
+		await base.AfterHandleBlocksAsync(processedBlocks, cancellationToken);
 		GlobalContext.ContractsContext.ProcessingCompletionSource.TrySetResult();
 	}
 
@@ -22,7 +22,7 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 	{
 		if (await GetCurrentBlockHeightAsync(cancellationToken) == 0)
 		{
-			await ProcessBootstrapContractsAsync(GlobalContext);
+			await ProcessBootstrapContractsAsync(GlobalContext, cancellationToken);
 		}
 
 		await ContinueProcessingUpgradeContractsAsync(GlobalContext);
@@ -125,7 +125,7 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 		}
 	}
 
-	private async Task ProcessBootstrapContractsAsync(GlobalContext globalContext)
+	private async Task ProcessBootstrapContractsAsync(GlobalContext globalContext, CancellationToken cancellationToken = default)
 	{
 		long rocketPoolDeployedBlock =
 			(long)await globalContext.Policy.ExecuteAsync(() =>
@@ -156,6 +156,7 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 			upgradeContract, globalContext.Services.RocketStorage.GetDeployedStatusQueryAsync,
 			"bootstrap", rocketPoolDeployedBlock);
 
+		await SetCurrentBlockHeightAsync(rocketPoolDeployedBlock, cancellationToken);
 		globalContext.ContractsContext.CurrentBlockHeight = rocketPoolDeployedBlock;
 	}
 
@@ -237,7 +238,7 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 
 		try
 		{
-			executionHeight = await Helper.FindFirstBlock(
+			executionHeight = await Helper.FindFirstBlockAsync(
 				blockParameter => globalContext.Policy.ExecuteAsync(() => executionFunc(blockParameter)),
 				activationHeight,
 				globalContext.LatestBlockHeight,
@@ -249,7 +250,7 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 				"Executed property not found for upgrade contract {ContractName}", activationMethod);
 		}
 
-		executionHeight ??= await Helper.FindFirstBlock(
+		executionHeight ??= await Helper.FindFirstBlockAsync(
 			blockParameter => globalContext.Policy.ExecuteAsync(async () =>
 			{
 				string version = await globalContext.Services.RocketStorage.GetStringQueryAsync(

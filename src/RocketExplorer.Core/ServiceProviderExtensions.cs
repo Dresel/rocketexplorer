@@ -6,6 +6,7 @@ using Nethereum.Web3;
 using Polly.Retry;
 using RocketExplorer.Core.BeaconChain;
 using RocketExplorer.Core.Contracts;
+using RocketExplorer.Core.Ens;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Core.Tokens;
 using RocketExplorer.Ethereum;
@@ -16,14 +17,16 @@ namespace RocketExplorer.Core;
 
 public static class ServiceProviderExtensions
 {
-	public static async Task<GlobalContext> CreateGlobalContextAsync(this IServiceProvider serviceProvider, CancellationToken cancellationToken = default)
+	public static async Task<GlobalContext> CreateGlobalContextAsync(
+		this IServiceProvider serviceProvider, CancellationToken cancellationToken = default)
 	{
 		SyncOptions options = serviceProvider.GetRequiredService<IOptions<SyncOptions>>().Value;
 
 		Web3 web3 = serviceProvider.GetRequiredService<Web3>();
 
 		serviceProvider.GetRequiredService<ILogger<GlobalContext>>().LogInformation(
-			"Using Rocket Pool environment {Environment} with rpc endpoint {RPCUrl}", options.Environment, options.RPCUrl);
+			"Using Rocket Pool environment {Environment} with rpc endpoint {RPCUrl}", options.Environment,
+			options.RPCUrl);
 
 		BlockWithTransactions latestBlock =
 			await web3.Eth.Blocks.GetBlockWithTransactionsByNumber.SendRequestAsync(BlockParameter.CreateLatest());
@@ -39,6 +42,13 @@ public static class ServiceProviderExtensions
 		Storage storage = serviceProvider.GetRequiredService<Storage>();
 
 		ContractsContext contractsContext = await ContractsContext.ReadAsync(storage, cancellationToken);
+		Task<NodesContext> nodesContextFactory = NodesContext.ReadAsync(
+			storage, contractsContext, serviceProvider.GetRequiredService<ILogger<NodesContext>>(), cancellationToken);
+		Task<TokensContext> tokensContextFactory = TokensContext.ReadAsync(
+			storage, contractsContext, options, serviceProvider.GetRequiredService<ILogger<TokensContext>>(),
+			cancellationToken);
+
+		AddressEnsProcessHistory addressEnsProcessHistory = new();
 
 		return new GlobalContext
 		{
@@ -53,22 +63,29 @@ public static class ServiceProviderExtensions
 				RocketStorage = rocketStorageService,
 				BeaconChainService = serviceProvider.GetRequiredService<BeaconChainService>(),
 				GlobalIndexService = serviceProvider.GetRequiredService<GlobalIndexService>(),
+				GlobalEnsIndexService = serviceProvider.GetRequiredService<GlobalEnsIndexService>(),
+				AddressEnsProcessHistory = addressEnsProcessHistory,
 				RocketNodeManager = new RocketNodeManagerService(
 					web3,
 					await policy.ExecuteAsync(() => rocketStorageService.GetAddressQueryAsync("rocketNodeManager"))),
 			},
 
 			DashboardContext = await DashboardInfo.ReadAsync(
-				storage, serviceProvider.GetRequiredService<ILogger<DashboardInfo>>(), cancellationToken),
+				storage,
+				serviceProvider.GetRequiredService<ILogger<DashboardInfo>>(),
+				cancellationToken),
 
 			ContractsContext = contractsContext,
-			NodesContextFactory = NodesContext.ReadAsync(
-				storage, contractsContext, serviceProvider.GetRequiredService<ILogger<NodesContext>>(),
-				cancellationToken),
+			NodesContextFactory = nodesContextFactory,
 			TokensContextFactory =
-				TokensContext.ReadAsync(
-					storage, contractsContext, options,
-					serviceProvider.GetRequiredService<ILogger<TokensContext>>(), cancellationToken),
+				tokensContextFactory,
+			EnsContextFactory = EnsContext.ReadAsync(
+				storage,
+				nodesContextFactory,
+				tokensContextFactory,
+				addressEnsProcessHistory,
+				serviceProvider.GetRequiredService<ILogger<EnsContext>>(),
+				cancellationToken),
 		};
 	}
 }

@@ -1,5 +1,7 @@
+using System.ComponentModel.Design;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.Extensions.Configuration;
@@ -8,12 +10,15 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Web3;
+using RocketExplorer.Bootstrap;
 using RocketExplorer.Core;
 using RocketExplorer.Core.BeaconChain;
 using RocketExplorer.Core.Contracts;
+using RocketExplorer.Core.Ens;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Core.Tokens;
 using RocketExplorer.Shared;
+using RocketExplorer.Shared.Ens;
 using Serilog;
 using Serilog.Core;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -26,6 +31,7 @@ IHost host = Host.CreateDefaultBuilder(args)
 
 		Logger logger = new LoggerConfiguration().MinimumLevel.Information().WriteTo
 			.Console(theme: AnsiConsoleTheme.Code)
+			////.WriteTo.File($"log-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt")
 			.CreateLogger();
 		logging.AddSerilog(logger);
 	})
@@ -43,10 +49,12 @@ IHost host = Host.CreateDefaultBuilder(args)
 			}));
 
 		services.AddTransient<GlobalIndexService>();
+		services.AddTransient<GlobalEnsIndexService>();
 
 		services.AddTransient<ContractsSync>();
 		services.AddTransient<TokensSync>();
 		services.AddTransient<NodesSync>();
+		services.AddTransient<EnsSync>();
 
 		services.AddTransient<Web3>(serviceProvider =>
 		{
@@ -99,31 +107,45 @@ IHost host = Host.CreateDefaultBuilder(args)
 	})
 	.Build();
 
+ILogger<Program> logger = host.Services.GetRequiredService<ILogger<Program>>();
+
 GlobalContext globalContext = await host.Services.CreateGlobalContextAsync();
 host.Services.GetRequiredService<GlobalContextAccessor>().GlobalContext = globalContext;
 
-ILogger<Program> logger = host.Services.GetRequiredService<ILogger<Program>>();
+// Initial sync
+////globalContext.Services.GlobalIndexService.SkipLoading = true;
+////globalContext.Services.GlobalEnsIndexService.SkipLoading = true;
+
+// Initial index build
+////await IndexBuilder.BuildIndexesAsync(globalContext);
+////logger.LogInformation("Sync completed");
+////return;
 
 Task contractsSyncTask = host.Services.GetRequiredService<ContractsSync>().HandleBlocksAsync();
 Task tokensSyncTask = host.Services.GetRequiredService<TokensSync>().HandleBlocksAsync();
 Task nodesSyncTask = host.Services.GetRequiredService<NodesSync>().HandleBlocksAsync();
+Task ensSyncTask = host.Services.GetRequiredService<EnsSync>().HandleBlocksAsync();
 
-await Task.WhenAll(contractsSyncTask, tokensSyncTask, nodesSyncTask);
-
-Storage storage = host.Services.GetRequiredService<Storage>();
+await Task.WhenAll(contractsSyncTask, nodesSyncTask, tokensSyncTask, ensSyncTask);
 
 Task writeContractsTask = globalContext.ContractsContext.SaveAsync(
-	storage, host.Services.GetRequiredService<ILogger<ContractsContext>>());
+	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<ContractsContext>>());
 NodesContext nodesContext = await globalContext.NodesContextFactory;
-Task writeNodesTask = nodesContext.SaveAsync(storage, host.Services.GetRequiredService<ILogger<NodesContext>>());
+Task writeNodesTask = nodesContext.SaveAsync(
+	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<NodesContext>>());
 TokensContext tokensContext = await globalContext.TokensContextFactory;
-Task writeTokensTask = tokensContext.SaveAsync(storage, host.Services.GetRequiredService<ILogger<TokensContext>>());
+Task writeTokensTask = tokensContext.SaveAsync(
+	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<TokensContext>>());
+EnsContext ensContext = await globalContext.EnsContextFactory;
+Task writeEnsTask = ensContext.SaveAsync(
+	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<EnsContext>>());
 
 Task writeDashboardTask = globalContext.DashboardContext.SaveAsync(
-	storage, globalContext.LatestBlockHeight, host.Services.GetRequiredService<ILogger<DashboardInfo>>());
+	globalContext.Services.Storage, globalContext.LatestBlockHeight,
+	host.Services.GetRequiredService<ILogger<DashboardInfo>>());
 
 logger.LogInformation("Writing {snapshot}", Keys.SnapshotMetadata);
-Task writeMetadataTask = storage.WriteAsync(
+Task writeMetadataTask = globalContext.Services.Storage.WriteAsync(
 	Keys.SnapshotMetadata, new BlobObject<SnapshotMetadata>
 	{
 		ProcessedBlockNumber = globalContext.LatestBlockHeight,
@@ -134,7 +156,9 @@ Task writeMetadataTask = storage.WriteAsync(
 		},
 	}, 10);
 
-await Task.WhenAll(writeContractsTask, writeNodesTask, writeTokensTask, writeDashboardTask, writeMetadataTask);
-await globalContext.Services.GlobalIndexService.WriteAsync(globalContext.LatestBlockHeight);
+Task writeIndexTask = globalContext.Services.GlobalIndexService.WriteAsync(globalContext.LatestBlockHeight);
+Task writeEnsIndexTask = globalContext.Services.GlobalEnsIndexService.WriteAsync(globalContext.LatestBlockHeight);
 
-logger.LogInformation("Finished");
+await Task.WhenAll(writeContractsTask, writeNodesTask, writeTokensTask, writeEnsTask, writeDashboardTask, writeMetadataTask, writeIndexTask, writeEnsIndexTask);
+
+logger.LogInformation("Sync completed");

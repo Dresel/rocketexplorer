@@ -15,6 +15,14 @@ namespace RocketExplorer.Core.Nodes;
 public class NodesSync(IOptions<SyncOptions> options, GlobalContext globalContext)
 	: SyncBase(options, globalContext)
 {
+	protected override async Task AfterHandleBlocksAsync(bool processedBlocks, CancellationToken cancellationToken)
+	{
+		await base.AfterHandleBlocksAsync(processedBlocks, cancellationToken);
+
+		NodesContext context = await GlobalContext.NodesContextFactory;
+		context.ProcessingCompletionSource.TrySetResult();
+	}
+
 	protected override async Task<long> GetCurrentBlockHeightAsync(CancellationToken cancellationToken = default)
 	{
 		NodesContext context = await GlobalContext.NodesContextFactory;

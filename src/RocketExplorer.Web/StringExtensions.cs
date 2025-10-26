@@ -48,7 +48,7 @@ public static class StringExtensions
 
 	private static IEnumerable<int> AllIndexesOf(string @string, string value)
 	{
-		for (int index = 0;; index += value.Length)
+		for (int index = 0; true; index += value.Length)
 		{
 			index = @string.IndexOf(value, index, StringComparison.OrdinalIgnoreCase);
 			if (index == -1)

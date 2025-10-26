@@ -11,9 +11,12 @@ public record class Node
 	public required byte[] ContractAddress { get; init; }
 
 	[Key(1)]
-	public long RegistrationTimestamp { get; set; }
+	public string? ContractAddressEns { get; set; }
 
 	[Key(2)]
+	public long RegistrationTimestamp { get; set; }
+
+	[Key(3)]
 	public byte[]? MegapoolAddress { get; init; }
 
 	[Key(4)]

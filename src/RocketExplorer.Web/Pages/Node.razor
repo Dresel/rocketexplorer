@@ -8,6 +8,10 @@
 <MudStack Spacing="6">
 	<MudContainer Class="mud-typography-align-center">
 		<MudText Typo="Typo.h1" Class="mud-typography-h4" Align="Align.Center">Node Operator</MudText>
+		@if (!string.IsNullOrEmpty(Snapshot?.Data.ContractAddressEns))
+		{
+			<EnsName Typo="Typo.body1" Name="@Snapshot?.Data.ContractAddressEns"></EnsName>
+		}
 		<Address Typo="Typo.body1" Expanded="true" ContractAddress="@Address" AppendEtherscanCodeAnchor="true"></Address>
 	</MudContainer>
 	@if (Snapshot == null)

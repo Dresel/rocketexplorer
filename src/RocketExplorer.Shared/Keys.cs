@@ -26,6 +26,8 @@ public static class Keys
 
 	public const string ValidatorSnapshot = "validator-snapshot.msgpack";
 
+	public static string EnsSnapshot => $"ens-snapshot.msgpack";
+
 	public static string MegapoolValidator(string megapoolAddress, int megapoolIndex) =>
 		$"validators/{megapoolAddress.ToLowerInvariant()}/{megapoolIndex.ToString(CultureInfo.InvariantCulture)}.msgpack";
 

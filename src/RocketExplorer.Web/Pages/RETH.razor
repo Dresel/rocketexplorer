@@ -1,5 +1,4 @@
 @page "/reth"
-@using System.Diagnostics
 @using System.Numerics
 @using LiveChartsCore.Defaults
 @using Nethereum.Util
@@ -43,6 +42,10 @@
 				</HeaderContent>
 				<RowTemplate>
 					<MudTd>
+						@if (!string.IsNullOrWhiteSpace(context.AddressEnsName))
+						{
+							<EnsName Name="@context.AddressEnsName" HighlightedText="@searchString"></EnsName>
+						}
 						<Address ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" HighlightedText="@searchString"></Address>
 					</MudTd>
 					<MudTd Style="text-align:right">
@@ -59,7 +62,6 @@
 					<MudTablePager />
 				</PagerContent>
 			</MudTable>
-			<MudText Typo="Typo.body2">Load: @(DeserializeElapsedMilliseconds)ms, Sort & Filtering: @(sortAndFilterElapsedMilliseconds)ms</MudText>
 		</MudStack>
 	</MudContainer>
 </MudStack>
@@ -76,8 +78,6 @@
 	private SortedList<DateOnly, int>[]? mintsAndBurns;
 
 	private readonly Func<int, int>[] dataTransform = [x => x, x => x * -1,];
-
-	private int sortAndFilterElapsedMilliseconds;
 
 	private readonly ISeries[] series =
 	[
@@ -117,8 +117,6 @@
 	{
 		await LoadedTask;
 
-		Stopwatch stopwatch = Stopwatch.StartNew();
-
 		IEnumerable<HolderEntry> items = holders;
 
 		if (state.SortLabel is nameof(HolderEntry.Address))
@@ -128,22 +126,19 @@
 
 		if (state.SortLabel is nameof(HolderEntry.Balance))
 		{
-			items = state.SortDirection == SortDirection.Ascending ? holdersByBalance : holdersByBalance.Reverse();
+			items = state.SortDirection == SortDirection.Ascending ? holdersByBalance : ((IEnumerable<HolderEntry>)holdersByBalance).Reverse();
 		}
 
 		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
 		{
-			searchString = searchString.ToUpperInvariant();
-
-			items = items.Where(x => x.Address.Contains(searchString, StringComparison.Ordinal)).ToArray();
+			items = items.Where(x => x.Address.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+				x.AddressEnsName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true).ToArray();
 		}
 
 		items = items as HolderEntry[] ?? items.ToArray();
 
 		int count = items.Count();
 		items = items.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList();
-
-		sortAndFilterElapsedMilliseconds = (int)stopwatch.ElapsedMilliseconds;
 
 		return new TableData<HolderEntry>
 		{

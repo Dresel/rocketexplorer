@@ -6,12 +6,12 @@
 @if (compact)
 {
 	<MudTooltip Text="Search">
-		<MudIconButton Icon="@Icons.Material.Rounded.Search" Color="Color.Inherit" aria-label="Open search dialog" OnClick="() => isSearchDialogOpen = true" />
+		<MudIconButton Icon="@Icons.Material.Rounded.Search" aria-label="Open search dialog" OnClick="() => isSearchDialogOpen = true" />
 	</MudTooltip>
 }
 else
 {
-	<MudAutocomplete MaxItems="100" Dense="true" PopoverClass="global-search-popover" ItemDisabledFunc="item => !string.IsNullOrWhiteSpace(item.GroupName)" T="GroupedListItem<IndexEntryViewModel>" MinCharacters="4" Placeholder="Address, Public Key, Validator Index, ..." Color="Color.Inherit" SearchFunc="SearchFunc"
+	<MudAutocomplete MaxItems="100" Dense="true" PopoverClass="global-search-popover" ItemDisabledFunc="item => !string.IsNullOrWhiteSpace(item.GroupName)" T="GroupedListItem<IndexEntryViewModel>" MinCharacters="4" Placeholder="Ens, Address, Public Key, Validator Index, ..." Color="Color.Inherit" SearchFunc="SearchFunc"
 		Class="docs-search-bar mx-4" ValueChanged="OnSearchResultClicked" Variant="Variant.Outlined" MaxHeight="480" ShowProgressIndicator="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" ToStringFunc="x => string.Empty">
 		<ItemTemplate Context="result">
 			@if (!string.IsNullOrWhiteSpace(result.GroupName))
@@ -27,7 +27,7 @@ else
 						<MudHighlighter Text="@result.Data!.DisplayText" HighlightedTexts="@result.Data!.HighlightedTexts"></MudHighlighter>
 					</MudText>
 
-					@foreach (string chip in result.Data.Chips)
+					@foreach (string chip in result.Data!.Chips)
 					{
 						<MudChip Style="color: var(--mud-palette-on-secondary-container); background: var(--mud-palette-secondary-container)" Size="Size.Small" T="string">@chip</MudChip>
 					}
@@ -60,7 +60,7 @@ else
 							<MudHighlighter Text="@result.Data!.DisplayText" HighlightedTexts="@result.Data!.HighlightedTexts"></MudHighlighter>
 						</MudText>
 
-						@foreach (string chip in result.Data.Chips)
+						@foreach (string chip in result.Data!.Chips)
 						{
 							<MudChip Style="color: var(--mud-palette-on-secondary-container); background: var(--mud-palette-secondary-container)" Size="Size.Small" T="string">@chip</MudChip>
 						}

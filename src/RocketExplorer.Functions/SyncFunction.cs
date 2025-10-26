@@ -1,8 +1,10 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RocketExplorer.Core;
 using RocketExplorer.Core.Contracts;
+using RocketExplorer.Core.Ens;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Core.Tokens;
 using RocketExplorer.Shared;
@@ -24,8 +26,9 @@ public class SyncFunction(IServiceProvider serviceProvider)
 		Task contractsSyncTask = this.serviceProvider.GetRequiredService<ContractsSync>().HandleBlocksAsync();
 		Task tokensSyncTask = this.serviceProvider.GetRequiredService<TokensSync>().HandleBlocksAsync();
 		Task nodesSyncTask = this.serviceProvider.GetRequiredService<NodesSync>().HandleBlocksAsync();
+		Task ensSyncTask = this.serviceProvider.GetRequiredService<EnsSync>().HandleBlocksAsync();
 
-		await Task.WhenAll(contractsSyncTask, tokensSyncTask, nodesSyncTask);
+		await Task.WhenAll(contractsSyncTask, tokensSyncTask, nodesSyncTask, ensSyncTask);
 
 		Storage storage = this.serviceProvider.GetRequiredService<Storage>();
 
@@ -37,6 +40,9 @@ public class SyncFunction(IServiceProvider serviceProvider)
 		TokensContext tokensContext = await globalContext.TokensContextFactory;
 		Task writeTokensTask = tokensContext.SaveAsync(
 			storage, this.serviceProvider.GetRequiredService<ILogger<TokensContext>>());
+		EnsContext ensContext = await globalContext.EnsContextFactory;
+		Task writeEnsTask = ensContext.SaveAsync(
+			globalContext.Services.Storage, this.serviceProvider.GetRequiredService<ILogger<EnsContext>>());
 
 		Task writeDashboardTask = globalContext.DashboardContext.SaveAsync(
 			storage, globalContext.LatestBlockHeight, this.serviceProvider.GetRequiredService<ILogger<DashboardInfo>>());
@@ -53,9 +59,11 @@ public class SyncFunction(IServiceProvider serviceProvider)
 				},
 			}, 10);
 
-		await Task.WhenAll(writeContractsTask, writeNodesTask, writeTokensTask, writeDashboardTask, writeMetadataTask);
-		await globalContext.Services.GlobalIndexService.WriteAsync(globalContext.LatestBlockHeight);
+		Task writeIndexTask = globalContext.Services.GlobalIndexService.WriteAsync(globalContext.LatestBlockHeight);
+		Task writeEnsIndexTask = globalContext.Services.GlobalEnsIndexService.WriteAsync(globalContext.LatestBlockHeight);
 
-		logger.LogInformation("Finished");
+		await Task.WhenAll(writeContractsTask, writeNodesTask, writeTokensTask, writeEnsTask, writeDashboardTask, writeMetadataTask, writeIndexTask, writeEnsIndexTask);
+
+		logger.LogInformation("Sync completed");
 	}
 }

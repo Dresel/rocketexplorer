@@ -51,8 +51,6 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 			await Task.Delay(10, cancellationToken);
 		}
 
-		queue.TryDequeue(out _);
-
 		try
 		{
 			await Parallel.ForEachAsync(
@@ -89,6 +87,7 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 		finally
 		{
 			Interlocked.Decrement(ref this.activeOperationsCount);
+			queue.TryDequeue(out _);
 		}
 	}
 
@@ -106,8 +105,6 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 		{
 			await Task.Delay(10, cancellationToken);
 		}
-
-		queue.TryDequeue(out _);
 
 		try
 		{
@@ -127,6 +124,7 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 		finally
 		{
 			Interlocked.Decrement(ref this.activeOperationsCount);
+			queue.TryDequeue(out _);
 		}
 	}
 
@@ -145,8 +143,6 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 		{
 			await Task.Delay(10, cancellationToken);
 		}
-
-		queue.TryDequeue(out _);
 
 		try
 		{
@@ -186,6 +182,57 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 		finally
 		{
 			Interlocked.Decrement(ref this.activeOperationsCount);
+			queue.TryDequeue(out _);
+		}
+	}
+
+	public async Task TryRemoveEntryAsync(
+		string key, TIdentifier identifier, EventIndex index,
+		CancellationToken cancellationToken = default)
+	{
+		Interlocked.Increment(ref this.activeOperationsCount);
+
+		// Get or create queue
+		ConcurrentQueue<EventIndex> queue = this.queues.GetOrAdd(identifier, x => []);
+		queue.Enqueue(index);
+
+		while (queue.TryPeek(out EventIndex currentEventIndex) && currentEventIndex != index)
+		{
+			await Task.Delay(10, cancellationToken);
+		}
+
+		try
+		{
+			await Parallel.ForEachAsync(
+				key.NGrams(this.nGramLength), cancellationToken, async (nGram, innerCancellationToken) =>
+				{
+					using (await this.asyncKeyedLocker.LockAsync(nGram, innerCancellationToken))
+					{
+						Dictionary<TIdentifier, TEntry>? bucket = await GetBucket(
+							nGram, false, true, innerCancellationToken);
+
+						if (bucket is null)
+						{
+							throw new InvalidOperationException("Bucket does not exist");
+						}
+
+						if (!bucket.Remove(identifier, out TEntry? _))
+						{
+							throw new InvalidOperationException("Entry does not exist");
+						}
+
+						if (bucket.Count == 0)
+						{
+							// Mark for deletion
+							Entries[nGram] = null;
+						}
+					}
+				});
+		}
+		finally
+		{
+			Interlocked.Decrement(ref this.activeOperationsCount);
+			queue.TryDequeue(out _);
 		}
 	}
 
@@ -200,6 +247,9 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 	public async Task WriteAsync(long processedBlockNumber, CancellationToken cancellationToken = default)
 	{
 		await WaitForCompletion(cancellationToken);
+
+		int count = 0;
+
 		await Parallel.ForEachAsync(
 			Entries.ToArray(), cancellationToken, async (entry, innerCancellationToken) =>
 			{
@@ -210,6 +260,12 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 				}
 				else
 				{
+					int current = Interlocked.Increment(ref count);
+					if (current % 1000 == 0)
+					{
+						this.logger.LogInformation("{Count} shards written", current);
+					}
+
 					this.logger.LogTrace("Writing {snapshot}", this.storagePathTemplate(entry.Key));
 					await this.storage.WriteAsync(
 						this.storagePathTemplate(entry.Key), new BlobObject<GlobalIndexShardSnapshot<TStoredEntry>>

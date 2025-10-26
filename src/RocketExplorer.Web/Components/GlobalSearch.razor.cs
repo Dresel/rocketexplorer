@@ -25,6 +25,8 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 	private int prefixLength = 18;
 	private int suffixLength = 10;
 
+	public Guid Id { get; } = Guid.NewGuid();
+
 	public async ValueTask DisposeAsync() => await this.browserViewportService.UnsubscribeAsync(this);
 
 	public Task NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs browserViewportEventArgs)
@@ -62,8 +64,6 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 		return InvokeAsync(StateHasChanged);
 	}
 
-	public Guid Id { get; } = Guid.NewGuid();
-
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
 		if (firstRender)
@@ -81,10 +81,10 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			IndexEntryType.Megapool => "Megapool",
 			IndexEntryType.MinipoolValidator => "Minipool Validator",
 			IndexEntryType.MegapoolValidator => "Megapool Validator",
-			IndexEntryType.RETHHolder => "RETH Holder",
+			IndexEntryType.RETHHolder => "rETH Holder",
 			IndexEntryType.RPLHolder => "RPL Holder",
 			IndexEntryType.RPLOldHolder => "RPLv1 Holder",
-			IndexEntryType.RockRETHHolder => "ROCK.RETH Holder",
+			IndexEntryType.RockRETHHolder => "rock.rETH Holder",
 			_ => throw new ArgumentOutOfRangeException(nameof(type)),
 		};
 
@@ -102,6 +102,25 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 				HighlightedTexts = displayText.ExtractHighlightTexts(searchText, this.prefixLength, this.suffixLength),
 				Type = entry.Type,
 				Chips = Enum.GetValues<IndexEntryType>().Where(flag => entry.Type.HasFlag(flag) && flag != 0)
+					.Select(GetDisplayText).ToArray(),
+			},
+		};
+
+	private GroupedListItem<IndexEntryViewModel> CreateGroupListItem(
+		EnsIndexEntry entry, string groupName, string displayText, string searchText) =>
+		new()
+		{
+			GroupName = groupName,
+			Data = new IndexEntryViewModel
+			{
+				Address = entry.Address,
+				MegapoolAddress = null,
+				MegapoolIndex = null,
+				DisplayText = displayText,
+				HighlightedTexts = displayText.ExtractHighlightTexts(searchText, this.prefixLength, this.suffixLength),
+				Type = entry.Type,
+				Chips = Enum.GetValues<IndexEntryType>()
+					.Where(flag => entry.Type.HasFlag(flag) && flag != 0)
 					.Select(GetDisplayText).ToArray(),
 			},
 		};
@@ -147,12 +166,10 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			return [];
 		}
 
-		await Task.Delay(100, cancellationToken);
-
 		// TODO: Handle 0x input, check valid address / number and do ENS only
 		string[] ngrams = search.NGrams(4).Take(1).ToArray();
 
-		ConcurrentBag<IndexEntry> indexes = [];
+		ConcurrentBag<object> indexes = [];
 
 		// TODO: Parallelize
 		await Parallel.ForEachAsync(
@@ -181,43 +198,83 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 				}
 			});
 
+		string nGram = search.NGrams(3).First();
+
+		SnapshotResponse<GlobalIndexShardSnapshot<EnsIndexEntry>> response =
+			await HttpClient.GetSnapshotResponse<GlobalIndexShardSnapshot<EnsIndexEntry>>(
+				$"{Configuration.ObjectStoreBaseUrl}/{Keys.GlobalIndexTemplate(nGram)}", cancellationToken);
+
+		if (response.IsSuccess)
+		{
+			Snapshot<GlobalIndexShardSnapshot<EnsIndexEntry>> snapshotAsync =
+				await response.ToSnapshotAsync(cancellationToken);
+
+			foreach (EnsIndexEntry indexEntry in snapshotAsync.Data.Index)
+			{
+				indexes.Add(indexEntry);
+			}
+		}
+
+		string byENS = "By ENS";
 		string byAddress = "By Address";
 		string byPublicKey = "By Public Key";
 		string byValidatorIndex = "By Validator Index";
 
-		IEnumerable<IGrouping<string?, GroupedListItem<IndexEntryViewModel>>> grouped = indexes.Distinct()
+		List<IGrouping<string?, GroupedListItem<IndexEntryViewModel>>> grouped = indexes.Distinct()
 			.SelectMany(entry =>
 			{
 				List<GroupedListItem<IndexEntryViewModel>> result = [];
 
-				string address = AddressUtil.Current.ConvertToChecksumAddress(entry.Address);
-
-				if (address.Contains(search, StringComparison.OrdinalIgnoreCase))
+				if (entry is EnsIndexEntry ensEntry)
 				{
-					result.Add(CreateGroupListItem(entry, byAddress, address, search));
-				}
-
-				if (entry.ValidatorPubKey is not null)
-				{
-					string pubKey = Convert.ToHexString(entry.ValidatorPubKey);
-					if (pubKey.Contains(search, StringComparison.OrdinalIgnoreCase))
+					if (ensEntry.AddressEnsName.AsSpan()[..^4].Contains(search, StringComparison.OrdinalIgnoreCase))
 					{
-						result.Add(CreateGroupListItem(entry, byPublicKey, pubKey, search));
+						result.Add(CreateGroupListItem(ensEntry, byENS, ensEntry.AddressEnsName, search));
 					}
 				}
 
-				if (entry.ValidatorIndex is not null)
+				if (entry is IndexEntry indexEntry)
 				{
-					string validatorIndex = entry.ValidatorIndex.Value.ToString();
-					if (validatorIndex.Contains(search, StringComparison.OrdinalIgnoreCase))
+					string address = AddressUtil.Current.ConvertToChecksumAddress(indexEntry.Address);
+
+					if (address.Contains(search, StringComparison.OrdinalIgnoreCase))
 					{
-						result.Add(CreateGroupListItem(entry, byValidatorIndex, validatorIndex, search));
+						result.Add(CreateGroupListItem(indexEntry, byAddress, address, search));
+					}
+
+					if (indexEntry.MegapoolAddress is not null)
+					{
+						string megapoolAddress =
+							AddressUtil.Current.ConvertToChecksumAddress(indexEntry.MegapoolAddress);
+
+						if (megapoolAddress.Contains(search, StringComparison.OrdinalIgnoreCase))
+						{
+							result.Add(CreateGroupListItem(indexEntry, byAddress, megapoolAddress, search));
+						}
+					}
+
+					if (indexEntry.ValidatorPubKey is not null)
+					{
+						string pubKey = Convert.ToHexString(indexEntry.ValidatorPubKey);
+						if (pubKey.Contains(search, StringComparison.OrdinalIgnoreCase))
+						{
+							result.Add(CreateGroupListItem(indexEntry, byPublicKey, pubKey, search));
+						}
+					}
+
+					if (indexEntry.ValidatorIndex is not null)
+					{
+						string validatorIndex = indexEntry.ValidatorIndex.Value.ToString();
+						if (validatorIndex.Contains(search, StringComparison.OrdinalIgnoreCase))
+						{
+							result.Add(CreateGroupListItem(indexEntry, byValidatorIndex, validatorIndex, search));
+						}
 					}
 				}
 
 				return result;
 			}).GroupBy(x => x.GroupName)
-			.OrderBy(g => Array.IndexOf([byValidatorIndex, byAddress, byPublicKey,], g.Key));
+			.OrderBy(g => Array.IndexOf([byENS, byValidatorIndex, byAddress, byPublicKey,], g.Key)).ToList();
 
 		List<GroupedListItem<IndexEntryViewModel>> groupedListItems = grouped.SelectMany(x =>
 		{

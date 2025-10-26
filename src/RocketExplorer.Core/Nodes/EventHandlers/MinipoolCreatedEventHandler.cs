@@ -25,7 +25,7 @@ public class MinipoolCreatedEventHandler
 		NodesContext context = await globalContext.NodesContextFactory;
 
 		// This should not happen
-		if (!context.Nodes.Data.Index.ContainsKey(nodeOperatorAddress))
+		if (!context.Nodes.Data.Index.TryGetValue(nodeOperatorAddress, out var nodeIndexEntry))
 		{
 			globalContext.GetLogger<MinipoolCreatedEventHandler>().LogError(
 				"Node operator {NodeOperatorAddress} for {Minipool} not found in index.", nodeOperatorAddress,
@@ -35,7 +35,8 @@ public class MinipoolCreatedEventHandler
 
 		MinipoolValidatorIndexEntry entry = new()
 		{
-			NodeAddress = nodeOperatorAddress.HexToByteArray(),
+			NodeAddress = nodeIndexEntry.ContractAddress,
+			NodeAddressEnsName = nodeIndexEntry.ContractAddressEnsName,
 			MinipoolAddress = @event.Minipool.HexToByteArray(),
 			PubKey = null,
 			ValidatorIndex = null,
@@ -56,6 +57,7 @@ public class MinipoolCreatedEventHandler
 			@event.Minipool, new Validator
 			{
 				NodeAddress = entry.NodeAddress,
+				NodeAddressEnsName = entry.NodeAddressEnsName,
 				MinipoolAddress = entry.MinipoolAddress,
 				PubKey = entry.PubKey,
 				ValidatorIndex = entry.ValidatorIndex,

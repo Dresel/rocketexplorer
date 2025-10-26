@@ -10,6 +10,14 @@ namespace RocketExplorer.Core.Tokens;
 
 public class TokensSync(IOptions<SyncOptions> options, GlobalContext globalContext) : SyncBase(options, globalContext)
 {
+	protected override async Task AfterHandleBlocksAsync(bool processedBlocks, CancellationToken cancellationToken)
+	{
+		await base.AfterHandleBlocksAsync(processedBlocks, cancellationToken);
+
+		TokensContext context = await GlobalContext.TokensContextFactory;
+		context.ProcessingCompletionSource.TrySetResult();
+	}
+
 	protected override async Task<long> GetCurrentBlockHeightAsync(CancellationToken cancellationToken = default)
 	{
 		TokensContext context = await GlobalContext.TokensContextFactory;
@@ -65,10 +73,10 @@ public class TokensSync(IOptions<SyncOptions> options, GlobalContext globalConte
 		foreach (IEventLog eventLog in preSaturn1StakingEvents)
 		{
 			await eventLog.WhenIsAsync<RPLLegacyStakedEventDto, GlobalContext>(
-				StakingEventHandlers.HandleRPLLegacyStaked, GlobalContext, cancellationToken: cancellationToken);
+				StakingEventHandlers.HandleRPLLegacyStaked, GlobalContext, cancellationToken);
 
 			await eventLog.WhenIsAsync<RPLOrRPLLegacyWithdrawnEventDTO, GlobalContext>(
-				StakingEventHandlers.HandleRPLLegacyUnstaked, GlobalContext, cancellationToken: cancellationToken);
+				StakingEventHandlers.HandleRPLLegacyUnstaked, GlobalContext, cancellationToken);
 		}
 
 		IEnumerable<IEventLog> postSaturn1StakingEvents = await GlobalContext.Services.Web3.FilterAsync(

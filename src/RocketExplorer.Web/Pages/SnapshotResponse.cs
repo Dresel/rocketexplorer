@@ -12,7 +12,7 @@ public class SnapshotResponse<T>(HttpResponseMessage httpResponseMessage) : IDis
 
 	public void Dispose() => this.httpResponseMessage.Dispose();
 
-	public async Task<Snapshot<T>> ToSnapshotAsync(CancellationToken cancellationToken) =>
+	public async Task<Snapshot<T>> ToSnapshotAsync(CancellationToken cancellationToken = default) =>
 		new()
 		{
 			ETag = ETag,

@@ -5,6 +5,7 @@ using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Util;
 using RocketExplorer.Ethereum.RocketTokenRPL.ContractDefinition;
 using RocketExplorer.Shared;
+using RocketExplorer.Shared.Tokens;
 using TransferEventDTO = Nethereum.Contracts.Standards.ERC20.ContractDefinition.TransferEventDTO;
 
 namespace RocketExplorer.Core.Tokens;
@@ -80,18 +81,20 @@ public class TokenEventHandlers
 		TokenInfo tokenInfo, TokenType tokenType, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
-		if (eventLog.Event.Value.IsZero)
+		if (eventLog.Event.Value.IsZero || string.Equals(eventLog.Event.From, eventLog.Event.To, StringComparison.OrdinalIgnoreCase))
 		{
 			return;
 		}
 
-		if (!eventLog.Event.From.IsTheSameAddress(AddressUtil.ZERO_ADDRESS))
-		{
-			BigInteger balance = tokenInfo.Holders.GetValueOrDefault(eventLog.Event.From) - eventLog.Event.Value;
+		string fromAddress = eventLog.Event.From;
 
-			if (balance.IsZero)
+		if (!fromAddress.IsTheSameAddress(AddressUtil.ZERO_ADDRESS))
+		{
+			BigInteger fromBalance = (tokenInfo.Holders.GetValueOrDefault(fromAddress)?.Balance ?? 0) - eventLog.Event.Value;
+
+			if (fromBalance.IsZero)
 			{
-				tokenInfo.Holders.Remove(eventLog.Event.From);
+				tokenInfo.Holders.Remove(fromAddress);
 
 				_ = globalContext.Services.GlobalIndexService.UpdateEntryAsync(
 					eventLog.Event.From.RemoveHexPrefix(), eventLog.Event.From.HexToByteArray(),
@@ -112,7 +115,10 @@ public class TokenEventHandlers
 			}
 			else
 			{
-				tokenInfo.Holders[eventLog.Event.From] = balance;
+				tokenInfo.Holders[fromAddress] = tokenInfo.Holders[fromAddress] with
+				{
+					Balance = fromBalance,
+				};
 			}
 		}
 		else
@@ -126,9 +132,11 @@ public class TokenEventHandlers
 			tokenInfo.SupplyTotal[key] = tokenInfo.SupplyTotal.GetLatestValueOrDefault() + eventLog.Event.Value;
 		}
 
-		if (!eventLog.Event.To.IsTheSameAddress(AddressUtil.ZERO_ADDRESS))
+		string toAddress = eventLog.Event.To;
+
+		if (!toAddress.IsTheSameAddress(AddressUtil.ZERO_ADDRESS))
 		{
-			if (!tokenInfo.Holders.ContainsKey(eventLog.Event.To))
+			if (!tokenInfo.Holders.ContainsKey(toAddress))
 			{
 				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 					eventLog.Event.To.RemoveHexPrefix(), eventLog.Event.To.HexToByteArray(),
@@ -145,10 +153,24 @@ public class TokenEventHandlers
 						};
 						entry.Address = eventLog.Event.To.HexToByteArray();
 					}, cancellationToken: cancellationToken);
+
+				await globalContext.Services.AddressEnsProcessHistory.AddAddressEnsRecordAsync(
+					toAddress.HexToByteArray(), cancellationToken: cancellationToken);
+
+				tokenInfo.Holders[toAddress] = new HolderEntry
+				{
+					Address = toAddress,
+					AddressEnsName = null,
+					Balance = 0,
+				};
 			}
 
-			tokenInfo.Holders[eventLog.Event.To] =
-				tokenInfo.Holders.GetValueOrDefault(eventLog.Event.To) + eventLog.Event.Value;
+			BigInteger toBalance = (tokenInfo.Holders.GetValueOrDefault(toAddress)?.Balance ?? 0) + eventLog.Event.Value;
+
+			tokenInfo.Holders[toAddress] = tokenInfo.Holders[toAddress] with
+			{
+				Balance = toBalance,
+			};
 		}
 		else
 		{

@@ -108,6 +108,7 @@ header .mud-autocomplete {
 
 .docs-mobile-dialog-search {
 	height: 400px;
+	padding: 0px !important;
 }
 
 .global-search-popover-mobile {
@@ -130,7 +131,7 @@ header .mud-autocomplete {
 			background-color: unset !important;
 		}
 
-.global-search-popover-mobile .mud-autocomplete-no-items {
+.global-search-popover-mobile .mud-autocomplete-no-items.pa-1 {
 	padding: 8px 16px !important;
 }
 

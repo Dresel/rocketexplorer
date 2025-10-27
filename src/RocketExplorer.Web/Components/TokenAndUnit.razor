@@ -1,0 +1,16 @@
+@using System.Numerics
+@using Nethereum.Util
+
+<MudText Typo="Typo.body2"><span style="font-family: monospace;">@UnitConversion.Convert.FromWei(Value, Decimals).ToString("N2")</span> <span style="color: var(--mud-palette-on-surface-variant); opacity: 0.8;">@Unit</span></MudText>
+
+@code {
+
+	[Parameter]
+	public string? Unit { get; set; }
+
+	[Parameter]
+	public BigInteger Value { get; set; }
+
+	[Parameter]
+	public int Decimals { get; set; } = 18;
+}

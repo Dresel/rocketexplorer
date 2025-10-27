@@ -41,14 +41,16 @@
 			</HeaderContent>
 			<RowTemplate>
 				<MudTd>
-					@if (!string.IsNullOrWhiteSpace(context.AddressEnsName))
-					{
-						<EnsName Name="@context.AddressEnsName" HighlightedText="@searchString"></EnsName>
-					}
-					<Address ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" HighlightedText="@searchString"></Address>
+					<MudText>
+						@if (!string.IsNullOrWhiteSpace(context.AddressEnsName))
+						{
+							<EnsName Name="@context.AddressEnsName" HighlightedText="@searchString"></EnsName>
+						}
+						<Address ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" HighlightedText="@searchString"></Address>
+					</MudText>
 				</MudTd>
-				<MudTd Style="text-align:right">
-					@UnitConversion.Convert.FromWei(context.Balance, 18).ToString("N2") <Unit>RPL</Unit>
+				<MudTd Style="text-align: right;">
+					<TokenAndUnit Value="context.Balance" Unit="RPL"></TokenAndUnit>
 				</MudTd>
 			</RowTemplate>
 			<NoRecordsContent>

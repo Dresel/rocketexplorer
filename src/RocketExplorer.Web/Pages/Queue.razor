@@ -24,18 +24,20 @@
 			</MudTextField>
 		</ToolBarContent>
 		<HeaderContent>
-			<MudTh></MudTh>
-			<MudTh>
-				<MudTableSortLabel T="QueueItemViewModel" SortLabel="NodeAddress">Node Address</MudTableSortLabel>
+			<MudTh Style="text-align: right;">
+				<MudTableSortLabel T="QueueItemViewModel" InitialDirection="SortDirection.Ascending" SortLabel="@nameof(QueueItemViewModel.Index)"></MudTableSortLabel>
 			</MudTh>
 			<MudTh>
-				<MudTableSortLabel T="QueueItemViewModel" SortLabel="MinipoolAddress">Minipool / Megapool</MudTableSortLabel>
+				<MudTableSortLabel T="QueueItemViewModel" SortLabel="@nameof(QueueItemViewModel.NodeOperatorAddress)">Node Address</MudTableSortLabel>
 			</MudTh>
 			<MudTh>
-				<MudTableSortLabel T="QueueItemViewModel" SortLabel="MegapoolAddress">Megapool Index</MudTableSortLabel>
+				<MudTableSortLabel T="QueueItemViewModel" SortLabel="@nameof(QueueItemViewModel.MinipoolAddress)">Minipool / Megapool</MudTableSortLabel>
 			</MudTh>
 			<MudTh>
-				<MudTableSortLabel T="QueueItemViewModel" SortLabel="TimeInQueue">Time in Queue</MudTableSortLabel>
+				<MudTableSortLabel T="QueueItemViewModel" SortLabel="@nameof(QueueItemViewModel.MegapoolIndex)">Megapool Index</MudTableSortLabel>
+			</MudTh>
+			<MudTh>
+				<MudTableSortLabel T="QueueItemViewModel" SortLabel="@nameof(QueueItemViewModel.TimeInQueue)">Time in Queue</MudTableSortLabel>
 			</MudTh>
 		</HeaderContent>
 		<RowTemplate>
@@ -43,11 +45,13 @@
 				@context.Index
 			</MudTd>
 			<MudTd>
-				@if (!string.IsNullOrWhiteSpace(context.NodeOperatorAddressEnsName))
-				{
-					<EnsName Name="@context.NodeOperatorAddressEnsName" HighlightedText="@searchString"></EnsName>
-				}
-				<Address ContractAddress="@context.NodeOperatorAddress" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
+				<MudText>
+					@if (!string.IsNullOrWhiteSpace(context.NodeOperatorAddressEnsName))
+					{
+						<EnsName Name="@context.NodeOperatorAddressEnsName" HighlightedText="@searchString"></EnsName>
+					}
+					<Address ContractAddress="@context.NodeOperatorAddress" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
+				</MudText>
 			</MudTd>
 			<MudTd>
 				@if (!string.IsNullOrWhiteSpace(context.MinipoolAddress))
@@ -153,15 +157,30 @@
 
 		IEnumerable<QueueItemViewModel> items = queue;
 
-		// // if (state.SortLabel is nameof(QueueItemViewModel.NodeOperatorAddress))
-		// // {
-		// // 	items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.NodeOperatorAddress).ToList() : items.OrderByDescending(x => x.NodeOperatorAddress).ToList();
-		// // }
+		if (state.SortLabel is nameof(QueueItemViewModel.Index))
+		{
+			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.Index).ToList() : items.OrderByDescending(x => x.Index).ToList();
+		}
 
-		// // if (state.SortLabel is nameof(QueueItemViewModel.MinipoolAddress))
-		// // {
-		// // 	items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.MinipoolAddress).ToList() : items.OrderByDescending(x => x.MinipoolAddress).ToList();
-		// // }
+		if (state.SortLabel is nameof(QueueItemViewModel.MegapoolIndex))
+		{
+			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.MegapoolIndex).ToList() : items.OrderByDescending(x => x.MegapoolIndex).ToList();
+		}
+
+		if (state.SortLabel is nameof(QueueItemViewModel.NodeOperatorAddress))
+		{
+			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.NodeOperatorAddress).ToList() : items.OrderByDescending(x => x.NodeOperatorAddress).ToList();
+		}
+
+		if (state.SortLabel is nameof(QueueItemViewModel.MinipoolAddress))
+		{
+			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.MinipoolAddress).ToList() : items.OrderByDescending(x => x.MinipoolAddress).ToList();
+		}
+
+		if (state.SortLabel is nameof(QueueItemViewModel.TimeInQueue))
+		{
+			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.TimeInQueue).ToList() : items.OrderByDescending(x => x.TimeInQueue).ToList();
+		}
 
 		items = Type switch
 		{

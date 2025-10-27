@@ -33,11 +33,13 @@
 		</HeaderContent>
 		<RowTemplate>
 			<MudTd>
-				@if (!string.IsNullOrWhiteSpace(context.ContractAddressEnsName))
-				{
-					<EnsName Name="@context.ContractAddressEnsName" HighlightedText="@searchString"></EnsName>
-				}
-				<Address ContractAddress="@context.ContractAddress" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
+				<MudText>
+					@if (!string.IsNullOrWhiteSpace(context.ContractAddressEnsName))
+					{
+						<EnsName Name="@context.ContractAddressEnsName" HighlightedText="@searchString"></EnsName>
+					}
+					<Address ContractAddress="@context.ContractAddress" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
+				</MudText>
 			</MudTd>
 			<MudTd>
 				@if (context.MegapoolAddress != null)

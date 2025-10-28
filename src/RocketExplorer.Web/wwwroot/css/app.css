@@ -223,3 +223,9 @@ mark {
 	vertical-align: middle;
 	margin-right: 0.2em;
 }
+
+@media (min-width: 600px) {
+	.sm-up-min-height-3em {
+		height: 3em;
+	}
+}

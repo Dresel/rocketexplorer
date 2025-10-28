@@ -1,4 +1,5 @@
 @page "/nodes"
+@using Nethereum.Util
 @using RocketExplorer.Shared
 @inherits PageBase<RocketExplorer.Shared.Nodes.NodesSnapshot>
 
@@ -33,13 +34,7 @@
 		</HeaderContent>
 		<RowTemplate>
 			<MudTd>
-				<MudText>
-					@if (!string.IsNullOrWhiteSpace(context.ContractAddressEnsName))
-					{
-						<EnsName Name="@context.ContractAddressEnsName" HighlightedText="@searchString"></EnsName>
-					}
-					<Address ContractAddress="@context.ContractAddress" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
-				</MudText>
+				<AddressAndEnsNameCell Address="@AddressUtil.Current.ConvertToChecksumAddress(context.ContractAddress)" HrefPlaceholder="node/{0}" EnsName="@context.ContractAddressEnsName" HighlightedText="@searchString"></AddressAndEnsNameCell>
 			</MudTd>
 			<MudTd>
 				@if (context.MegapoolAddress != null)

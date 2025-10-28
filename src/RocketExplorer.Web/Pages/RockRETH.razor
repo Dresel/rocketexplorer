@@ -49,13 +49,7 @@
 				</HeaderContent>
 				<RowTemplate>
 					<MudTd>
-						<MudText>
-							@if (!string.IsNullOrWhiteSpace(context.AddressEnsName))
-							{
-								<EnsName Name="@context.AddressEnsName" HighlightedText="@searchString"></EnsName>
-							}
-							<Address ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" HighlightedText="@searchString"></Address>
-						</MudText>
+						<AddressAndEnsNameCell Address="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" EnsName="@context.AddressEnsName" HighlightedText="@searchString"></AddressAndEnsNameCell>
 					</MudTd>
 					<MudTd Style="text-align: right;">
 						<TokenAndUnit Value="context.Balance" Unit="rock.rETH"></TokenAndUnit>

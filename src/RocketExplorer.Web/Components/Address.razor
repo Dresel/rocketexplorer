@@ -21,7 +21,7 @@
 			<MudHighlighter Text="@displayContractAddress" HighlightedTexts="@displayHighlightedTexts" />
 		</MudLink>
 	}
-	<MudIconButton Icon="@Icons.Material.Filled.CopyAll" Style="padding-right: 0; vertical-align: top;" Size="Size.Small" Color="Color.Primary" OnClick="@(() => module?.InvokeVoidAsync("copyToClipboard", contractChecksumAddress))" />
+	<MudIconButton Icon="@Icons.Material.Filled.CopyAll" Style="padding-right: 0; vertical-align: sub;" Size="Size.Small" Color="Color.Primary" OnClick="@(() => module?.InvokeVoidAsync("copyToClipboard", contractChecksumAddress))" />
 	<a href="@LookupUrl" target="_blank">
 		<MudIconButton Icon="@Icons.Material.Filled.ArrowOutward" Style="padding: 0; vertical-align: sub;" Size="Size.Small" Color="Color.Primary" />
 	</a>

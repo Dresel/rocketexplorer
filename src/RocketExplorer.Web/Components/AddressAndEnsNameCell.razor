@@ -1,0 +1,21 @@
+<div Class="sm-up-min-height-3em d-flex flex-column justify-center">
+	@if (!string.IsNullOrWhiteSpace(EnsName))
+	{
+		<EnsName Name="@EnsName" HighlightedText="@HighlightedText"></EnsName>
+	}
+	<Address ContractAddress="@Address" HighlightedText="@HighlightedText" HrefPlaceholder="@HrefPlaceholder"></Address>
+</div>
+@code
+{
+	[Parameter]
+	public string EnsName { get; set; } = string.Empty;
+
+	[Parameter]
+	public string Address { get; set; } = string.Empty;
+
+	[Parameter]
+	public string HrefPlaceholder { get; set; } = string.Empty;
+
+	[Parameter]
+	public string HighlightedText { get; set; } = string.Empty;
+}

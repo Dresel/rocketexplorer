@@ -46,6 +46,27 @@ public static class StringExtensions
 		}
 	}
 
+	public static int ExtractIndexOf(this string text, string highlightedText, int prefixLength, int suffixLength)
+	{
+		int start = AllIndexesOf(text, highlightedText).First();
+
+		int end = start + highlightedText.Length;
+
+		if (start < text.Length - suffixLength && prefixLength < end)
+		{
+			bool overlapsPrefix = start < prefixLength;
+
+			if (overlapsPrefix)
+			{
+				return start;
+			}
+
+			return prefixLength;
+		}
+
+		return start;
+	}
+
 	private static IEnumerable<int> AllIndexesOf(string @string, string value)
 	{
 		for (int index = 0; true; index += value.Length)

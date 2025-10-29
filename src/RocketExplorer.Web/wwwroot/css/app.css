@@ -141,6 +141,11 @@ mark {
 	color: var(--mark-color);
 }
 
+.mark-first-occurence mark:nth-of-type(n+2) {
+	background-color: inherit;
+	color: inherit;
+}
+
 .mud-toggle-group * {
 	text-transform: none;
 }

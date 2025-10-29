@@ -28,7 +28,7 @@ public record class EnsIndexEntry
 
 		return Type == other.Type &&
 			Address.SequenceEqual(other.Address) &&
-			AddressEnsName == other.AddressEnsName;
+			string.Equals(AddressEnsName, other.AddressEnsName, StringComparison.OrdinalIgnoreCase);
 	}
 
 	public override int GetHashCode()

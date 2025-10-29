@@ -11,6 +11,15 @@ namespace RocketExplorer.Web.Components;
 public partial class GlobalSearch(IBrowserViewportService browserViewportService)
 	: ComponentBase, IBrowserViewportObserver, IAsyncDisposable
 {
+	private const string ByAddress = "By Address";
+
+	private const string ByEns = "By ENS";
+	private const string ByPublicKey = "By Public Key";
+	private const string ByValidatorIndex = "By Validator Index";
+
+	private static readonly char[] digits = Enumerable.Range('0', 10).Select(x => (char)x).ToArray();
+	private static readonly char[] letters = Enumerable.Range('a', 26).Select(x => (char)x).ToArray();
+	private static readonly char[] validNGramCharacters = [..digits, ..letters,];
 	private readonly IBrowserViewportService browserViewportService = browserViewportService;
 
 	private readonly DialogOptions dialogOptions = new()
@@ -25,9 +34,9 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 	private int prefixLength = 18;
 	private int suffixLength = 10;
 
-	public Guid Id { get; } = Guid.NewGuid();
-
 	public async ValueTask DisposeAsync() => await this.browserViewportService.UnsubscribeAsync(this);
+
+	public Guid Id { get; } = Guid.NewGuid();
 
 	public Task NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs browserViewportEventArgs)
 	{
@@ -88,8 +97,28 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			_ => throw new ArgumentOutOfRangeException(nameof(type)),
 		};
 
+	private static string RemoveAddressPrefix(string value)
+	{
+		if (value.StartsWith("0x"))
+		{
+			return value[2..];
+		}
+
+		if (value.StartsWith("x"))
+		{
+			return value[1..];
+		}
+
+		return value;
+	}
+
+	private static bool StartsWithAddressPrefix(string value) => value.StartsWith("0x") || value.StartsWith("x");
+
+	private static bool StartsWithPubKeyChar(string value) =>
+		value.Length > 0 && value[0] is '8' or '9' or 'a' or 'b';
+
 	private GroupedListItem<IndexEntryViewModel> CreateGroupListItem(
-		IndexEntry entry, string groupName, string displayText, string searchText) =>
+		IndexEntry entry, string groupName, string displayText, string searchText, bool highlightStartOnly = false) =>
 		new()
 		{
 			GroupName = groupName,
@@ -99,7 +128,9 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 				MegapoolAddress = entry.MegapoolAddress,
 				MegapoolIndex = entry.MegapoolIndex,
 				DisplayText = displayText.Ellipsize(this.prefixLength, this.suffixLength),
+				IndexOfHighlightedText = displayText.ExtractIndexOf(searchText, this.prefixLength, this.suffixLength),
 				HighlightedTexts = displayText.ExtractHighlightTexts(searchText, this.prefixLength, this.suffixLength),
+				HighlightStartOnly = highlightStartOnly,
 				Type = entry.Type,
 				Chips = Enum.GetValues<IndexEntryType>().Where(flag => entry.Type.HasFlag(flag) && flag != 0)
 					.Select(GetDisplayText).ToArray(),
@@ -117,6 +148,7 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 				MegapoolAddress = null,
 				MegapoolIndex = null,
 				DisplayText = displayText,
+				IndexOfHighlightedText = displayText.ExtractIndexOf(searchText, this.prefixLength, this.suffixLength),
 				HighlightedTexts = displayText.ExtractHighlightTexts(searchText, this.prefixLength, this.suffixLength),
 				Type = entry.Type,
 				Chips = Enum.GetValues<IndexEntryType>()
@@ -158,6 +190,59 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			"open", $"https://{Configuration.EtherscanPrefix}etherscan.io/address/{address}", "_blank");
 	}
 
+	private async Task<IEnumerable<GroupedListItem<IndexEntryViewModel>>> SearchEnsIndexAsync(
+		string search, CancellationToken cancellationToken = default)
+	{
+		IEnumerable<string> ngrams;
+
+		if (search.Length < 2)
+		{
+			return [];
+		}
+
+		if (search.Length == 2)
+		{
+			// Add all possible ngrams with 3 characters
+			ngrams = validNGramCharacters.Select(character => $"{character}{search.Map()}")
+				.Concat(validNGramCharacters.Select(character => $"{search.Map()}{character}"));
+		}
+		else
+		{
+			ngrams = [search[..3].Map(),];
+		}
+
+		ConcurrentBag<EnsIndexEntry> indexes = [];
+
+		await Parallel.ForEachAsync(
+			ngrams, new ParallelOptions
+			{
+				CancellationToken = cancellationToken,
+				MaxDegreeOfParallelism = 16,
+			}, async (nGram, innerCancellationToken) =>
+			{
+				SnapshotResponse<GlobalIndexShardSnapshot<EnsIndexEntry>> response =
+					await HttpClient.GetSnapshotResponse<GlobalIndexShardSnapshot<EnsIndexEntry>>(
+						$"{Configuration.ObjectStoreBaseUrl}/{Keys.GlobalIndexTemplate(nGram)}",
+						innerCancellationToken);
+
+				if (!response.IsSuccess)
+				{
+					return;
+				}
+
+				Snapshot<GlobalIndexShardSnapshot<EnsIndexEntry>> snapshot =
+					await response.ToSnapshotAsync(innerCancellationToken);
+
+				foreach (EnsIndexEntry indexEntry in snapshot.Data.Index)
+				{
+					indexes.Add(indexEntry);
+				}
+			});
+
+		return indexes.Distinct().Where(x => x.AddressEnsName.Contains(search, StringComparison.OrdinalIgnoreCase))
+			.Select(x => CreateGroupListItem(x, ByEns, x.AddressEnsName, search));
+	}
+
 	private async Task<IEnumerable<GroupedListItem<IndexEntryViewModel>>>? SearchFunc(
 		string? search, CancellationToken cancellationToken)
 	{
@@ -166,12 +251,88 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			return [];
 		}
 
-		// TODO: Handle 0x input, check valid address / number and do ENS only
-		string[] ngrams = search.NGrams(4).Take(1).ToArray();
+		search = search.ToLowerInvariant();
 
-		ConcurrentBag<object> indexes = [];
+		IEnumerable<GroupedListItem<IndexEntryViewModel>> ensIndexResults =
+			await SearchEnsIndexAsync(search, cancellationToken);
 
-		// TODO: Parallelize
+		IEnumerable<GroupedListItem<IndexEntryViewModel>> indexResults = await SearchIndexAsync(
+			search, cancellationToken);
+
+		List<IGrouping<string?, GroupedListItem<IndexEntryViewModel>>> grouped = indexResults.Concat(ensIndexResults)
+			.GroupBy(x => x.GroupName)
+			.OrderBy(g => Array.IndexOf([ByEns, ByValidatorIndex, ByAddress, ByPublicKey,], g.Key)).ToList();
+
+		return grouped.SelectMany(x =>
+		{
+			List<GroupedListItem<IndexEntryViewModel>> result =
+			[
+				new()
+				{
+					GroupName = x.Key,
+				},
+				..x.Select(item => new GroupedListItem<IndexEntryViewModel>
+					{
+						Data = item.Data,
+					}).OrderBy(item => item.Data!.IndexOfHighlightedText).ThenBy(
+						item => item.Data!.DisplayText, StringComparer.OrdinalIgnoreCase)
+					.Take(5),
+			];
+
+			return result;
+		});
+	}
+
+	private async Task<IEnumerable<GroupedListItem<IndexEntryViewModel>>> SearchIndexAsync(
+		string search, CancellationToken cancellationToken)
+	{
+		IEnumerable<string> ngrams = [];
+
+		bool startsWithAddressPrefix = false;
+		string searchWithoutAddressPrefix = string.Empty;
+
+		// Special handling for PubKey / Addresses
+		if (StartsWithAddressPrefix(search))
+		{
+			startsWithAddressPrefix = true;
+			searchWithoutAddressPrefix = RemoveAddressPrefix(search);
+		}
+
+		if ((!startsWithAddressPrefix && !search.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f')) || (startsWithAddressPrefix &&
+				!searchWithoutAddressPrefix.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f')))
+		{
+			return [];
+		}
+
+		if (startsWithAddressPrefix)
+		{
+			if (string.IsNullOrEmpty(searchWithoutAddressPrefix))
+			{
+				// Enough to get 5 results
+				ngrams = ["8000", "8001",];
+			}
+			else if (searchWithoutAddressPrefix.Length < 4 && StartsWithPubKeyChar(searchWithoutAddressPrefix))
+			{
+				// Enough to get 5 results
+				ngrams =
+				[
+					.. validNGramCharacters.Take(4).Select(c => $"{searchWithoutAddressPrefix}{c}".PadRight(4, '0')),
+				];
+			}
+			else
+			{
+				// Just use the first 4 characters in combination with StartsWith
+				ngrams = [searchWithoutAddressPrefix.PadRight(4, '0')[..4],];
+			}
+		}
+		else
+		{
+			// We have enough items per ngram, so just fill up with 0s
+			ngrams = [search.PadRight(4, '0')[..4],];
+		}
+
+		ConcurrentBag<IndexEntry> indexes = [];
+
 		await Parallel.ForEachAsync(
 			ngrams, new ParallelOptions
 			{
@@ -189,112 +350,69 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 					return;
 				}
 
-				Snapshot<GlobalIndexShardSnapshot<IndexEntry>> snapshotAsync =
+				Snapshot<GlobalIndexShardSnapshot<IndexEntry>> snapshot =
 					await response.ToSnapshotAsync(innerCancellationToken);
 
-				foreach (IndexEntry indexEntry in snapshotAsync.Data.Index)
+				foreach (IndexEntry indexEntry in snapshot.Data.Index)
 				{
 					indexes.Add(indexEntry);
 				}
 			});
 
-		string nGram = search.NGrams(3).First();
-
-		SnapshotResponse<GlobalIndexShardSnapshot<EnsIndexEntry>> response =
-			await HttpClient.GetSnapshotResponse<GlobalIndexShardSnapshot<EnsIndexEntry>>(
-				$"{Configuration.ObjectStoreBaseUrl}/{Keys.GlobalIndexTemplate(nGram)}", cancellationToken);
-
-		if (response.IsSuccess)
+		return indexes.Distinct().SelectMany(entry =>
 		{
-			Snapshot<GlobalIndexShardSnapshot<EnsIndexEntry>> snapshotAsync =
-				await response.ToSnapshotAsync(cancellationToken);
+			List<GroupedListItem<IndexEntryViewModel>> result = [];
 
-			foreach (EnsIndexEntry indexEntry in snapshotAsync.Data.Index)
+			string address = AddressUtil.Current.ConvertToChecksumAddress(entry.Address);
+
+			if (address.Contains(search, StringComparison.OrdinalIgnoreCase))
 			{
-				indexes.Add(indexEntry);
+				result.Add(CreateGroupListItem(entry, ByAddress, address, search));
 			}
-		}
 
-		string byENS = "By ENS";
-		string byAddress = "By Address";
-		string byPublicKey = "By Public Key";
-		string byValidatorIndex = "By Validator Index";
-
-		List<IGrouping<string?, GroupedListItem<IndexEntryViewModel>>> grouped = indexes.Distinct()
-			.SelectMany(entry =>
+			if (entry.MegapoolAddress is not null)
 			{
-				List<GroupedListItem<IndexEntryViewModel>> result = [];
+				string megapoolAddress =
+					AddressUtil.Current.ConvertToChecksumAddress(entry.MegapoolAddress);
 
-				if (entry is EnsIndexEntry ensEntry)
+				if (megapoolAddress.Contains(search, StringComparison.OrdinalIgnoreCase))
 				{
-					if (ensEntry.AddressEnsName.AsSpan()[..^4].Contains(search, StringComparison.OrdinalIgnoreCase))
+					result.Add(CreateGroupListItem(entry, ByAddress, megapoolAddress, search));
+				}
+			}
+
+			if (entry.ValidatorPubKey is not null)
+			{
+				string pubKey = Convert.ToHexString(entry.ValidatorPubKey);
+
+				if (startsWithAddressPrefix)
+				{
+					if (pubKey.StartsWith(searchWithoutAddressPrefix, StringComparison.OrdinalIgnoreCase))
 					{
-						result.Add(CreateGroupListItem(ensEntry, byENS, ensEntry.AddressEnsName, search));
+						// HighlightStartOnly necessary cause 0x prefix is omitted for pubkey display
+						result.Add(CreateGroupListItem(entry, ByPublicKey, pubKey, searchWithoutAddressPrefix, true));
 					}
 				}
-
-				if (entry is IndexEntry indexEntry)
+				else
 				{
-					string address = AddressUtil.Current.ConvertToChecksumAddress(indexEntry.Address);
-
-					if (address.Contains(search, StringComparison.OrdinalIgnoreCase))
+					if (pubKey.Contains(search, StringComparison.OrdinalIgnoreCase))
 					{
-						result.Add(CreateGroupListItem(indexEntry, byAddress, address, search));
-					}
-
-					if (indexEntry.MegapoolAddress is not null)
-					{
-						string megapoolAddress =
-							AddressUtil.Current.ConvertToChecksumAddress(indexEntry.MegapoolAddress);
-
-						if (megapoolAddress.Contains(search, StringComparison.OrdinalIgnoreCase))
-						{
-							result.Add(CreateGroupListItem(indexEntry, byAddress, megapoolAddress, search));
-						}
-					}
-
-					if (indexEntry.ValidatorPubKey is not null)
-					{
-						string pubKey = Convert.ToHexString(indexEntry.ValidatorPubKey);
-						if (pubKey.Contains(search, StringComparison.OrdinalIgnoreCase))
-						{
-							result.Add(CreateGroupListItem(indexEntry, byPublicKey, pubKey, search));
-						}
-					}
-
-					if (indexEntry.ValidatorIndex is not null)
-					{
-						string validatorIndex = indexEntry.ValidatorIndex.Value.ToString();
-						if (validatorIndex.Contains(search, StringComparison.OrdinalIgnoreCase))
-						{
-							result.Add(CreateGroupListItem(indexEntry, byValidatorIndex, validatorIndex, search));
-						}
+						result.Add(CreateGroupListItem(entry, ByPublicKey, pubKey, search));
 					}
 				}
+			}
 
-				return result;
-			}).GroupBy(x => x.GroupName)
-			.OrderBy(g => Array.IndexOf([byENS, byValidatorIndex, byAddress, byPublicKey,], g.Key)).ToList();
-
-		List<GroupedListItem<IndexEntryViewModel>> groupedListItems = grouped.SelectMany(x =>
-		{
-			List<GroupedListItem<IndexEntryViewModel>> result =
-			[
-				new()
+			if (entry.ValidatorIndex is not null && !startsWithAddressPrefix)
+			{
+				string validatorIndex = entry.ValidatorIndex.Value.ToString();
+				if (validatorIndex.Contains(search, StringComparison.OrdinalIgnoreCase))
 				{
-					GroupName = x.Key,
-				},
-				..x.Select(item => new GroupedListItem<IndexEntryViewModel>
-				{
-					Data = item.Data,
-				}).OrderBy(item => item.Data!.DisplayText.IndexOf(search, StringComparison.OrdinalIgnoreCase)).ThenBy(
-					item => item.Data!.DisplayText, StringComparer.OrdinalIgnoreCase).Take(5),
-			];
+					result.Add(CreateGroupListItem(entry, ByValidatorIndex, validatorIndex, search));
+				}
+			}
 
 			return result;
-		}).ToList();
-
-		return groupedListItems;
+		});
 	}
 
 	public class GroupedListItem<T>
@@ -313,6 +431,10 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 		public required string DisplayText { get; init; }
 
 		public required IEnumerable<string> HighlightedTexts { get; init; }
+
+		public bool HighlightStartOnly { get; set; }
+
+		public required int IndexOfHighlightedText { get; set; }
 
 		public required byte[]? MegapoolAddress { get; set; }
 

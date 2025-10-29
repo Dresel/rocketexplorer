@@ -24,7 +24,7 @@ public static class StringExtensions
 		return ngrams;
 	}
 
-	private static string Map(this string input)
+	public static string Map(this string input)
 	{
 		char[] characters = new char[input.Length];
 

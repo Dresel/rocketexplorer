@@ -41,10 +41,10 @@
 			</MudTh>
 		</HeaderContent>
 		<RowTemplate>
-			<MudTd Style="text-align: right;">
+			<MudTd DataLabel="Queue Position" Style="text-align: right;">
 				@context.Index
 			</MudTd>
-			<MudTd>
+			<MudTd DataLabel="Node Address">
 				<MudText>
 					@if (!string.IsNullOrWhiteSpace(context.NodeOperatorAddressEnsName))
 					{
@@ -53,7 +53,7 @@
 					<Address ContractAddress="@context.NodeOperatorAddress" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
 				</MudText>
 			</MudTd>
-			<MudTd>
+			<MudTd DataLabel="Mini / Mega">
 				@if (!string.IsNullOrWhiteSpace(context.MinipoolAddress))
 				{
 					<Address ContractAddress="@context.MinipoolAddress" HighlightedText="@searchString" HrefPlaceholder="validator/{0}"></Address>
@@ -63,7 +63,7 @@
 					<Address Typo="Typo.body2" ContractAddress="@context.MegapoolAddress" HighlightedText="@searchString" AppendEtherscanCodeAnchor="true"></Address>
 				}
 			</MudTd>
-			<MudTd>
+			<MudTd DataLabel="Mega Index">
 				@if (context.MegapoolAddress != null)
 				{
 					<MudLink Typo="Typo.body2" Href="@($"validator/{context.MegapoolAddress}/{context.MegapoolIndex}")">
@@ -76,7 +76,7 @@
 					</MudLink>
 				}
 			</MudTd>
-			<MudTd>
+			<MudTd DataLabel="Time in Queue">
 				<MudText Typo="Typo.body2">@context.TimeInQueue.ToReadableString()</MudText>
 			</MudTd>
 		</RowTemplate>

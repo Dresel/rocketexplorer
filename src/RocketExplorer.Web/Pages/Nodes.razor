@@ -33,16 +33,16 @@
 			</MudTh>
 		</HeaderContent>
 		<RowTemplate>
-			<MudTd>
+			<MudTd DataLabel="Contract Address">
 				<AddressAndEnsNameCell Address="@AddressUtil.Current.ConvertToChecksumAddress(context.ContractAddress)" HrefPlaceholder="node/{0}" EnsName="@context.ContractAddressEnsName" HighlightedText="@searchString"></AddressAndEnsNameCell>
 			</MudTd>
-			<MudTd>
+			<MudTd DataLabel="Megapool Address">
 				@if (context.MegapoolAddress != null)
 				{
 					<Address ContractAddress="@context.MegapoolAddress" HighlightedText="@searchString"></Address>
 				}
 			</MudTd>
-			<MudTd>@context.RegistrationDate.ToLocalTime().ToString("G")</MudTd>
+			<MudTd DataLabel="Registration Date">@context.RegistrationDate.ToLocalTime().ToString("G")</MudTd>
 		</RowTemplate>
 		<NoRecordsContent>
 			<MudText>No matching records found</MudText>

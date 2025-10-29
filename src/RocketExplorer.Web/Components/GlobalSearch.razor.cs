@@ -17,9 +17,9 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 	private const string ByPublicKey = "By Public Key";
 	private const string ByValidatorIndex = "By Validator Index";
 
-	private static readonly char[] digits = Enumerable.Range('0', 10).Select(x => (char)x).ToArray();
-	private static readonly char[] letters = Enumerable.Range('a', 26).Select(x => (char)x).ToArray();
-	private static readonly char[] validNGramCharacters = [..digits, ..letters,];
+	private static readonly char[] Digits = Enumerable.Range('0', 10).Select(x => (char)x).ToArray();
+	private static readonly char[] Letters = Enumerable.Range('a', 26).Select(x => (char)x).ToArray();
+	private static readonly char[] ValidNGramCharacters = [..Digits, ..Letters,];
 	private readonly IBrowserViewportService browserViewportService = browserViewportService;
 
 	private readonly DialogOptions dialogOptions = new()
@@ -203,8 +203,8 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 		if (search.Length == 2)
 		{
 			// Add all possible ngrams with 3 characters
-			ngrams = validNGramCharacters.Select(character => $"{character}{search.Map()}")
-				.Concat(validNGramCharacters.Select(character => $"{search.Map()}{character}"));
+			ngrams = ValidNGramCharacters.Select(character => $"{character}{search.Map()}")
+				.Concat(ValidNGramCharacters.Select(character => $"{search.Map()}{character}"));
 		}
 		else
 		{
@@ -316,7 +316,7 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 				// Enough to get 5 results
 				ngrams =
 				[
-					.. validNGramCharacters.Take(4).Select(c => $"{searchWithoutAddressPrefix}{c}".PadRight(4, '0')),
+					.. ValidNGramCharacters.Take(4).Select(c => $"{searchWithoutAddressPrefix}{c}".PadRight(4, '0')),
 				];
 			}
 			else

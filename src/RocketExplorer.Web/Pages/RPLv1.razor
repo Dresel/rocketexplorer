@@ -12,7 +12,7 @@
 		<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center"><MudImage Class="token-icon" Style="filter: grayscale(75%)" Src="images/rpl-primary.svg"></MudImage>Rocket Pool Legacy (RPLv1)</MudText>
 		@if (Snapshot != null)
 		{
-			<Address Typo="Typo.body1" Expanded="true" ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.RPLOld.Address)" AppendEtherscanCodeAnchor="true"></Address>
+			<Address Typo="Typo.body1" Preset="AddressPreset.XLarge" ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.RPLOld.Address)" AppendEtherscanCodeAnchor="true"></Address>
 		}
 	</MudContainer>
 	<MudGrid Justify="Justify.Center">
@@ -41,12 +41,12 @@
 				</MudTh>
 			</HeaderContent>
 			<RowTemplate>
-				<MudTd>
+				<MudTd DataLabel="Holder Address">
 					<MudText>
-						<AddressAndEnsNameCell Address="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" EnsName="@context.AddressEnsName" HighlightedText="@searchString"></AddressAndEnsNameCell>
+						<AddressAndEnsNameCell Preset="AddressPreset.XLarge" Address="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" EnsName="@context.AddressEnsName" HighlightedText="@searchString"></AddressAndEnsNameCell>
 					</MudText>
 				</MudTd>
-				<MudTd Style="text-align: right;">
+				<MudTd DataLabel="Amount" Style="text-align: right;">
 					<TokenAndUnit Value="context.Balance" Unit="RPLv1"></TokenAndUnit>
 				</MudTd>
 			</RowTemplate>

@@ -3,7 +3,7 @@
 	{
 		<EnsName Name="@EnsName" HighlightedText="@HighlightedText"></EnsName>
 	}
-	<Address ContractAddress="@Address" HighlightedText="@HighlightedText" HrefPlaceholder="@HrefPlaceholder"></Address>
+	<Address Preset="Preset" ContractAddress="@Address" HighlightedText="@HighlightedText" HrefPlaceholder="@HrefPlaceholder"></Address>
 </div>
 @code
 {
@@ -12,6 +12,9 @@
 
 	[Parameter]
 	public string Address { get; set; } = string.Empty;
+
+	[Parameter]
+	public AddressPreset Preset { get; set; } = AddressPreset.Default;
 
 	[Parameter]
 	public string HrefPlaceholder { get; set; } = string.Empty;

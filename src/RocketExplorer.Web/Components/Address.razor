@@ -50,9 +50,6 @@
 	public bool AppendEtherscanCodeAnchor { get; set; }
 
 	[Parameter]
-	public bool Expanded { get; set; }
-
-	[Parameter]
 	public bool Fixed { get; set; }
 
 	[Parameter]
@@ -63,6 +60,35 @@
 
 	[Parameter]
 	public bool IsPubKey { get; set; }
+
+	[Parameter]
+	public AddressPreset Preset { get; set; } = AddressPreset.Default;
+
+	private static readonly Dictionary<AddressPreset, Dictionary<Breakpoint, (int PrefixLength, int SuffixLength)>> Presets = new()
+	{
+		{ AddressPreset.Default, Default },
+		{ AddressPreset.XLarge, XLarge },
+	};
+
+	private static Dictionary<Breakpoint, (int PrefixLength, int SuffixLength)> Default => new()
+	{
+		{ Breakpoint.Xs, (10, 8) },
+		{ Breakpoint.Sm, (8, 6) },
+		{ Breakpoint.Md, (12, 10) },
+		{ Breakpoint.Lg, (12, 10) },
+		{ Breakpoint.Xl, (42, 42) },
+		{ Breakpoint.Xxl, (42, 42) },
+	};
+
+	private static Dictionary<Breakpoint, (int PrefixLength, int SuffixLength)> XLarge => new()
+	{
+		{ Breakpoint.Xs, (12, 10) },
+		{ Breakpoint.Sm, (12, 10) },
+		{ Breakpoint.Md, (42, 42) },
+		{ Breakpoint.Lg, (42, 42) },
+		{ Breakpoint.Xl, (42, 42) },
+		{ Breakpoint.Xxl, (42, 42) },
+	};
 
 	private string LookupUrl => !IsPubKey ? $"https://{Configuration.EtherscanPrefix}etherscan.io/address/{contractChecksumAddress}{(AppendEtherscanCodeAnchor ? "#code" : "")}" : $"https://{Configuration.EtherscanPrefix}beaconcha.in/validator/{contractChecksumAddress}";
 
@@ -95,12 +121,6 @@
 			await BrowserViewportService.SubscribeAsync(this);
 
 			module = await JS.InvokeAsync<IJSObjectReference>("import", "./Components/Address.razor.js");
-
-			if (Expanded)
-			{
-				PrefixLength = 42;
-				SuffixLength = 42;
-			}
 		}
 
 		await base.OnAfterRenderAsync(firstRender);
@@ -120,36 +140,7 @@
 	{
 		if (!Fixed)
 		{
-			switch (browserViewportEventArgs.Breakpoint)
-			{
-				case Breakpoint.Xs:
-					PrefixLength = 12;
-					SuffixLength = 10;
-					break;
-
-				case Breakpoint.Sm:
-					PrefixLength = 8;
-					SuffixLength = 6;
-					break;
-
-				case Breakpoint.Md:
-				case Breakpoint.Lg:
-					PrefixLength = 12;
-					SuffixLength = 10;
-					break;
-
-				case Breakpoint.Xl:
-				case Breakpoint.Xxl:
-					PrefixLength = 42;
-					SuffixLength = 42;
-					break;
-			}
-		}
-
-		if (Expanded)
-		{
-			PrefixLength = 42;
-			SuffixLength = 42;
+			(PrefixLength, SuffixLength) = Presets[Preset][browserViewportEventArgs.Breakpoint];
 		}
 
 		displayContractAddress = PrefixLength + SuffixLength < contractChecksumAddress.Length ? $"{contractChecksumAddress[..PrefixLength]}...{contractChecksumAddress[^SuffixLength..]}" : contractChecksumAddress;

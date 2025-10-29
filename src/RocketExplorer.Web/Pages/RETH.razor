@@ -12,7 +12,7 @@
 		<MudText Typo="Typo.h2" Class="mud-typography-h3" Align="Align.Center"><MudImage Class="token-icon" Src="images/reth-primary.svg"></MudImage>Rocket Pool ETH (rETH)</MudText>
 		@if (Snapshot != null)
 		{
-			<Address Typo="Typo.body1" Expanded="true" ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.RETH.Address)" AppendEtherscanCodeAnchor="true"></Address>
+			<Address Typo="Typo.body1" Preset="AddressPreset.XLarge" ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.RETH.Address)" AppendEtherscanCodeAnchor="true"></Address>
 		}
 	</MudContainer>
 	<MudGrid Justify="Justify.Center">
@@ -41,10 +41,10 @@
 					</MudTh>
 				</HeaderContent>
 				<RowTemplate>
-					<MudTd>
-						<AddressAndEnsNameCell Address="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" EnsName="@context.AddressEnsName" HighlightedText="@searchString"></AddressAndEnsNameCell>
+					<MudTd DataLabel="Address">
+						<AddressAndEnsNameCell Preset="AddressPreset.XLarge" Address="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" EnsName="@context.AddressEnsName" HighlightedText="@searchString"></AddressAndEnsNameCell>
 					</MudTd>
-					<MudTd Style="text-align: right;">
+					<MudTd DataLabel="Amount" Style="text-align: right;">
 						<TokenAndUnit Value="context.Balance" Unit="rETH"></TokenAndUnit>
 					</MudTd>
 				</RowTemplate>

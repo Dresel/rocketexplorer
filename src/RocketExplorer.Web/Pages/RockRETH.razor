@@ -14,7 +14,7 @@
 		{
 			@if (Snapshot.Data.RockRETH != null)
 			{
-				<Address Typo="Typo.body1" Expanded="true" ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.RockRETH.Address)" AppendEtherscanCodeAnchor="true"></Address>
+				<Address Typo="Typo.body1" Preset="AddressPreset.XLarge" ContractAddress="@AddressUtil.Current.ConvertToChecksumAddress(Snapshot.Data.RockRETH.Address)" AppendEtherscanCodeAnchor="true"></Address>
 			}
 			else
 			{
@@ -48,10 +48,10 @@
 					</MudTh>
 				</HeaderContent>
 				<RowTemplate>
-					<MudTd>
-						<AddressAndEnsNameCell Address="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" EnsName="@context.AddressEnsName" HighlightedText="@searchString"></AddressAndEnsNameCell>
+					<MudTd DataLabel="Holder Address">
+						<AddressAndEnsNameCell Preset="AddressPreset.XLarge" Address="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" EnsName="@context.AddressEnsName" HighlightedText="@searchString"></AddressAndEnsNameCell>
 					</MudTd>
-					<MudTd Style="text-align: right;">
+					<MudTd DataLabel="Amount" Style="text-align: right;">
 						<TokenAndUnit Value="context.Balance" Unit="rock.rETH"></TokenAndUnit>
 					</MudTd>
 				</RowTemplate>

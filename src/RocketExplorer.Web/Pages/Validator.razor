@@ -15,11 +15,11 @@
 
 			@if (AddressUtil.Current.IsValidEthereumAddressHexFormat(MinipoolAddress))
 			{
-				<Address Typo="Typo.body1" Expanded="true" ContractAddress="@MinipoolAddress" AppendEtherscanCodeAnchor="true"></Address>
+				<Address Typo="Typo.body1" Preset="AddressPreset.XLarge" ContractAddress="@MinipoolAddress" AppendEtherscanCodeAnchor="true"></Address>
 			}
 			else if (AddressUtil.Current.IsValidEthereumAddressHexFormat(MegapoolAddress))
 			{
-				<Address Typo="Typo.body1" Expanded="true" ContractAddress="@MegapoolAddress" AppendEtherscanCodeAnchor="true"></Address>
+				<Address Typo="Typo.body1" Preset="AddressPreset.XLarge" ContractAddress="@MegapoolAddress" AppendEtherscanCodeAnchor="true"></Address>
 			}
 			else
 			{

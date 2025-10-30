@@ -33,4 +33,10 @@ public record class Node
 
 	[Key(8)]
 	public BigInteger RPLMegapoolStaked { get; set; } = 0;
+
+	[Key(9)]
+	public byte[]? WithdrawalAddress { get; set; }
+
+	[Key(10)]
+	public byte[]? RPLWithdrawalAddress { get; set; }
 }

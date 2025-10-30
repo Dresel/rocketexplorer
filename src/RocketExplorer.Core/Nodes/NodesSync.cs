@@ -42,7 +42,7 @@ public class NodesSync(IOptions<SyncOptions> options, GlobalContext globalContex
 		foreach (IEventLog eventLog in nodeAddedEvents)
 		{
 			await eventLog.WhenIsAsync<NodeRegisteredEventDTO, GlobalContext>(
-				NodeRegisteredEventHandler.HandleAsync, GlobalContext, cancellationToken);
+				NodeEventsEventHandler.HandleAsync, GlobalContext, cancellationToken);
 		}
 
 		IEnumerable<IEventLog> preSaturn1StakingEvents = await GlobalContext.Services.Web3.FilterAsync(

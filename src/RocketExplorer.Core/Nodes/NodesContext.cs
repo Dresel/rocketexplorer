@@ -38,6 +38,10 @@ public record class NodesContext
 		Task<BlobObject<NodesSnapshot>?> readNodesSnapshotTask =
 			storage.ReadAsync<NodesSnapshot>(Keys.NodesSnapshot, cancellationToken);
 
+		logger.LogInformation("Loading {snapshot}", Keys.NodesExtendedSnapshot);
+		Task<BlobObject<NodesExtendedSnapshot>?> readNodesExtendedSnapshotTask =
+			storage.ReadAsync<NodesExtendedSnapshot>(Keys.NodesExtendedSnapshot, cancellationToken);
+
 		logger.LogInformation("Loading {snapshot}", Keys.ValidatorSnapshot);
 		Task<BlobObject<ValidatorSnapshot>?> readValidatorSnapshotTask =
 			storage.ReadAsync<ValidatorSnapshot>(Keys.ValidatorSnapshot, cancellationToken);
@@ -63,6 +67,19 @@ public record class NodesContext
 					Index = [],
 					DailyRegistrations = [],
 					TotalNodeCount = [],
+				},
+			};
+
+		BlobObject<NodesExtendedSnapshot> nodesExtendedSnapshot =
+			await readNodesExtendedSnapshotTask ??
+			new BlobObject<NodesExtendedSnapshot>
+			{
+				ProcessedBlockNumber = activationHeight,
+				Data = new NodesExtendedSnapshot
+				{
+					WithdrawalAddresses = [],
+					RPLWithdrawalAddresses = [],
+					StakeOnBehalfAddresses = [],
 				},
 			};
 
@@ -132,6 +149,9 @@ public record class NodesContext
 						StringComparer.OrdinalIgnoreCase),
 					TotalNodesCount = nodesSnapshot.Data.TotalNodeCount,
 					DailyRegistrations = nodesSnapshot.Data.DailyRegistrations,
+					WithdrawalAddresses = nodesExtendedSnapshot.Data.WithdrawalAddresses.ToDictionary(pair => pair.Key.ToHex(true), pair => pair.Value?.ToHex(true)),
+					RPLWithdrawalAddresses = nodesExtendedSnapshot.Data.RPLWithdrawalAddresses.ToDictionary(pair => pair.Key.ToHex(true), pair => pair.Value?.ToHex(true)),
+					StakeOnBehalfAddresses = nodesExtendedSnapshot.Data.StakeOnBehalfAddresses.ToDictionary(pair => pair.Key.ToHex(true), pair => pair.Value?.Select(y => y.ToHex(true)).ToList() ?? []),
 				},
 			},
 			ValidatorInfo = new ValidatorInfo

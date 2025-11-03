@@ -112,6 +112,10 @@ public class TokenEventHandlers
 
 						entry.Type &= ~indexEntryType;
 					}, entry => entry.Type == 0, cancellationToken);
+
+				// TODO: !!!
+				//await globalContext.Services.AddressEnsProcessHistory.AddAddressEnsRecordAsync(
+				//	toAddress.HexToByteArray(), cancellationToken: cancellationToken);
 			}
 			else
 			{
@@ -160,7 +164,6 @@ public class TokenEventHandlers
 				tokenInfo.Holders[toAddress] = new HolderEntry
 				{
 					Address = toAddress,
-					AddressEnsName = null,
 					Balance = 0,
 				};
 			}

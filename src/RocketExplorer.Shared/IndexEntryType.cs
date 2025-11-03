@@ -18,4 +18,8 @@ public enum IndexEntryType : byte
 	RPLOldHolder = 64,
 
 	RockRETHHolder = 128,
+
+	//Withdrawal = 256,
+
+	//RPLWithdrawal = 512,
 }

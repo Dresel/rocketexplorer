@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Nethereum.Contracts.Standards.ENS;
 using Nethereum.Hex.HexConvertors.Extensions;
@@ -47,33 +48,16 @@ public record class EnsContext
 
 		// Add nodes and known node ens names
 		ensContext.AddToReverseAddressNameHashMap(nodesContext.Nodes.Data.Index.Select(x => x.Value.ContractAddress));
-		ensContext.AddToEnsMaps(
-			nodesContext.Nodes.Data.Index.Where(x => x.Value.ContractAddressEnsName is not null)
-				.Select(x => (x.Value.ContractAddress, x.Value.ContractAddressEnsName!)));
+		ensContext.AddToReverseAddressNameHashMap(nodesContext.Nodes.Data.WithdrawalAddresses.Select(x => x.Value.HexToByteArray()));
+		ensContext.AddToReverseAddressNameHashMap(nodesContext.Nodes.Data.RPLWithdrawalAddresses.Select(x => x.Value.HexToByteArray()));
+		ensContext.AddToReverseAddressNameHashMap(nodesContext.Nodes.Data.StakeOnBehalfAddresses.SelectMany(list => list.Value.Select(x => x.HexToByteArray())));
 
-		ensContext.AddToReverseAddressNameHashMap(
-			tokensContext.RETHTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
-		ensContext.AddToEnsMaps(
-			tokensContext.RETHTokenInfo.Holders.Where(x => x.Value.AddressEnsName is not null)
-				.Select(x => (x.Value.Address.HexToByteArray(), x.Value.AddressEnsName!)));
+		ensContext.AddToReverseAddressNameHashMap(tokensContext.RETHTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
+		ensContext.AddToReverseAddressNameHashMap(tokensContext.RockRETHTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
+		ensContext.AddToReverseAddressNameHashMap(tokensContext.RPLTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
+		ensContext.AddToReverseAddressNameHashMap(tokensContext.RPLOldTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
 
-		ensContext.AddToReverseAddressNameHashMap(
-			tokensContext.RockRETHTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
-		ensContext.AddToEnsMaps(
-			tokensContext.RockRETHTokenInfo.Holders.Where(x => x.Value.AddressEnsName is not null)
-				.Select(x => (x.Value.Address.HexToByteArray(), x.Value.AddressEnsName!)));
-
-		ensContext.AddToReverseAddressNameHashMap(
-			tokensContext.RPLTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
-		ensContext.AddToEnsMaps(
-			tokensContext.RPLTokenInfo.Holders.Where(x => x.Value.AddressEnsName is not null)
-				.Select(x => (x.Value.Address.HexToByteArray(), x.Value.AddressEnsName!)));
-
-		ensContext.AddToReverseAddressNameHashMap(
-			tokensContext.RPLOldTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
-		ensContext.AddToEnsMaps(
-			tokensContext.RPLOldTokenInfo.Holders.Where(x => x.Value.AddressEnsName is not null)
-				.Select(x => (x.Value.Address.HexToByteArray(), x.Value.AddressEnsName!)));
+		ensContext.AddToEnsMaps(ensSnapshot?.Data.AddressEnsMap.Select(pair => (pair.Key, pair.Value)) ?? []);
 
 		return ensContext;
 	}
@@ -133,7 +117,10 @@ public record class EnsContext
 			new BlobObject<EnsSnapshot>
 			{
 				ProcessedBlockNumber = CurrentBlockHeight,
-				Data = new EnsSnapshot(),
+				Data = new EnsSnapshot()
+				{
+					AddressEnsMap = [],
+				},
 			}, cancellationToken: cancellationToken);
 	}
 

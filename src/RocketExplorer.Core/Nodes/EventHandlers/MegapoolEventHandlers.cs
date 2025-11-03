@@ -247,7 +247,6 @@ public class MegapoolEventHandlers
 			.Where(node => node.Value.MegapoolAddress?.SequenceEqual(eventLog.Log.Address.HexToByteArray()) == true)
 			.Cast<KeyValuePair<string, NodeIndexEntry>?>().SingleOrDefault();
 		string? nodeOperatorAddress = indexEntry?.Value.ContractAddress.ToHex(true);
-		string? nodeOperatorAddressEnsName = indexEntry?.Value.ContractAddressEnsName;
 
 		if (indexEntry == null)
 		{
@@ -272,7 +271,6 @@ public class MegapoolEventHandlers
 		MegapoolValidatorIndexEntry entry = new()
 		{
 			NodeAddress = nodeOperatorAddress.HexToByteArray(),
-			NodeAddressEnsName = nodeOperatorAddressEnsName,
 			MegapoolAddress = megapoolAddress.HexToByteArray(),
 			MegapoolIndex = eventValidatorId,
 			PubKey = pubKey,
@@ -286,7 +284,6 @@ public class MegapoolEventHandlers
 			{
 				x.Type |= IndexEntryType.Megapool;
 				x.Address = nodeOperatorAddress.HexToByteArray();
-				x.AddressEnsName = nodeOperatorAddressEnsName;
 				x.MegapoolAddress = megapoolAddress.HexToByteArray();
 			}, cancellationToken: cancellationToken);
 
@@ -297,7 +294,6 @@ public class MegapoolEventHandlers
 			{
 				x.Type |= IndexEntryType.MegapoolValidator;
 				x.Address = nodeOperatorAddress.HexToByteArray();
-				x.AddressEnsName = nodeOperatorAddressEnsName;
 				x.MegapoolAddress = megapoolAddress.HexToByteArray();
 				x.ValidatorPubKey = pubKey;
 				x.MegapoolIndex = eventValidatorId;
@@ -317,7 +313,6 @@ public class MegapoolEventHandlers
 		Validator validator = new()
 		{
 			NodeAddress = entry.NodeAddress,
-			NodeAddressEnsName = entry.NodeAddressEnsName,
 			MegapoolAddress = entry.MegapoolAddress,
 			MegapoolIndex = entry.MegapoolIndex,
 			PubKey = entry.PubKey,

@@ -36,7 +36,6 @@ public class MinipoolCreatedEventHandler
 		MinipoolValidatorIndexEntry entry = new()
 		{
 			NodeAddress = nodeIndexEntry.ContractAddress,
-			NodeAddressEnsName = nodeIndexEntry.ContractAddressEnsName,
 			MinipoolAddress = @event.Minipool.HexToByteArray(),
 			PubKey = null,
 			ValidatorIndex = null,
@@ -57,7 +56,6 @@ public class MinipoolCreatedEventHandler
 			@event.Minipool, new Validator
 			{
 				NodeAddress = entry.NodeAddress,
-				NodeAddressEnsName = entry.NodeAddressEnsName,
 				MinipoolAddress = entry.MinipoolAddress,
 				PubKey = entry.PubKey,
 				ValidatorIndex = entry.ValidatorIndex,

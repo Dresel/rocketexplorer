@@ -71,6 +71,7 @@ internal class IndexBuilder
 
 		NodesContext nodesContext = await globalContext.NodesContextFactory;
 		TokensContext tokensContext = await globalContext.TokensContextFactory;
+		EnsContext ensContext = await globalContext.EnsContextFactory;
 
 		globalContext.Services.GlobalEnsIndexService.SkipLoading = true;
 
@@ -132,6 +133,9 @@ internal class IndexBuilder
 			});
 
 		count = 0;
+
+		ensContext.AddToEnsMaps(resolvedAddresses);
+
 		foreach ((byte[] address, string ens) in resolvedAddresses)
 		{
 			if (++count % 1000 == 0)

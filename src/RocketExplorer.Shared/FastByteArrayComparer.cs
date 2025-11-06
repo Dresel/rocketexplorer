@@ -1,6 +1,6 @@
 using System.Collections;
 
-namespace RocketExplorer.Core;
+namespace RocketExplorer.Shared;
 
 public class FastByteArrayComparer : IComparer<byte[]>, IEqualityComparer<byte[]>
 {

@@ -11,8 +11,5 @@ public record class HolderEntry
 	public required string Address { get; init; }
 
 	[Key(1)]
-	public required string? AddressEnsName { get; init; }
-
-	[Key(2)]
 	public required BigInteger Balance { get; init; }
 }

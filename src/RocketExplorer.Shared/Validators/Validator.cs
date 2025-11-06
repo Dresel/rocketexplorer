@@ -9,36 +9,33 @@ public record class Validator
 	public required byte[] NodeAddress { get; init; }
 
 	[Key(1)]
-	public required string? NodeAddressEnsName { get; init; }
-
-	[Key(2)]
 	public byte[]? MegapoolAddress { get; init; }
 
-	[Key(3)]
+	[Key(2)]
 	public byte[]? MinipoolAddress { get; init; }
 
-	[Key(4)]
+	[Key(3)]
 	public required byte[]? PubKey { get; init; }
 
-	[Key(5)]
+	[Key(4)]
 	public required long? ValidatorIndex { get; init; }
 
-	[Key(6)]
+	[Key(5)]
 	public bool? ExpressTicketUsed { get; init; }
 
-	[Key(7)]
+	[Key(6)]
 	public int? MegapoolIndex { get; init; }
 
-	[Key(8)]
+	[Key(7)]
 	public ValidatorType Type { get; init; }
 
 	// TODO: Bond? Average NETH for Megapool? getBondRequirement, hardcode?
-	[Key(9)]
+	[Key(8)]
 	public float Bond { get; init; }
 
-	[Key(10)]
+	[Key(9)]
 	public ValidatorStatus Status { get; init; }
 
-	[Key(11)]
+	[Key(10)]
 	public required ValidatorHistory[] History { get; init; }
 }

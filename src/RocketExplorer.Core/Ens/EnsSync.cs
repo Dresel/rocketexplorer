@@ -74,6 +74,8 @@ public class EnsSync(IOptions<SyncOptions> options, GlobalContext globalContext)
 
 		count = 0;
 
+		// TODO: Verify remove workflow, e.g. no holder anymore
+
 		// Deletions / updates of all candidates
 		foreach (AddressEnsRecord candidate in GlobalContext.Services.AddressEnsProcessHistory
 					.ProcessedAddressEnsCandidates)
@@ -91,12 +93,9 @@ public class EnsSync(IOptions<SyncOptions> options, GlobalContext globalContext)
 
 			string? obsoleteEns = null;
 
-			if (candidate.Ens is not null && !candidate.Ens.Equals(targetEns, StringComparison.OrdinalIgnoreCase))
+			if (ensContext.OldAddressEnsMap.TryGetValue(candidate.Address, out string? obsoleteEnsName) && !ensContext.ContainsEnsName(obsoleteEnsName) && !string.Equals(obsoleteEnsName, targetEns, StringComparison.OrdinalIgnoreCase))
 			{
-				if (!ensContext.ContainsEnsName(candidate.Ens))
-				{
-					obsoleteEns = candidate.Ens;
-				}
+				obsoleteEns = candidate.Ens;
 			}
 
 			await GlobalContext.UpdateEnsNameAsync(obsoleteEns, candidate.Address, targetEns, cancellationToken);

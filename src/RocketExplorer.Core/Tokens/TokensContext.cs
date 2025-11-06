@@ -40,6 +40,7 @@ public record class TokensContext
 	public required StakedRPLInfo StakedRPLInfo { get; set; }
 
 	public static async Task<TokensContext> ReadAsync(
+		Func<string, Task<long?>> findDeploymentBlock,
 		Storage storage, ContractsContext contractsContext, SyncOptions syncOptions, ILogger<TokensContext> logger,
 		CancellationToken cancellationToken = default)
 	{
@@ -62,15 +63,15 @@ public record class TokensContext
 
 		ReadOnlyDictionary<string, RocketPoolContract> contracts = contractsContext.ContextContracts.AsReadOnly();
 
-		string rplContractAddress = contracts["rocketTokenRPL"].Versions.Select(x => x.Address).Single();
 		string rplOldContractAddress = contracts["rocketTokenRPLFixedSupply"].Versions.Select(x => x.Address).Single();
+		string rplContractAddress = contracts["rocketTokenRPL"].Versions.Select(x => x.Address).Single();
 		string rethContractAddress = contracts["rocketTokenRETH"].Versions.Select(x => x.Address).Single();
 
 		BlobObject<TokensRPLOldSnapshot> rplOldSnapshot =
 			await readRPLOldTask ??
 			new BlobObject<TokensRPLOldSnapshot>
 			{
-				ProcessedBlockNumber = 0,
+				ProcessedBlockNumber = await findDeploymentBlock(rplOldContractAddress) ?? throw new InvalidOperationException("Deployment block not found"),
 				Data = new TokensRPLOldSnapshot
 				{
 					RPLOld = new RPLOldToken
@@ -90,7 +91,7 @@ public record class TokensContext
 			await readRPLTask ??
 			new BlobObject<TokensRPLSnapshot>
 			{
-				ProcessedBlockNumber = 0,
+				ProcessedBlockNumber = await findDeploymentBlock(rplContractAddress) ?? throw new InvalidOperationException("Deployment block not found"),
 				Data = new TokensRPLSnapshot
 				{
 					RPL = new Token
@@ -108,7 +109,7 @@ public record class TokensContext
 			await readRETHTask ??
 			new BlobObject<TokensRETHSnapshot>
 			{
-				ProcessedBlockNumber = 0,
+				ProcessedBlockNumber = await findDeploymentBlock(rethContractAddress) ?? throw new InvalidOperationException("Deployment block not found"),
 				Data = new TokensRETHSnapshot
 				{
 					RETH = new Token
@@ -126,7 +127,7 @@ public record class TokensContext
 			await readStakedRPLTask ??
 			new BlobObject<StakedRPLSnapshot>
 			{
-				ProcessedBlockNumber = 0,
+				ProcessedBlockNumber = await findDeploymentBlock(rplContractAddress) ?? throw new InvalidOperationException("Deployment block not found"),
 				Data = new StakedRPLSnapshot
 				{
 					LegacyStakedDaily = [],
@@ -151,7 +152,7 @@ public record class TokensContext
 			await readRockRETHTask ??
 			new BlobObject<TokensRockRETHSnapshot>
 			{
-				ProcessedBlockNumber = 0,
+				ProcessedBlockNumber = rockRETHTokenAddress is null ? 0 : await findDeploymentBlock(rockRETHTokenAddress) ?? 0,
 				Data = new TokensRockRETHSnapshot
 				{
 					RockRETH = rockRETHTokenAddress is null
@@ -169,7 +170,7 @@ public record class TokensContext
 
 		return new TokensContext
 		{
-			CurrentBlockHeight = rplSnapshot.ProcessedBlockNumber,
+			CurrentBlockHeight = new[] { rplOldSnapshot.ProcessedBlockNumber, rplSnapshot.ProcessedBlockNumber, rethSnapshot.ProcessedBlockNumber }.Min(),
 
 			PreSaturn1RocketNodeStakingAddresses = contracts["rocketNodeStaking"].Versions
 				.Where(x => x.Version <= 6)

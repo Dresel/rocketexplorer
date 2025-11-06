@@ -1,6 +1,10 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Nethereum.Hex.HexConvertors.Extensions;
+using RocketExplorer.Shared;
+using RocketExplorer.Shared.Ens;
+using RocketExplorer.Web.Components;
 
 namespace RocketExplorer.Web.Pages;
 
@@ -41,6 +45,16 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 	protected string ObjectStoreUrl =>
 		!string.IsNullOrWhiteSpace(ObjectStoreKey) ? GetObjectStoreUrl(ObjectStoreKey) : string.Empty;
 
+	protected Snapshot<EnsSnapshot>? EnsSnapshot { get; set; }
+
+	protected Dictionary<byte[], string>? AddressBytesEnsMap { get; set; }
+
+	protected Dictionary<string, string>? AddressStringEnsMap { get; set; }
+
+	protected string? EnsName(string address) => AddressStringEnsMap?.GetValueOrDefault(address);
+
+	protected string? EnsName(byte[] address) => AddressBytesEnsMap?.GetValueOrDefault(address);
+
 	protected Snapshot<T>? Snapshot { get; set; }
 
 	public void Dispose()
@@ -71,6 +85,15 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 
 		try
 		{
+			SnapshotResponse<EnsSnapshot> ensNames = await HttpClient.GetSnapshotResponse<EnsSnapshot>(GetObjectStoreUrl(Keys.EnsSnapshot), cancellationToken);
+
+			if (EnsSnapshot is null || string.IsNullOrEmpty(ensNames.ETag) || EnsSnapshot.ETag != ensNames.ETag)
+			{
+				EnsSnapshot = await ensNames.ToSnapshotAsync(cancellationToken);
+				AddressBytesEnsMap = EnsSnapshot.Data.AddressEnsMap.ToDictionary(x => x.Key, x => x.Value, new FastByteArrayComparer());
+				AddressStringEnsMap = EnsSnapshot.Data.AddressEnsMap.ToDictionary(x => x.Key.ToHex(true), x => x.Value, StringComparer.OrdinalIgnoreCase);
+			}
+
 			// TODO: Polly
 			SnapshotResponse<T> response = await HttpClient.GetSnapshotResponse<T>(ObjectStoreUrl, cancellationToken);
 

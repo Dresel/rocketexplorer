@@ -44,7 +44,21 @@ public static class ServiceProviderExtensions
 		ContractsContext contractsContext = await ContractsContext.ReadAsync(storage, cancellationToken);
 		Task<NodesContext> nodesContextFactory = NodesContext.ReadAsync(
 			storage, contractsContext, serviceProvider.GetRequiredService<ILogger<NodesContext>>(), cancellationToken);
-		Task<TokensContext> tokensContextFactory = TokensContext.ReadAsync(
+
+		Func<string, Task<long?>> getDeploymentBlock = async address =>
+		{
+			return await Helper.FindFirstBlockAsync(
+				async blockParameter =>
+				{
+					string code = await policy.ExecuteAsync(() => web3.Eth.GetCode.SendRequestAsync(address, blockParameter));
+					return !string.Equals(code, "0x", StringComparison.OrdinalIgnoreCase);
+				},
+				0,
+				(long)latestBlock.Number.Value,
+				TimeSpan.FromDays(60).BlockCount());
+		};
+
+		Task<TokensContext> tokensContextFactory = TokensContext.ReadAsync(getDeploymentBlock,
 			storage, contractsContext, options, serviceProvider.GetRequiredService<ILogger<TokensContext>>(),
 			cancellationToken);
 

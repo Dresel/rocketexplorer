@@ -8,9 +8,9 @@
 <MudStack Spacing="6">
 	<MudContainer Class="mud-typography-align-center">
 		<MudText Typo="Typo.h1" Class="mud-typography-h4" Align="Align.Center">Node Operator</MudText>
-		@if (!string.IsNullOrEmpty(Snapshot?.Data.ContractAddressEns))
+		@if (Snapshot is not null && EnsName(Snapshot.Data.ContractAddress) is not null)
 		{
-			<EnsName Typo="Typo.body1" Name="@Snapshot?.Data.ContractAddressEns"></EnsName>
+			<EnsName Typo="Typo.body1" Name="@EnsName(Snapshot.Data.ContractAddress)"></EnsName>
 		}
 		<Address Typo="Typo.body1" Preset="AddressPreset.XLarge" ContractAddress="@Address" AppendEtherscanCodeAnchor="true"></Address>
 	</MudContainer>

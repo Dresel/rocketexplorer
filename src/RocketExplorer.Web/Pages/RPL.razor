@@ -41,7 +41,7 @@
 			</HeaderContent>
 			<RowTemplate>
 				<MudTd DataLabel="Holder Address">
-					<AddressAndEnsNameCell Preset="AddressPreset.XLarge" Address="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" EnsName="@context.AddressEnsName" HighlightedText="@searchString"></AddressAndEnsNameCell>
+                    <AddressAndEnsNameCell Preset="AddressPreset.XLarge" Address="@AddressUtil.Current.ConvertToChecksumAddress(context.Address)" EnsName="@EnsName(context.Address)" HighlightedText="@searchString"></AddressAndEnsNameCell>
 				</MudTd>
 				<MudTd DataLabel="Amount" Style="text-align: right;">
 					<TokenAndUnit Value="context.Balance" Unit="RPL"></TokenAndUnit>
@@ -126,7 +126,7 @@
 		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
 		{
 			items = items.Where(x => x.Address.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-				x.AddressEnsName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true).ToArray();
+				EnsName(x.Address)?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true).ToArray();
 		}
 
 		items = items as HolderEntry[] ?? items.ToArray();

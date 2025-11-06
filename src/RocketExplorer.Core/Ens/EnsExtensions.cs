@@ -7,8 +7,6 @@ using RocketExplorer.Core.Nodes;
 using RocketExplorer.Core.Tokens;
 using RocketExplorer.Shared;
 using RocketExplorer.Shared.Nodes;
-using RocketExplorer.Shared.Tokens;
-using RocketExplorer.Shared.Validators;
 
 namespace RocketExplorer.Core.Ens;
 
@@ -178,8 +176,7 @@ public static class EnsExtensions
 	}
 
 	public static async Task UpdateEnsNameAsync(
-		this GlobalContext globalContext,
-		string? obsoleteEnsName, byte[] address, string? ensName, CancellationToken cancellationToken = default)
+		this GlobalContext globalContext, string? obsoleteEnsName, byte[] address, string? ensName, CancellationToken cancellationToken = default)
 	{
 		NodesContext nodesContext = await globalContext.NodesContextFactory;
 		TokensContext tokensContext = await globalContext.TokensContextFactory;
@@ -188,20 +185,13 @@ public static class EnsExtensions
 
 		if (obsoleteEnsName is not null)
 		{
-			// Existing ens entry is obsolete, remove
+			// Existing ens entry is obsolete (either no new one or different one)
 			_ = globalContext.Services.GlobalEnsIndexService.TryRemoveEntryAsync(
 				obsoleteEnsName[..^4], obsoleteEnsName, EventIndex.Zero, cancellationToken);
 		}
 
 		if (ensName is null)
 		{
-			await UpdateNodeAsync(
-				nodesContext, globalContext.Services.Storage, candidateAddress, null, cancellationToken);
-			UpdateTokenInfo(tokensContext.RPLTokenInfo, candidateAddress, null);
-			UpdateTokenInfo(tokensContext.RPLOldTokenInfo, candidateAddress, null);
-			UpdateTokenInfo(tokensContext.RETHTokenInfo, candidateAddress, null);
-			UpdateTokenInfo(tokensContext.RockRETHTokenInfo, candidateAddress, null);
-
 			_ = globalContext.Services.GlobalIndexService.UpdateEntryAsync(
 				candidateAddress.RemoveHexPrefix(), address, EventIndex.Zero,
 				entry => entry.AddressEnsName = null,
@@ -210,15 +200,15 @@ public static class EnsExtensions
 			return;
 		}
 
-		bool nodeUpdated = await UpdateNodeAsync(
-			nodesContext, globalContext.Services.Storage, candidateAddress, ensName, cancellationToken);
-		bool rplUpdated = UpdateTokenInfo(tokensContext.RPLTokenInfo, candidateAddress, ensName);
-		bool rplOldUpdated = UpdateTokenInfo(tokensContext.RPLOldTokenInfo, candidateAddress, ensName);
-		bool rethUpdated = UpdateTokenInfo(tokensContext.RETHTokenInfo, candidateAddress, ensName);
-		bool rockRETHUpdated = UpdateTokenInfo(tokensContext.RockRETHTokenInfo, candidateAddress, ensName);
+		bool nodeExists = NodeExists(nodesContext, candidateAddress);
+
+		bool rplUpdated = TokenHolderExists(tokensContext.RPLTokenInfo, candidateAddress);
+		bool rplOldUpdated = TokenHolderExists(tokensContext.RPLOldTokenInfo, candidateAddress);
+		bool rethUpdated = TokenHolderExists(tokensContext.RETHTokenInfo, candidateAddress);
+		bool rockRETHUpdated = TokenHolderExists(tokensContext.RockRETHTokenInfo, candidateAddress);
 
 		IndexEntryType type =
-			(nodeUpdated ? IndexEntryType.NodeOperator : 0) |
+			(nodeExists ? IndexEntryType.NodeOperator : 0) |
 			(rplUpdated ? IndexEntryType.RPLHolder : 0) |
 			(rplOldUpdated ? IndexEntryType.RPLOldHolder : 0) |
 			(rethUpdated ? IndexEntryType.RETHHolder : 0) |
@@ -318,95 +308,15 @@ public static class EnsExtensions
 		};
 	}
 
-	private static async Task<bool> UpdateNodeAsync(
-		NodesContext nodesContext, Storage storage, string address, string? ensName,
-		CancellationToken cancellationToken = default)
+	private static bool NodeExists(NodesContext nodesContext, string address)
 	{
 		if (!nodesContext.Nodes.Data.Index.TryGetValue(address, out NodeIndexEntry? nodeIndexEntry))
 		{
 			return false;
 		}
 
-		nodesContext.Nodes.Data.Index[address] = nodeIndexEntry with
-		{
-			ContractAddressEnsName = ensName,
-		};
-
-		if (!nodesContext.Nodes.Partial.Updated.ContainsKey(address))
-		{
-			nodesContext.Nodes.Partial.Updated[address] =
-				(await storage.ReadAsync<Node>(Keys.Node(address), cancellationToken))?.Data ??
-				throw new InvalidOperationException("Cannot read node operator from storage.");
-		}
-
-		// TODO: Use list
-		nodesContext.Nodes.Partial.Updated[address] =
-			nodesContext.Nodes.Partial.Updated[address] with
-			{
-				ContractAddressEns = ensName,
-			};
-
-		foreach ((var key, MinipoolValidatorIndexEntry value) in nodesContext.ValidatorInfo.Data.MinipoolValidatorIndex)
-		{
-			nodesContext.ValidatorInfo.Data.MinipoolValidatorIndex[key] = value with
-			{
-				NodeAddressEnsName = ensName,
-			};
-		}
-
-		foreach ((var key, MegapoolValidatorIndexEntry value) in nodesContext.ValidatorInfo.Data.MegapoolValidatorIndex)
-		{
-			nodesContext.ValidatorInfo.Data.MegapoolValidatorIndex[key] = value with
-			{
-				NodeAddressEnsName = ensName,
-			};
-		}
-
-		nodesContext.QueueInfo.MinipoolFullQueue.ReplaceAll(
-			x => x.NodeAddress.SequenceEqual(address.HexToByteArray()), entry => entry with
-			{
-				NodeAddressEns = ensName,
-			});
-
-		nodesContext.QueueInfo.MinipoolHalfQueue.ReplaceAll(
-			x => x.NodeAddress.SequenceEqual(address.HexToByteArray()), entry => entry with
-			{
-				NodeAddressEns = ensName,
-			});
-
-		nodesContext.QueueInfo.MinipoolVariableQueue.ReplaceAll(
-			x => x.NodeAddress.SequenceEqual(address.HexToByteArray()), entry => entry with
-			{
-				NodeAddressEns = ensName,
-			});
-
-		nodesContext.QueueInfo.MegapoolStandardQueue.ReplaceAll(
-			x => x.NodeAddress.SequenceEqual(address.HexToByteArray()), entry => entry with
-			{
-				NodeAddressEns = ensName,
-			});
-
-		nodesContext.QueueInfo.MegapoolExpressQueue.ReplaceAll(
-			x => x.NodeAddress.SequenceEqual(address.HexToByteArray()), entry => entry with
-			{
-				NodeAddressEns = ensName,
-			});
-
 		return true;
 	}
 
-	private static bool UpdateTokenInfo(TokenInfo tokenInfo, string address, string? ensName)
-	{
-		if (tokenInfo.Holders.TryGetValue(address, out HolderEntry? tokenIndexEntry))
-		{
-			tokenInfo.Holders[address] = tokenIndexEntry with
-			{
-				AddressEnsName = ensName,
-			};
-
-			return true;
-		}
-
-		return false;
-	}
+	private static bool TokenHolderExists(TokenInfo tokenInfo, string address) => tokenInfo.Holders.ContainsKey(address);
 }

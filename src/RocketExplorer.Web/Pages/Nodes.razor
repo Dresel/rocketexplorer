@@ -121,7 +121,7 @@
 		nodes = Snapshot!.Data.Index.Select(x => new NodeIndexViewModel
 		{
 			ContractAddress = "0x" + Convert.ToHexString(x.ContractAddress),
-			ContractAddressEnsName = x.ContractAddressEnsName,
+			ContractAddressEnsName = EnsName(x.ContractAddress),
 			MegapoolAddress = x.MegapoolAddress == null ? null : "0x" + Convert.ToHexString(x.MegapoolAddress),
 			RegistrationDate = DateTimeOffset.FromUnixTimeSeconds(x.RegistrationTimestamp),
 		}).ToArray();

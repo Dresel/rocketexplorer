@@ -17,4 +17,10 @@ public class IndexEntry
 	public long? ValidatorIndex { get; set; }
 
 	public byte[]? ValidatorPubKey { get; set; }
+
+	public byte[]? WithdrawalAddress { get; set; }
+
+	public byte[]? RPLWithdrawalAddress { get; set; }
+
+	public HashSet<byte[]> StakeOnBehalfAddresses { get; set; } = new(new FastByteArrayComparer());
 }

@@ -51,6 +51,9 @@ public record class EnsContext
 
 		// Add nodes and known node ens names
 		ensContext.AddToReverseAddressNameHashMap(nodesContext.Nodes.Data.Index.Select(x => x.Value.ContractAddress));
+		ensContext.AddToReverseAddressNameHashMap(nodesContext.Nodes.Data.WithdrawalAddresses.Select(x => x.Value.HexToByteArray()));
+		ensContext.AddToReverseAddressNameHashMap(nodesContext.Nodes.Data.RPLWithdrawalAddresses.Select(x => x.Value.HexToByteArray()));
+		ensContext.AddToReverseAddressNameHashMap(nodesContext.Nodes.Data.StakeOnBehalfAddresses.SelectMany(list => list.Value.Select(x => x.HexToByteArray())));
 
 		ensContext.AddToReverseAddressNameHashMap(
 			tokensContext.RETHTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));

@@ -49,6 +49,64 @@
 				}
 			</MudItem>
 			<MudFlexBreak />
+			<MudFlexBreak />
+			<MudItem Class="label">
+				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Withdrawal Address</MudText>
+			</MudItem>
+			<MudItem>
+				@if (Snapshot.Data.WithdrawalAddress != null)
+				{
+					@if (EnsName(Snapshot.Data.WithdrawalAddress) is not null)
+					{
+						<EnsName Typo="Typo.body1" Name="@EnsName(Snapshot.Data.WithdrawalAddress)"></EnsName>
+					}
+					<Address Typo="Typo.body1" ContractAddress="@("0x" + Convert.ToHexString(Snapshot.Data.WithdrawalAddress))" AppendEtherscanCodeAnchor="true"></Address>
+				}
+				else
+				{
+					<MudText Typo="Typo.body1">-</MudText>
+				}
+			</MudItem>
+			<MudFlexBreak />
+			<MudItem Class="label">
+				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">RPL Withdrawal Address</MudText>
+			</MudItem>
+			<MudItem>
+				@if (Snapshot.Data.RPLWithdrawalAddress != null)
+				{
+					@if (EnsName(Snapshot.Data.RPLWithdrawalAddress) is not null)
+					{
+						<EnsName Typo="Typo.body1" Name="@EnsName(Snapshot.Data.RPLWithdrawalAddress)"></EnsName>
+					}
+					<Address Typo="Typo.body1" ContractAddress="@("0x" + Convert.ToHexString(Snapshot.Data.RPLWithdrawalAddress))" AppendEtherscanCodeAnchor="true"></Address>
+				}
+				else
+				{
+					<MudText Typo="Typo.body1">-</MudText>
+				}
+			</MudItem>
+			<MudFlexBreak />
+			<MudItem Class="label">
+				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Stake on behalf addresses</MudText>
+			</MudItem>
+			<MudItem>
+				@if (Snapshot.Data.StakeOnBehalfAddresses.Any())
+				{
+					foreach (byte[] stakeOnBehalfAddress in Snapshot.Data.StakeOnBehalfAddresses)
+					{
+						@if (EnsName(stakeOnBehalfAddress) is not null)
+						{
+							<EnsName Typo="Typo.body1" Name="@EnsName(stakeOnBehalfAddress)"></EnsName>
+						}
+						<Address Typo="Typo.body1" ContractAddress="@("0x" + Convert.ToHexString(stakeOnBehalfAddress))" AppendEtherscanCodeAnchor="true"></Address>
+					}
+				}
+				else
+				{
+					<MudText Typo="Typo.body1">-</MudText>
+				}
+			</MudItem>
+			<MudFlexBreak />
 			<MudItem Class="label">
 				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Staked Legacy RPL</MudText>
 			</MudItem>

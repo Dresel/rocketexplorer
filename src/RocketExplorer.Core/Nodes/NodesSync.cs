@@ -9,6 +9,7 @@ using RocketExplorer.Ethereum.RocketMinipoolManager.ContractDefinition;
 using RocketExplorer.Ethereum.RocketMinipoolQueue.ContractDefinition;
 using RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition;
 using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
+using RocketExplorer.Ethereum.rocketStorage.ContractDefinition;
 
 namespace RocketExplorer.Core.Nodes;
 
@@ -36,13 +37,42 @@ public class NodesSync(IOptions<SyncOptions> options, GlobalContext globalContex
 		NodesContext context = await GlobalContext.NodesContextFactory;
 
 		IEnumerable<IEventLog> nodeAddedEvents = await GlobalContext.Services.Web3.FilterAsync(
-			fromBlock, toBlock, [typeof(NodeRegisteredEventDTO),],
+			fromBlock, toBlock, [
+				typeof(NodeRegisteredEventDTO), typeof(NodeRPLWithdrawalAddressSetEventDTO),
+				typeof(NodeRPLWithdrawalAddressUnsetEventDTO),
+			],
 			context.RocketNodeManagerAddresses, GlobalContext.Policy);
 
 		foreach (IEventLog eventLog in nodeAddedEvents)
 		{
 			await eventLog.WhenIsAsync<NodeRegisteredEventDTO, GlobalContext>(
-				NodeRegisteredEventHandler.HandleAsync, GlobalContext, cancellationToken);
+				NodeEventsEventHandler.HandleAsync, GlobalContext, cancellationToken);
+
+			await eventLog.WhenIsAsync<NodeRPLWithdrawalAddressSetEventDTO, GlobalContext>(
+				NodeEventsEventHandler.HandleAsync, GlobalContext, cancellationToken);
+
+			await eventLog.WhenIsAsync<NodeRPLWithdrawalAddressUnsetEventDTO, GlobalContext>(
+				NodeEventsEventHandler.HandleAsync, GlobalContext, cancellationToken);
+		}
+
+		IEnumerable<IEventLog> nodeWithdrawalEvents = await GlobalContext.Services.Web3.FilterAsync(
+			fromBlock, toBlock, [typeof(NodeWithdrawalAddressSetEventDTO),],
+			[GlobalContext.RocketStorageAddress,], GlobalContext.Policy);
+
+		foreach (IEventLog eventLog in nodeWithdrawalEvents)
+		{
+			await eventLog.WhenIsAsync<NodeWithdrawalAddressSetEventDTO, GlobalContext>(
+				NodeEventsEventHandler.HandleAsync, GlobalContext, cancellationToken);
+		}
+
+		IEnumerable<IEventLog> stakeOnBehalfEvents = await GlobalContext.Services.Web3.FilterAsync(
+			fromBlock, toBlock, [typeof(StakeRPLForAllowedEventDTO),],
+			[.. context.PreSaturn1RocketNodeStakingAddresses, ..context.PostSaturn1RocketNodeStakingAddresses], GlobalContext.Policy);
+
+		foreach (IEventLog eventLog in stakeOnBehalfEvents)
+		{
+			await eventLog.WhenIsAsync<StakeRPLForAllowedEventDTO, GlobalContext>(
+				NodeEventsEventHandler.HandleAsync, GlobalContext, cancellationToken);
 		}
 
 		IEnumerable<IEventLog> preSaturn1StakingEvents = await GlobalContext.Services.Web3.FilterAsync(

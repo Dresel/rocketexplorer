@@ -21,7 +21,11 @@ public class StakingEventHandlers
 
 		NodesContext context = await globalContext.NodesContextFactory;
 
-		context.Nodes.Partial.Updated[nodeOperatorAddress].RPLLegacyStaked += eventLog.Event.Amount;
+		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
+		{
+			RPLLegacyStaked = context.Nodes.Partial.Updated[nodeOperatorAddress].RPLLegacyStaked + eventLog.Event.Amount,
+		};
+
 		globalContext.DashboardContext.RPLLegacyStakedTotal += eventLog.Event.Amount;
 	}
 
@@ -37,7 +41,11 @@ public class StakingEventHandlers
 		}
 
 		NodesContext context = await globalContext.NodesContextFactory;
-		context.Nodes.Partial.Updated[nodeOperatorAddress].RPLLegacyStaked += eventLog.Event.Amount;
+		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
+		{
+			RPLLegacyStaked = context.Nodes.Partial.Updated[nodeOperatorAddress].RPLLegacyStaked - eventLog.Event.Amount,
+		};
+
 		globalContext.DashboardContext.RPLLegacyStakedTotal -= eventLog.Event.Amount;
 	}
 
@@ -53,7 +61,11 @@ public class StakingEventHandlers
 		}
 
 		NodesContext context = await globalContext.NodesContextFactory;
-		context.Nodes.Partial.Updated[nodeOperatorAddress].RPLLegacyStaked -= eventLog.Event.Amount;
+		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
+		{
+			RPLLegacyStaked = context.Nodes.Partial.Updated[nodeOperatorAddress].RPLLegacyStaked - eventLog.Event.Amount,
+		};
+
 		globalContext.DashboardContext.RPLLegacyStakedTotal -= eventLog.Event.Amount;
 	}
 
@@ -69,7 +81,11 @@ public class StakingEventHandlers
 		}
 
 		NodesContext context = await globalContext.NodesContextFactory;
-		context.Nodes.Partial.Updated[nodeOperatorAddress].RPLMegapoolStaked += eventLog.Event.Amount;
+		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
+		{
+			RPLMegapoolStaked = context.Nodes.Partial.Updated[nodeOperatorAddress].RPLMegapoolStaked + eventLog.Event.Amount,
+		};
+
 		globalContext.DashboardContext.RPLMegapoolStakedTotal += eventLog.Event.Amount;
 	}
 
@@ -85,7 +101,11 @@ public class StakingEventHandlers
 		}
 
 		NodesContext context = await globalContext.NodesContextFactory;
-		context.Nodes.Partial.Updated[nodeOperatorAddress].RPLMegapoolStaked -= eventLog.Event.Amount;
+		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
+		{
+			RPLMegapoolStaked = context.Nodes.Partial.Updated[nodeOperatorAddress].RPLMegapoolStaked - eventLog.Event.Amount,
+		};
+
 		globalContext.DashboardContext.RPLMegapoolStakedTotal -= eventLog.Event.Amount;
 	}
 

@@ -10,6 +10,8 @@ public static class Keys
 
 	public const string NodesSnapshot = "nodes-snapshot.msgpack";
 
+	public const string NodesExtendedSnapshot = "nodes-extended-snapshot.msgpack";
+
 	public const string QueueSnapshot = "queue-snapshot.msgpack";
 
 	public const string SnapshotMetadata = "snapshot-metadata.msgpack";

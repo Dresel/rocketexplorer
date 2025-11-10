@@ -6,7 +6,7 @@ namespace RocketExplorer.Core.Contracts;
 
 public abstract class SyncBase(IOptions<SyncOptions> syncOptions, GlobalContext globalContext)
 {
-	protected const long BlockRange = 10_000;
+	protected const long BlockRange = 10000;
 
 	public SyncOptions Options { get; } = syncOptions.Value;
 

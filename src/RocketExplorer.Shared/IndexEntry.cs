@@ -12,7 +12,7 @@ public record class IndexEntry
 	public required byte[] Address { get; init; }
 
 	[Key(2)]
-	public string? AddressEnsName { get; init; }
+	public required string? AddressEnsName { get; init; }
 
 	[Key(3)]
 	public required byte[]? MegapoolAddress { get; init; }
@@ -25,6 +25,15 @@ public record class IndexEntry
 
 	[Key(6)]
 	public required int? MegapoolIndex { get; init; }
+
+	[Key(7)]
+	public required byte[]? WithdrawalAddress { get; init; }
+
+	[Key(8)]
+	public required byte[]? RPLWithdrawalAddress { get; init; }
+
+	[Key(9)]
+	public required HashSet<byte[]> StakeOnBehalfAddresses { get; init; }
 
 	public virtual bool Equals(IndexEntry? other)
 	{
@@ -40,11 +49,17 @@ public record class IndexEntry
 
 		return Type == other.Type &&
 			Address.SequenceEqual(other.Address) &&
-			((MegapoolAddress is null && other.MegapoolAddress is null) || (MegapoolAddress is not null &&
-				other.MegapoolAddress is not null && MegapoolAddress.SequenceEqual(other.MegapoolAddress))) &&
-			((ValidatorPubKey is null && other.ValidatorPubKey is null) || (ValidatorPubKey is not null &&
-				other.ValidatorPubKey is not null && ValidatorPubKey.SequenceEqual(other.ValidatorPubKey))) &&
-			ValidatorIndex == other.ValidatorIndex && MegapoolIndex == other.MegapoolIndex && AddressEnsName == other.AddressEnsName;
+			((MegapoolAddress is null && other.MegapoolAddress is null) ||
+				MegapoolAddress?.SequenceEqual(other.MegapoolAddress) == true) &&
+			((ValidatorPubKey is null && other.ValidatorPubKey is null) ||
+				ValidatorPubKey?.SequenceEqual(other.ValidatorPubKey) == true) &&
+			ValidatorIndex == other.ValidatorIndex && MegapoolIndex == other.MegapoolIndex && string.Equals(
+				AddressEnsName, other.AddressEnsName, StringComparison.OrdinalIgnoreCase) &&
+			((WithdrawalAddress is null && other.WithdrawalAddress is null) ||
+				WithdrawalAddress?.SequenceEqual(other.WithdrawalAddress) == true) &&
+			((RPLWithdrawalAddress is null && other.RPLWithdrawalAddress is null) ||
+				RPLWithdrawalAddress?.SequenceEqual(other.RPLWithdrawalAddress) == true) &&
+			StakeOnBehalfAddresses.SetEquals(other.StakeOnBehalfAddresses);
 	}
 
 	public override int GetHashCode()
@@ -61,7 +76,22 @@ public record class IndexEntry
 
 		hashCode.Add(ValidatorIndex);
 		hashCode.Add(MegapoolIndex);
-		hashCode.Add(AddressEnsName);
+		hashCode.Add(AddressEnsName, StringComparer.OrdinalIgnoreCase);
+
+		if (WithdrawalAddress is not null)
+		{
+			hashCode.AddBytes(WithdrawalAddress);
+		}
+
+		if (RPLWithdrawalAddress is not null)
+		{
+			hashCode.AddBytes(RPLWithdrawalAddress);
+		}
+
+		foreach (var address in StakeOnBehalfAddresses.Order())
+		{
+			hashCode.AddBytes(address);
+		}
 
 		return hashCode.ToHashCode();
 	}

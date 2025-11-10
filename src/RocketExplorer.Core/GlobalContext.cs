@@ -30,6 +30,8 @@ public record class GlobalContext
 
 	public required AsyncRetryPolicy Policy { get; init; }
 
+	public string RocketStorageAddress => Contracts["rocketStorage"].Versions.Single().Address;
+
 	public required ContextServices Services { get; init; }
 
 	public required Task<TokensContext> TokensContextFactory { get; init; }

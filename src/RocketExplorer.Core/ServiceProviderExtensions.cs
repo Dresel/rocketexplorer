@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -12,6 +13,8 @@ using RocketExplorer.Core.Tokens;
 using RocketExplorer.Ethereum;
 using RocketExplorer.Ethereum.RocketNodeManager;
 using RocketExplorer.Ethereum.RocketStorage;
+using RocketExplorer.Shared;
+using RocketExplorer.Shared.Contracts;
 
 namespace RocketExplorer.Core;
 
@@ -28,18 +31,19 @@ public static class ServiceProviderExtensions
 			"Using Rocket Pool environment {Environment} with rpc endpoint {RPCUrl}", options.Environment,
 			options.RPCUrl);
 
+		Storage storage = serviceProvider.GetRequiredService<Storage>();
+		BlobObject<SnapshotMetadata>? snapshotMetadata = await storage.ReadAsync<SnapshotMetadata>(Keys.SnapshotMetadata, cancellationToken);
+
 		BlockWithTransactions latestBlock =
 			await web3.Eth.Blocks.GetBlockWithTransactionsByNumber.SendRequestAsync(BlockParameter.CreateLatest());
 		latestBlock = await web3.Eth.Blocks
 			.GetBlockWithTransactionsByNumber
-			.SendRequestAsync(new BlockParameter((ulong)(latestBlock.Number.Value - 12)));
+			.SendRequestAsync(new BlockParameter(Math.Min((ulong)((snapshotMetadata?.ProcessedBlockNumber ?? 13_325_230) + 1_000_000), (ulong)(latestBlock.Number.Value - 12))));
 
 		AsyncRetryPolicy policy =
 			NethereumPolicies.Retry(serviceProvider.GetRequiredService<ILogger<GlobalContext>>());
 
 		RocketStorageService rocketStorageService = new(web3, options.RocketStorageContractAddress);
-
-		Storage storage = serviceProvider.GetRequiredService<Storage>();
 
 		ContractsContext contractsContext = await ContractsContext.ReadAsync(storage, cancellationToken);
 		Task<NodesContext> nodesContextFactory = NodesContext.ReadAsync(

@@ -19,7 +19,7 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 
 	private static readonly char[] Digits = Enumerable.Range('0', 10).Select(x => (char)x).ToArray();
 	private static readonly char[] Letters = Enumerable.Range('a', 26).Select(x => (char)x).ToArray();
-	private static readonly char[] ValidNGramCharacters = [..Digits, ..Letters,];
+	private static readonly char[] ValidNGramCharacters = [.. Digits, .. Letters,];
 	private readonly IBrowserViewportService browserViewportService = browserViewportService;
 
 	private readonly DialogOptions dialogOptions = new()
@@ -94,6 +94,9 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			IndexEntryType.RPLHolder => "RPL Holder",
 			IndexEntryType.RPLOldHolder => "RPLv1 Holder",
 			IndexEntryType.RockRETHHolder => "rock.rETH Holder",
+			IndexEntryType.WithdrawalAddress => "Withdrawal Address",
+			IndexEntryType.RPLWithdrawalAddress => "RPL Withdrawal Address",
+			IndexEntryType.StakeOnBehalfAddress => "Stake On Behalf Address",
 			_ => throw new ArgumentOutOfRangeException(nameof(type)),
 		};
 
@@ -167,7 +170,9 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 		string address = AddressUtil.Current.ConvertToChecksumAddress(result.Data.Address);
 
 		if (result.Data!.Type.HasFlag(IndexEntryType.NodeOperator) ||
-			result.Data!.Type.HasFlag(IndexEntryType.Megapool))
+			result.Data!.Type.HasFlag(IndexEntryType.Megapool) ||
+			result.Data!.Type.HasFlag(IndexEntryType.WithdrawalAddress) ||
+			result.Data!.Type.HasFlag(IndexEntryType.RPLWithdrawalAddress))
 		{
 			NavigationManager.NavigateTo($"/node/{address}");
 			return;
@@ -298,7 +303,8 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			searchWithoutAddressPrefix = RemoveAddressPrefix(search);
 		}
 
-		if ((!startsWithAddressPrefix && !search.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f')) || (startsWithAddressPrefix &&
+		if ((!startsWithAddressPrefix && !search.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f')) ||
+			(startsWithAddressPrefix &&
 				!searchWithoutAddressPrefix.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f')))
 		{
 			return [];
@@ -408,6 +414,28 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 				if (validatorIndex.Contains(search, StringComparison.OrdinalIgnoreCase))
 				{
 					result.Add(CreateGroupListItem(entry, ByValidatorIndex, validatorIndex, search));
+				}
+			}
+
+			if (entry.WithdrawalAddress is not null)
+			{
+				string withdrawalAddress =
+					AddressUtil.Current.ConvertToChecksumAddress(entry.WithdrawalAddress);
+
+				if (withdrawalAddress.Contains(search, StringComparison.OrdinalIgnoreCase))
+				{
+					result.Add(CreateGroupListItem(entry, ByAddress, withdrawalAddress, search));
+				}
+			}
+
+			if (entry.RPLWithdrawalAddress is not null)
+			{
+				string withdrawalAddress =
+					AddressUtil.Current.ConvertToChecksumAddress(entry.RPLWithdrawalAddress);
+
+				if (withdrawalAddress.Contains(search, StringComparison.OrdinalIgnoreCase))
+				{
+					result.Add(CreateGroupListItem(entry, ByAddress, withdrawalAddress, search));
 				}
 			}
 

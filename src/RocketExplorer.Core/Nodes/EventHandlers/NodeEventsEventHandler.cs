@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Nethereum.Contracts;
 using Nethereum.Hex.HexConvertors.Extensions;
+using Nethereum.RPC.Eth.DTOs;
 using RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition;
 using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
 using RocketExplorer.Ethereum.rocketStorage.ContractDefinition;
@@ -112,7 +113,9 @@ public class NodeEventsEventHandler
 				stakeOnBehalfAddress.HexToByteArray(), cancellationToken: cancellationToken);
 
 			globalContext.GetLogger<NodeEventsEventHandler>()
-				.LogInformation("Node {NodeAddress} stake on behalf address {StakeOnBehalfAddress} added", nodeOperatorAddress, stakeOnBehalfAddress);
+				.LogInformation(
+					"Node {NodeAddress} stake on behalf address {StakeOnBehalfAddress} added", nodeOperatorAddress,
+					stakeOnBehalfAddress);
 		}
 		else
 		{
@@ -139,8 +142,79 @@ public class NodeEventsEventHandler
 				stakeOnBehalfAddress.HexToByteArray(), cancellationToken: cancellationToken);
 
 			globalContext.GetLogger<NodeEventsEventHandler>()
-				.LogInformation("Node {NodeAddress} stake on behalf address {StakeOnBehalfAddress} removed", nodeOperatorAddress, stakeOnBehalfAddress);
+				.LogInformation(
+					"Node {NodeAddress} stake on behalf address {StakeOnBehalfAddress} removed", nodeOperatorAddress,
+					stakeOnBehalfAddress);
 		}
+	}
+
+	public static async Task HandleAsync(
+		GlobalContext globalContext, EventLog<NodeSmoothingPoolStateChangedEventDTOBase> eventLog,
+		CancellationToken cancellationToken)
+	{
+		NodesContext context = await globalContext.NodesContextFactory;
+
+		string nodeOperatorAddress = eventLog.Event.Node;
+
+		// This should not happen
+		if (!context.Nodes.Data.Index.TryGetValue(nodeOperatorAddress, out _))
+		{
+			globalContext.GetLogger<NodeEventsEventHandler>().LogError(
+				"Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
+			return;
+		}
+
+		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
+		{
+			context.Nodes.Partial.Updated[nodeOperatorAddress] =
+				(await globalContext.Services.Storage.ReadAsync<Node>(
+					Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
+				throw new InvalidOperationException("Cannot read node operator from storage.");
+		}
+
+		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
+		{
+			InSmoothingPool = eventLog.Event.State,
+		};
+
+		globalContext.GetLogger<NodeEventsEventHandler>()
+			.LogInformation("Node {NodeAddress} {SmoothingPoolAction} smoothing pool", nodeOperatorAddress, eventLog.Event.State ? "joined" : "left");
+	}
+
+	public static async Task HandleAsync(
+		GlobalContext globalContext, EventLog<NodeTimezoneLocationSetEventDTO> eventLog,
+		CancellationToken cancellationToken)
+	{
+		NodesContext context = await globalContext.NodesContextFactory;
+
+		string nodeOperatorAddress = eventLog.Event.Node;
+
+		// This should not happen
+		if (!context.Nodes.Data.Index.TryGetValue(nodeOperatorAddress, out _))
+		{
+			globalContext.GetLogger<NodeEventsEventHandler>().LogError(
+				"Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
+			return;
+		}
+
+		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
+		{
+			context.Nodes.Partial.Updated[nodeOperatorAddress] =
+				(await globalContext.Services.Storage.ReadAsync<Node>(
+					Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
+				throw new InvalidOperationException("Cannot read node operator from storage.");
+		}
+
+		string timezone = await globalContext.Services.RocketNodeManager.GetNodeTimezoneLocationQueryAsync(
+			eventLog.Event.Node, new BlockParameter(eventLog.Log.BlockNumber));
+
+		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
+		{
+			Timezone = timezone,
+		};
+
+		globalContext.GetLogger<NodeEventsEventHandler>()
+			.LogInformation("Node {NodeAddress} timezone changed to {timezone}", nodeOperatorAddress, timezone);
 	}
 
 	public static async Task HandleAsync(
@@ -274,22 +348,8 @@ public class NodeEventsEventHandler
 				x.Address = @event.Node.HexToByteArray();
 			}, cancellationToken: cancellationToken);
 
-		// TODO: Removed, replace
-		// Fetch latest node details (otherwise we would have to use the current latestRocketNodeManager of log.BlockNumber via contractsSnapshot)
-		////GetNodeDetailsOutputDTO? nodeDetails = null;
-
-		////try
-		////{
-		////	// TODO: Obsolete, replace
-		////	// See https://discord.com/channels/405159462932971535/704214664829075506/1365495113383677973
-		////	nodeDetails =
-		////		await context.Policy.ExecuteAsync(() =>
-		////			context.RocketNodeManager.GetNodeDetailsQueryAsync(@event.Node));
-		////}
-		////catch
-		////{
-		////	context.Logger.LogWarning("Failed to fetch node details for {Node}", @event.Node);
-		////}
+		string timezone = await globalContext.Services.RocketNodeManager.GetNodeTimezoneLocationQueryAsync(
+			@event.Node, new BlockParameter(eventLog.Log.BlockNumber));
 
 		// TODO: Add more details
 		context.Nodes.Partial.Updated.Add(
@@ -297,14 +357,15 @@ public class NodeEventsEventHandler
 			{
 				ContractAddress = @event.Node.HexToByteArray(),
 				RegistrationTimestamp = (long)@event.Time,
-				Timezone = "Unknown",
+				Timezone = timezone,
 				MinipoolValidators = [],
 				MegapoolValidators = [],
 				RPLLegacyStaked = default,
 				RPLMegapoolStaked = default,
 				WithdrawalAddress = null,
 				RPLWithdrawalAddress = null,
-				StakeOnBehalfAddresses = new(new FastByteArrayComparer()),
+				StakeOnBehalfAddresses = new HashSet<byte[]>(new FastByteArrayComparer()),
+				InSmoothingPool = false,
 			});
 
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)@event.Time).DateTime);

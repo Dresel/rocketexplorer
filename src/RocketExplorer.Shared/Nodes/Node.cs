@@ -39,4 +39,7 @@ public record class Node
 
 	[Key(10)]
 	public required HashSet<byte[]> StakeOnBehalfAddresses { get; init; }
+
+	[Key(11)]
+	public required bool InSmoothingPool { get; init; }
 }

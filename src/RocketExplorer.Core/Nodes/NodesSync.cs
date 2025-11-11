@@ -38,7 +38,10 @@ public class NodesSync(IOptions<SyncOptions> options, GlobalContext globalContex
 
 		IEnumerable<IEventLog> nodeAddedEvents = await GlobalContext.Services.Web3.FilterAsync(
 			fromBlock, toBlock, [
-				typeof(NodeRegisteredEventDTO), typeof(NodeRPLWithdrawalAddressSetEventDTO),
+				typeof(NodeRegisteredEventDTO),
+				typeof(NodeTimezoneLocationSetEventDTO),
+				typeof(NodeSmoothingPoolStateChangedEventDTOBase),
+				typeof(NodeRPLWithdrawalAddressSetEventDTO),
 				typeof(NodeRPLWithdrawalAddressUnsetEventDTO),
 			],
 			context.RocketNodeManagerAddresses, GlobalContext.Policy);
@@ -46,6 +49,12 @@ public class NodesSync(IOptions<SyncOptions> options, GlobalContext globalContex
 		foreach (IEventLog eventLog in nodeAddedEvents)
 		{
 			await eventLog.WhenIsAsync<NodeRegisteredEventDTO, GlobalContext>(
+				NodeEventsEventHandler.HandleAsync, GlobalContext, cancellationToken);
+
+			await eventLog.WhenIsAsync<NodeTimezoneLocationSetEventDTO, GlobalContext>(
+				NodeEventsEventHandler.HandleAsync, GlobalContext, cancellationToken);
+
+			await eventLog.WhenIsAsync<NodeSmoothingPoolStateChangedEventDTOBase, GlobalContext>(
 				NodeEventsEventHandler.HandleAsync, GlobalContext, cancellationToken);
 
 			await eventLog.WhenIsAsync<NodeRPLWithdrawalAddressSetEventDTO, GlobalContext>(
@@ -67,7 +76,8 @@ public class NodesSync(IOptions<SyncOptions> options, GlobalContext globalContex
 
 		IEnumerable<IEventLog> stakeOnBehalfEvents = await GlobalContext.Services.Web3.FilterAsync(
 			fromBlock, toBlock, [typeof(StakeRPLForAllowedEventDTO),],
-			[.. context.PreSaturn1RocketNodeStakingAddresses, ..context.PostSaturn1RocketNodeStakingAddresses], GlobalContext.Policy);
+			[.. context.PreSaturn1RocketNodeStakingAddresses, ..context.PostSaturn1RocketNodeStakingAddresses,],
+			GlobalContext.Policy);
 
 		foreach (IEventLog eventLog in stakeOnBehalfEvents)
 		{

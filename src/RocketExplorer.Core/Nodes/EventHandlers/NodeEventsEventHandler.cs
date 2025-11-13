@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Nethereum.Contracts;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.RPC.Eth.DTOs;
+using RocketExplorer.Ethereum.RocketNodeManager;
 using RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition;
 using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
 using RocketExplorer.Ethereum.rocketStorage.ContractDefinition;
@@ -90,6 +91,8 @@ public class NodeEventsEventHandler
 
 		if (eventLog.Event.Allowed)
 		{
+			context.Nodes.Data.StakeOnBehalfAddresses.TryAdd(
+				nodeOperatorAddress, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
 			context.Nodes.Data.StakeOnBehalfAddresses[nodeOperatorAddress].Add(stakeOnBehalfAddress);
 
 			context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
@@ -120,6 +123,11 @@ public class NodeEventsEventHandler
 		else
 		{
 			context.Nodes.Data.StakeOnBehalfAddresses[nodeOperatorAddress].Remove(stakeOnBehalfAddress);
+
+			if (context.Nodes.Data.StakeOnBehalfAddresses[nodeOperatorAddress].Count == 0)
+			{
+				context.Nodes.Data.StakeOnBehalfAddresses.Remove(nodeOperatorAddress);
+			}
 
 			context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
 			{
@@ -178,7 +186,9 @@ public class NodeEventsEventHandler
 		};
 
 		globalContext.GetLogger<NodeEventsEventHandler>()
-			.LogInformation("Node {NodeAddress} {SmoothingPoolAction} smoothing pool", nodeOperatorAddress, eventLog.Event.State ? "joined" : "left");
+			.LogInformation(
+				"Node {NodeAddress} {SmoothingPoolAction} the smoothing pool", nodeOperatorAddress,
+				eventLog.Event.State ? "joined" : "left");
 	}
 
 	public static async Task HandleAsync(
@@ -205,7 +215,12 @@ public class NodeEventsEventHandler
 				throw new InvalidOperationException("Cannot read node operator from storage.");
 		}
 
-		string timezone = await globalContext.Services.RocketNodeManager.GetNodeTimezoneLocationQueryAsync(
+		RocketNodeManagerService rocketNodeManagerService = new(
+			globalContext.Services.Web3,
+			globalContext.Contracts["rocketNodeManager"].Versions
+				.Last(x => x.ActivationHeight < (long)eventLog.Log.BlockNumber.Value).Address);
+
+		string timezone = await rocketNodeManagerService.GetNodeTimezoneLocationQueryAsync(
 			eventLog.Event.Node, new BlockParameter(eventLog.Log.BlockNumber));
 
 		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
@@ -348,7 +363,12 @@ public class NodeEventsEventHandler
 				x.Address = @event.Node.HexToByteArray();
 			}, cancellationToken: cancellationToken);
 
-		string timezone = await globalContext.Services.RocketNodeManager.GetNodeTimezoneLocationQueryAsync(
+		RocketNodeManagerService rocketNodeManagerService = new(
+			globalContext.Services.Web3,
+			globalContext.Contracts["rocketNodeManager"].Versions
+				.Last(x => x.ActivationHeight < (long)eventLog.Log.BlockNumber.Value).Address);
+
+		string timezone = await rocketNodeManagerService.GetNodeTimezoneLocationQueryAsync(
 			@event.Node, new BlockParameter(eventLog.Log.BlockNumber));
 
 		// TODO: Add more details

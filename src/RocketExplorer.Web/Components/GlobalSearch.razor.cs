@@ -172,7 +172,8 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 		if (result.Data!.Type.HasFlag(IndexEntryType.NodeOperator) ||
 			result.Data!.Type.HasFlag(IndexEntryType.Megapool) ||
 			result.Data!.Type.HasFlag(IndexEntryType.WithdrawalAddress) ||
-			result.Data!.Type.HasFlag(IndexEntryType.RPLWithdrawalAddress))
+			result.Data!.Type.HasFlag(IndexEntryType.RPLWithdrawalAddress) ||
+			result.Data!.Type.HasFlag(IndexEntryType.StakeOnBehalfAddress))
 		{
 			NavigationManager.NavigateTo($"/node/{address}");
 			return;
@@ -436,6 +437,17 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 				if (withdrawalAddress.Contains(search, StringComparison.OrdinalIgnoreCase))
 				{
 					result.Add(CreateGroupListItem(entry, ByAddress, withdrawalAddress, search));
+				}
+			}
+
+			foreach (byte[] entryStakeOnBehalfAddress in entry.StakeOnBehalfAddresses)
+			{
+				string stakeOnBehalfAddress =
+					AddressUtil.Current.ConvertToChecksumAddress(entryStakeOnBehalfAddress);
+
+				if (stakeOnBehalfAddress.Contains(search, StringComparison.OrdinalIgnoreCase))
+				{
+					result.Add(CreateGroupListItem(entry, ByAddress, stakeOnBehalfAddress, search));
 				}
 			}
 

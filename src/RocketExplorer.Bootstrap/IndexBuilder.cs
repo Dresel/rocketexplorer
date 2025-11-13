@@ -22,6 +22,9 @@ internal class IndexBuilder
 		globalContext.ContractsContext.ProcessingCompletionSource.TrySetResult();
 
 		NodesContext nodesContext = await globalContext.NodesContextFactory;
+
+		List<KeyValuePair<string, HashSet<string>>> keyValuePairs = nodesContext.Nodes.Data.StakeOnBehalfAddresses.Where(x => x.Value.Count > 1).ToList();
+
 		nodesContext.ProcessingCompletionSource.TrySetResult();
 
 		TokensContext tokensContext = await globalContext.TokensContextFactory;

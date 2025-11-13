@@ -38,7 +38,7 @@ public static class ServiceProviderExtensions
 			await web3.Eth.Blocks.GetBlockWithTransactionsByNumber.SendRequestAsync(BlockParameter.CreateLatest());
 		latestBlock = await web3.Eth.Blocks
 			.GetBlockWithTransactionsByNumber
-			.SendRequestAsync(new BlockParameter(Math.Min((ulong)((snapshotMetadata?.ProcessedBlockNumber ?? 13_325_230) + 1_000_000), (ulong)(latestBlock.Number.Value - 12))));
+			.SendRequestAsync(new BlockParameter((ulong)(latestBlock.Number.Value - 12)));
 
 		AsyncRetryPolicy policy =
 			NethereumPolicies.Retry(serviceProvider.GetRequiredService<ILogger<GlobalContext>>());

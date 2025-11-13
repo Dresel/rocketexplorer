@@ -18,9 +18,11 @@ public class IndexEntry
 
 	public byte[]? ValidatorPubKey { get; set; }
 
-	public byte[]? WithdrawalAddress { get; set; }
+	// TODO: Use Address and add HashSet<NodeAddresses>?
 
-	public byte[]? RPLWithdrawalAddress { get; set; }
+	////public byte[]? WithdrawalAddress { get; set; }
 
-	public HashSet<byte[]> StakeOnBehalfAddresses { get; set; } = new(new FastByteArrayComparer());
+	////public byte[]? RPLWithdrawalAddress { get; set; }
+
+	////public HashSet<byte[]> StakeOnBehalfAddresses { get; set; } = new(new FastByteArrayComparer());
 }

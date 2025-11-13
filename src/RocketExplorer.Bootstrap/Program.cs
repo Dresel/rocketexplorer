@@ -1,7 +1,5 @@
-using System.ComponentModel.Design;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Threading;
 using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +16,6 @@ using RocketExplorer.Core.Ens;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Core.Tokens;
 using RocketExplorer.Shared;
-using RocketExplorer.Shared.Ens;
 using Serilog;
 using Serilog.Core;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -113,8 +110,8 @@ GlobalContext globalContext = await host.Services.CreateGlobalContextAsync();
 host.Services.GetRequiredService<GlobalContextAccessor>().GlobalContext = globalContext;
 
 // Initial sync
-globalContext.Services.GlobalIndexService.SkipLoading = true;
-globalContext.Services.GlobalEnsIndexService.SkipLoading = true;
+////globalContext.Services.GlobalIndexService.SkipLoading = true;
+////globalContext.Services.GlobalEnsIndexService.SkipLoading = true;
 
 // Initial index build
 ////await IndexBuilder.BuildIndexesAsync(globalContext);
@@ -122,11 +119,9 @@ globalContext.Services.GlobalEnsIndexService.SkipLoading = true;
 ////return;
 
 Task contractsSyncTask = host.Services.GetRequiredService<ContractsSync>().HandleBlocksAsync();
-NodesContext nodesContext2 = await globalContext.NodesContextFactory;
-
 Task tokensSyncTask = host.Services.GetRequiredService<TokensSync>().HandleBlocksAsync();
 Task nodesSyncTask = host.Services.GetRequiredService<NodesSync>().HandleBlocksAsync();
-Task ensSyncTask = Task.CompletedTask; //host.Services.GetRequiredService<EnsSync>().HandleBlocksAsync();
+Task ensSyncTask = host.Services.GetRequiredService<EnsSync>().HandleBlocksAsync();
 
 await Task.WhenAll(contractsSyncTask, nodesSyncTask, tokensSyncTask, ensSyncTask);
 
@@ -139,7 +134,7 @@ TokensContext tokensContext = await globalContext.TokensContextFactory;
 Task writeTokensTask = tokensContext.SaveAsync(
 	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<TokensContext>>());
 EnsContext ensContext = await globalContext.EnsContextFactory;
-Task writeEnsTask = Task.CompletedTask; //ensContext.SaveAsync(globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<EnsContext>>());
+Task writeEnsTask = ensContext.SaveAsync(globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<EnsContext>>());
 
 Task writeDashboardTask = globalContext.DashboardContext.SaveAsync(
 	globalContext.Services.Storage, globalContext.LatestBlockHeight,
@@ -157,8 +152,8 @@ Task writeMetadataTask = globalContext.Services.Storage.WriteAsync(
 		},
 	}, 10);
 
-Task writeIndexTask = Task.CompletedTask; //globalContext.Services.GlobalIndexService.WriteAsync(globalContext.LatestBlockHeight);
-Task writeEnsIndexTask = Task.CompletedTask; //globalContext.Services.GlobalEnsIndexService.WriteAsync(globalContext.LatestBlockHeight);
+Task writeIndexTask = globalContext.Services.GlobalIndexService.WriteAsync(globalContext.LatestBlockHeight);
+Task writeEnsIndexTask = globalContext.Services.GlobalEnsIndexService.WriteAsync(globalContext.LatestBlockHeight);
 
 await Task.WhenAll(writeContractsTask, writeNodesTask, writeTokensTask, writeEnsTask, writeDashboardTask, writeMetadataTask, writeIndexTask, writeEnsIndexTask);
 

@@ -114,9 +114,9 @@ host.Services.GetRequiredService<GlobalContextAccessor>().GlobalContext = global
 ////globalContext.Services.GlobalEnsIndexService.SkipLoading = true;
 
 // Initial index build
-////await IndexBuilder.BuildIndexesAsync(globalContext);
-////logger.LogInformation("Sync completed");
-////return;
+await IndexBuilder.BuildIndexesAsync(globalContext);
+logger.LogInformation("Sync completed");
+return;
 
 Task contractsSyncTask = host.Services.GetRequiredService<ContractsSync>().HandleBlocksAsync();
 Task tokensSyncTask = host.Services.GetRequiredService<TokensSync>().HandleBlocksAsync();

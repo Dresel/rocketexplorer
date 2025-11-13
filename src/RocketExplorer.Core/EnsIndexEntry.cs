@@ -10,5 +10,5 @@ public class EnsIndexEntry
 
 	public IndexEntryType Type { get; set; }
 
-	// TODO: NodeAddress?
+	public HashSet<byte[]> NodeAddresses { get; set; } = new(new FastByteArrayComparer());
 }

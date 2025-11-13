@@ -14,9 +14,7 @@ public class GlobalIndexService(Storage storage, ILogger<GlobalIndexService> log
 			ValidatorIndex = entry.ValidatorIndex,
 			ValidatorPubKey = entry.ValidatorPubKey,
 			AddressEnsName = entry.AddressEnsName,
-			WithdrawalAddress = entry.WithdrawalAddress,
-			RPLWithdrawalAddress = entry.RPLWithdrawalAddress,
-			StakeOnBehalfAddresses = entry.StakeOnBehalfAddresses,
+			NodeAddresses = entry.NodeAddresses,
 		}, entry => new IndexEntry
 		{
 			Type = entry.Type,
@@ -26,7 +24,5 @@ public class GlobalIndexService(Storage storage, ILogger<GlobalIndexService> log
 			ValidatorIndex = entry.ValidatorIndex,
 			ValidatorPubKey = entry.ValidatorPubKey,
 			AddressEnsName = entry.AddressEnsName,
-			WithdrawalAddress = entry.WithdrawalAddress,
-			RPLWithdrawalAddress = entry.RPLWithdrawalAddress,
-			StakeOnBehalfAddresses = entry.StakeOnBehalfAddresses,
+			NodeAddresses = entry.NodeAddresses,
 		}, new FastByteArrayComparer(), storage, Keys.GlobalIndexTemplate, logger);

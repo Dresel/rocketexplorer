@@ -18,6 +18,8 @@ public class IndexEntry
 
 	public byte[]? ValidatorPubKey { get; set; }
 
+	public HashSet<byte[]> NodeAddresses { get; set; } = new(new FastByteArrayComparer());
+
 	// TODO: Use Address and add HashSet<NodeAddresses>?
 
 	////public byte[]? WithdrawalAddress { get; set; }

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Nethereum.Contracts.Standards.ENS;
@@ -75,6 +76,19 @@ internal class IndexBuilder
 		NodesContext nodesContext = await globalContext.NodesContextFactory;
 		TokensContext tokensContext = await globalContext.TokensContextFactory;
 		EnsContext ensContext = await globalContext.EnsContextFactory;
+
+		Dictionary<string, HashSet<string>> reverse = new(StringComparer.OrdinalIgnoreCase);
+
+		foreach ((var nodeAddress, HashSet<string> withdrawalAddresses) in nodesContext.Nodes.Data.StakeOnBehalfAddresses)
+		{
+			foreach (var withdrawalAddress in withdrawalAddresses)
+			{
+				reverse.TryAdd(withdrawalAddress, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+				reverse[withdrawalAddress].Add(nodeAddress);
+			}
+		}
+
+		var orderByDescending = reverse.OrderByDescending(x => x.Value.Count).ToList();
 
 		globalContext.Services.GlobalEnsIndexService.SkipLoading = true;
 
@@ -188,26 +202,26 @@ internal class IndexBuilder
 		foreach (KeyValuePair<string, string> withdrawalAddress in nodesContext.Nodes.Data.WithdrawalAddresses)
 		{
 			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-				withdrawalAddress.Value.RemoveHexPrefix(), withdrawalAddress.Key.HexToByteArray(),
+				withdrawalAddress.Value.RemoveHexPrefix(), withdrawalAddress.Value.HexToByteArray(),
 				EventIndex.Zero,
 				x =>
 				{
 					x.Type |= IndexEntryType.WithdrawalAddress;
-					x.Address = withdrawalAddress.Key.HexToByteArray();
-					x.WithdrawalAddress = withdrawalAddress.Value.HexToByteArray();
+					x.Address = withdrawalAddress.Value.HexToByteArray();
+					x.NodeAddresses.Add(withdrawalAddress.Key.HexToByteArray());
 				}, cancellationToken: cancellationToken);
 		}
 
 		foreach (KeyValuePair<string, string> withdrawalAddress in nodesContext.Nodes.Data.RPLWithdrawalAddresses)
 		{
 			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-				withdrawalAddress.Value.RemoveHexPrefix(), withdrawalAddress.Key.HexToByteArray(),
+				withdrawalAddress.Value.RemoveHexPrefix(), withdrawalAddress.Value.HexToByteArray(),
 				EventIndex.Zero,
 				x =>
 				{
 					x.Type |= IndexEntryType.RPLWithdrawalAddress;
-					x.Address = withdrawalAddress.Key.HexToByteArray();
-					x.RPLWithdrawalAddress = withdrawalAddress.Value.HexToByteArray();
+					x.Address = withdrawalAddress.Value.HexToByteArray();
+					x.NodeAddresses.Add(withdrawalAddress.Key.HexToByteArray());
 				}, cancellationToken: cancellationToken);
 		}
 
@@ -216,13 +230,13 @@ internal class IndexBuilder
 			foreach (string stakeOnBehalfAddress in stakeOnBehalfAddresses.Value)
 			{
 				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-					stakeOnBehalfAddress.RemoveHexPrefix(), stakeOnBehalfAddresses.Key.HexToByteArray(),
+					stakeOnBehalfAddress.RemoveHexPrefix(), stakeOnBehalfAddress.HexToByteArray(),
 					EventIndex.Zero,
 					x =>
 					{
 						x.Type |= IndexEntryType.StakeOnBehalfAddress;
-						x.Address = stakeOnBehalfAddresses.Key.HexToByteArray();
-						x.StakeOnBehalfAddresses.Add(stakeOnBehalfAddress.HexToByteArray());
+						x.Address = stakeOnBehalfAddress.HexToByteArray();
+						x.NodeAddresses.Add(stakeOnBehalfAddresses.Key.HexToByteArray());
 					}, cancellationToken: cancellationToken);
 			}
 		}

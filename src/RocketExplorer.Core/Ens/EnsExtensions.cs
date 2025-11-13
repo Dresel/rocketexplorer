@@ -202,9 +202,9 @@ public static class EnsExtensions
 		}
 
 		bool nodeExists = NodeExists(nodesContext, candidateAddress);
-		bool withdrawalExists = WithdrawalExists(nodesContext, candidateAddress);
-		bool rplWithdrawalExists = RPLWithdrawalExists(nodesContext, candidateAddress);
-		bool stakeOnBehalfExists = StakeOnBehalfExists(nodesContext, candidateAddress);
+		var withdrawalExists = WithdrawalExists(nodesContext, candidateAddress);
+		var rplWithdrawalExists = RPLWithdrawalExists(nodesContext, candidateAddress);
+		var stakeOnBehalfExists = StakeOnBehalfExists(nodesContext, candidateAddress);
 
 		bool rplUpdated = TokenHolderExists(tokensContext.RPLTokenInfo, candidateAddress);
 		bool rplOldUpdated = TokenHolderExists(tokensContext.RPLOldTokenInfo, candidateAddress);
@@ -217,9 +217,9 @@ public static class EnsExtensions
 			(rplOldUpdated ? IndexEntryType.RPLOldHolder : 0) |
 			(rethUpdated ? IndexEntryType.RETHHolder : 0) |
 			(rockRETHUpdated ? IndexEntryType.RockRETHHolder : 0) |
-			(withdrawalExists ? IndexEntryType.WithdrawalAddress : 0) |
-			(rplWithdrawalExists ? IndexEntryType.RPLWithdrawalAddress : 0) |
-			(stakeOnBehalfExists ? IndexEntryType.StakeOnBehalfAddress : 0);
+			(withdrawalExists.Count > 0 ? IndexEntryType.WithdrawalAddress : 0) |
+			(rplWithdrawalExists.Count > 0 ? IndexEntryType.RPLWithdrawalAddress : 0) |
+			(stakeOnBehalfExists.Count > 0 ? IndexEntryType.StakeOnBehalfAddress : 0);
 
 		if (type == 0)
 		{
@@ -241,6 +241,7 @@ public static class EnsExtensions
 				Address = address,
 				AddressEnsName = ensName,
 				Type = type,
+				NodeAddresses = new HashSet<byte[]>(withdrawalExists.Concat(rplWithdrawalExists).Concat(stakeOnBehalfExists).Select(x => x.HexToByteArray()), new FastByteArrayComparer()),
 			}, cancellationToken);
 
 		_ = globalContext.Services.GlobalIndexService.UpdateEntryAsync(
@@ -330,24 +331,26 @@ public static class EnsExtensions
 		return true;
 	}
 
-	private static bool RPLWithdrawalExists(NodesContext nodesContext, string address) =>
-
+	private static List<string> RPLWithdrawalExists(NodesContext nodesContext, string address)
+	{
 		// TODO: HashSet if performance issue
-		nodesContext.Nodes.Data.RPLWithdrawalAddresses.Values.Any(withdrawalAddress =>
-			string.Equals(withdrawalAddress, address, StringComparison.OrdinalIgnoreCase));
+		return nodesContext.Nodes.Data.WithdrawalAddresses.Where(x =>
+			string.Equals(x.Value, address, StringComparison.OrdinalIgnoreCase)).Select(x => x.Key).ToList();
+	}
 
-	private static bool StakeOnBehalfExists(NodesContext nodesContext, string address) =>
-
-		// TODO: HashSet if performance issue
-		nodesContext.Nodes.Data.StakeOnBehalfAddresses.Values.SelectMany(x => x).Any(withdrawalAddress =>
-			string.Equals(withdrawalAddress, address, StringComparison.OrdinalIgnoreCase));
+	private static List<string> StakeOnBehalfExists(NodesContext nodesContext, string address)
+	{
+		return nodesContext.Nodes.Data.StakeOnBehalfAddresses.Where(x => x.Value.Contains(address)).Select(x => x.Key)
+			.ToList();
+	}
 
 	private static bool TokenHolderExists(TokenInfo tokenInfo, string address) =>
 		tokenInfo.Holders.ContainsKey(address);
 
-	private static bool WithdrawalExists(NodesContext nodesContext, string address) =>
-
+	private static List<string> WithdrawalExists(NodesContext nodesContext, string address)
+	{
 		// TODO: HashSet if performance issue
-		nodesContext.Nodes.Data.WithdrawalAddresses.Values.Any(withdrawalAddress =>
-			string.Equals(withdrawalAddress, address, StringComparison.OrdinalIgnoreCase));
+		return nodesContext.Nodes.Data.WithdrawalAddresses.Where(x =>
+			string.Equals(x.Value, address, StringComparison.OrdinalIgnoreCase)).Select(x => x.Key).ToList();
+	}
 }

@@ -128,6 +128,7 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			Data = new IndexEntryViewModel
 			{
 				Address = entry.Address,
+				NodeAddresses = entry.NodeAddresses,
 				MegapoolAddress = entry.MegapoolAddress,
 				MegapoolIndex = entry.MegapoolIndex,
 				DisplayText = displayText.Ellipsize(this.prefixLength, this.suffixLength),
@@ -148,6 +149,7 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			Data = new IndexEntryViewModel
 			{
 				Address = entry.Address,
+				NodeAddresses = entry.NodeAddresses,
 				MegapoolAddress = null,
 				MegapoolIndex = null,
 				DisplayText = displayText,
@@ -170,12 +172,17 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 		string address = AddressUtil.Current.ConvertToChecksumAddress(result.Data.Address);
 
 		if (result.Data!.Type.HasFlag(IndexEntryType.NodeOperator) ||
-			result.Data!.Type.HasFlag(IndexEntryType.Megapool) ||
-			result.Data!.Type.HasFlag(IndexEntryType.WithdrawalAddress) ||
-			result.Data!.Type.HasFlag(IndexEntryType.RPLWithdrawalAddress) ||
-			result.Data!.Type.HasFlag(IndexEntryType.StakeOnBehalfAddress))
+			result.Data!.Type.HasFlag(IndexEntryType.Megapool))
 		{
 			NavigationManager.NavigateTo($"/node/{address}");
+			return;
+		}
+
+		if (result.Data!.Type.HasFlag(IndexEntryType.WithdrawalAddress) ||
+		    result.Data!.Type.HasFlag(IndexEntryType.RPLWithdrawalAddress) ||
+		    result.Data!.Type.HasFlag(IndexEntryType.StakeOnBehalfAddress))
+		{
+			NavigationManager.NavigateTo($"/node/{AddressUtil.Current.ConvertToChecksumAddress(result.Data.NodeAddresses.First())}");
 			return;
 		}
 
@@ -418,39 +425,6 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 				}
 			}
 
-			if (entry.WithdrawalAddress is not null)
-			{
-				string withdrawalAddress =
-					AddressUtil.Current.ConvertToChecksumAddress(entry.WithdrawalAddress);
-
-				if (withdrawalAddress.Contains(search, StringComparison.OrdinalIgnoreCase))
-				{
-					result.Add(CreateGroupListItem(entry, ByAddress, withdrawalAddress, search));
-				}
-			}
-
-			if (entry.RPLWithdrawalAddress is not null)
-			{
-				string withdrawalAddress =
-					AddressUtil.Current.ConvertToChecksumAddress(entry.RPLWithdrawalAddress);
-
-				if (withdrawalAddress.Contains(search, StringComparison.OrdinalIgnoreCase))
-				{
-					result.Add(CreateGroupListItem(entry, ByAddress, withdrawalAddress, search));
-				}
-			}
-
-			foreach (byte[] entryStakeOnBehalfAddress in entry.StakeOnBehalfAddresses)
-			{
-				string stakeOnBehalfAddress =
-					AddressUtil.Current.ConvertToChecksumAddress(entryStakeOnBehalfAddress);
-
-				if (stakeOnBehalfAddress.Contains(search, StringComparison.OrdinalIgnoreCase))
-				{
-					result.Add(CreateGroupListItem(entry, ByAddress, stakeOnBehalfAddress, search));
-				}
-			}
-
 			return result;
 		});
 	}
@@ -481,5 +455,7 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 		public required int? MegapoolIndex { get; init; }
 
 		public required IndexEntryType Type { get; init; }
+
+		public required HashSet<byte[]> NodeAddresses { get; set; }
 	}
 }

@@ -32,20 +32,22 @@ public class NodeEventsEventHandler
 		context.Nodes.Data.WithdrawalAddresses[nodeOperatorAddress] = eventLog.Event.WithdrawalAddress;
 
 		_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-			eventLog.Event.WithdrawalAddress.RemoveHexPrefix(), nodeIndexEntry.ContractAddress,
+			eventLog.Event.WithdrawalAddress.RemoveHexPrefix(),
+			eventLog.Event.WithdrawalAddress.HexToByteArray(),
 			new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
 			x =>
 			{
 				x.Type |= IndexEntryType.WithdrawalAddress;
-				x.Address = nodeIndexEntry.ContractAddress;
-				x.WithdrawalAddress = eventLog.Event.WithdrawalAddress.HexToByteArray();
+				x.Address = eventLog.Event.WithdrawalAddress.HexToByteArray();
+				x.NodeAddresses.Add(nodeIndexEntry.ContractAddress);
 			}, cancellationToken: cancellationToken);
 
 		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
 		{
 			context.Nodes.Partial.Updated[nodeOperatorAddress] =
 				(await globalContext.Services.Storage.ReadAsync<Node>(
-					Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
+					Keys.Node(nodeOperatorAddress),
+					cancellationToken))?.Data ??
 				throw new InvalidOperationException("Cannot read node operator from storage.");
 		}
 
@@ -103,13 +105,13 @@ public class NodeEventsEventHandler
 			};
 
 			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-				stakeOnBehalfAddress.RemoveHexPrefix(), nodeIndexEntry.ContractAddress,
+				stakeOnBehalfAddress.RemoveHexPrefix(), stakeOnBehalfAddress.HexToByteArray(),
 				new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
 				x =>
 				{
 					x.Type |= IndexEntryType.StakeOnBehalfAddress;
-					x.Address = nodeIndexEntry.ContractAddress;
-					x.StakeOnBehalfAddresses.Add(stakeOnBehalfAddress.HexToByteArray());
+					x.Address = stakeOnBehalfAddress.HexToByteArray();
+					x.NodeAddresses.Add(nodeIndexEntry.ContractAddress);
 				}, cancellationToken: cancellationToken);
 
 			await globalContext.Services.AddressEnsProcessHistory.AddAddressEnsRecordAsync(
@@ -137,13 +139,15 @@ public class NodeEventsEventHandler
 			};
 
 			_ = globalContext.Services.GlobalIndexService.UpdateEntryAsync(
-				stakeOnBehalfAddress.RemoveHexPrefix(), nodeIndexEntry.ContractAddress,
+				stakeOnBehalfAddress.RemoveHexPrefix(), stakeOnBehalfAddress.HexToByteArray(),
 				new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
 				x =>
 				{
 					x.Type &= ~IndexEntryType.StakeOnBehalfAddress;
-					x.Address = nodeIndexEntry.ContractAddress;
-					x.StakeOnBehalfAddresses.Remove(stakeOnBehalfAddress.HexToByteArray());
+					x.Address = stakeOnBehalfAddress.HexToByteArray();
+
+					// TODO: This could remove shared node addresses
+					x.NodeAddresses.Remove(nodeIndexEntry.ContractAddress);
 				}, cancellationToken: cancellationToken);
 
 			await globalContext.Services.AddressEnsProcessHistory.AddAddressEnsRecordAsync(
@@ -261,12 +265,15 @@ public class NodeEventsEventHandler
 		_ = globalContext.Services.GlobalIndexService.UpdateEntryAsync(
 			context.Nodes.Partial.Updated[nodeOperatorAddress].RPLWithdrawalAddress?.ToHex() ??
 			throw new InvalidOperationException("Withdrawal address should not be null"),
-			nodeIndexEntry.ContractAddress,
+			context.Nodes.Partial.Updated[nodeOperatorAddress].RPLWithdrawalAddress ??
+			throw new InvalidOperationException("Withdrawal address should not be null"),
 			new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
 			x =>
 			{
 				x.Type &= ~IndexEntryType.RPLWithdrawalAddress;
-				x.RPLWithdrawalAddress = null;
+
+				// TODO: This could removed shared addresses, use list?
+				x.NodeAddresses.Remove(nodeIndexEntry.ContractAddress);
 			}, entry => entry.Type == 0, cancellationToken);
 
 		await globalContext.Services.AddressEnsProcessHistory.AddAddressEnsRecordAsync(
@@ -302,13 +309,13 @@ public class NodeEventsEventHandler
 		context.Nodes.Data.RPLWithdrawalAddresses[nodeOperatorAddress] = eventLog.Event.WithdrawalAddress;
 
 		_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-			eventLog.Event.WithdrawalAddress.RemoveHexPrefix(), nodeIndexEntry.ContractAddress,
+			eventLog.Event.WithdrawalAddress.RemoveHexPrefix(), eventLog.Event.WithdrawalAddress.HexToByteArray(),
 			new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
 			x =>
 			{
 				x.Type |= IndexEntryType.RPLWithdrawalAddress;
-				x.Address = nodeIndexEntry.ContractAddress;
-				x.RPLWithdrawalAddress = eventLog.Event.WithdrawalAddress.HexToByteArray();
+				x.Address = eventLog.Event.WithdrawalAddress.HexToByteArray();
+				x.NodeAddresses.Add(nodeIndexEntry.ContractAddress);
 			}, cancellationToken: cancellationToken);
 
 		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))

@@ -11,23 +11,35 @@ public record class Node
 	public required byte[] ContractAddress { get; init; }
 
 	[Key(1)]
-	public long RegistrationTimestamp { get; set; }
+	public long RegistrationTimestamp { get; init; }
 
 	[Key(2)]
 	public byte[]? MegapoolAddress { get; init; }
 
 	[Key(3)]
-	public MinipoolValidatorIndexEntry[] MinipoolValidators { get; set; } = [];
+	public required MinipoolValidatorIndexEntry[] MinipoolValidators { get; init; }
 
 	[Key(4)]
-	public MegapoolValidatorIndexEntry[] MegapoolValidators { get; set; } = [];
+	public required MegapoolValidatorIndexEntry[] MegapoolValidators { get; init; }
 
 	[Key(5)]
-	public required string Timezone { get; set; }
+	public required string Timezone { get; init; }
 
 	[Key(6)]
-	public BigInteger RPLLegacyStaked { get; set; } = 0;
+	public required BigInteger RPLLegacyStaked { get; init; }
 
 	[Key(7)]
-	public BigInteger RPLMegapoolStaked { get; set; } = 0;
+	public required BigInteger RPLMegapoolStaked { get; init; }
+
+	[Key(8)]
+	public required byte[]? WithdrawalAddress { get; init; }
+
+	[Key(9)]
+	public required byte[]? RPLWithdrawalAddress { get; init; }
+
+	[Key(10)]
+	public required HashSet<byte[]> StakeOnBehalfAddresses { get; init; }
+
+	[Key(11)]
+	public required bool InSmoothingPool { get; init; }
 }

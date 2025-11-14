@@ -25,7 +25,7 @@ public class MinipoolCreatedEventHandler
 		NodesContext context = await globalContext.NodesContextFactory;
 
 		// This should not happen
-		if (!context.Nodes.Data.Index.TryGetValue(nodeOperatorAddress, out var nodeIndexEntry))
+		if (!context.Nodes.Data.Index.TryGetValue(nodeOperatorAddress, out NodeIndexEntry? nodeIndexEntry))
 		{
 			globalContext.GetLogger<MinipoolCreatedEventHandler>().LogError(
 				"Node operator {NodeOperatorAddress} for {Minipool} not found in index.", nodeOperatorAddress,
@@ -82,9 +82,12 @@ public class MinipoolCreatedEventHandler
 				throw new InvalidOperationException("Cannot read node operator from storage.");
 		}
 
-		context.Nodes.Partial.Updated[nodeOperatorAddress].MinipoolValidators =
-		[
-			..context.Nodes.Partial.Updated[nodeOperatorAddress].MinipoolValidators, entry,
-		];
+		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
+		{
+			MinipoolValidators =
+			[
+				..context.Nodes.Partial.Updated[nodeOperatorAddress].MinipoolValidators, entry,
+			],
+		};
 	}
 }

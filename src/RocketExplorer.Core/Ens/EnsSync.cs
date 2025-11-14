@@ -8,8 +8,6 @@ using Nethereum.Contracts.Standards.ENS.PublicResolver.ContractDefinition;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.Hex.HexTypes;
 using RocketExplorer.Core.Contracts;
-using RocketExplorer.Core.Nodes;
-using RocketExplorer.Core.Tokens;
 using RocketExplorer.Ethereum;
 
 namespace RocketExplorer.Core.Ens;

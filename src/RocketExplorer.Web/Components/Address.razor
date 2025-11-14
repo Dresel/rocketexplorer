@@ -11,7 +11,7 @@
 <div class="@Class">
 	@if (string.IsNullOrWhiteSpace(HrefPlaceholder))
 	{
-		<MudText Typo="Typo" Color="Color.Primary" Class="d-inline" Style="font-family: monospace;">
+		<MudText Typo="Typo" Inline="true" Color="Color.Primary" Style="font-family: monospace;">
 			<MudHighlighter Text="@displayContractAddress" HighlightedTexts="@displayHighlightedTexts" />
 		</MudText>
 	}

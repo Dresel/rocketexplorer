@@ -38,6 +38,10 @@ public record class NodesContext
 		Task<BlobObject<NodesSnapshot>?> readNodesSnapshotTask =
 			storage.ReadAsync<NodesSnapshot>(Keys.NodesSnapshot, cancellationToken);
 
+		logger.LogInformation("Loading {snapshot}", Keys.NodesExtendedSnapshot);
+		Task<BlobObject<NodesExtendedSnapshot>?> readNodesExtendedSnapshotTask =
+			storage.ReadAsync<NodesExtendedSnapshot>(Keys.NodesExtendedSnapshot, cancellationToken);
+
 		logger.LogInformation("Loading {snapshot}", Keys.ValidatorSnapshot);
 		Task<BlobObject<ValidatorSnapshot>?> readValidatorSnapshotTask =
 			storage.ReadAsync<ValidatorSnapshot>(Keys.ValidatorSnapshot, cancellationToken);
@@ -63,6 +67,19 @@ public record class NodesContext
 					Index = [],
 					DailyRegistrations = [],
 					TotalNodeCount = [],
+				},
+			};
+
+		BlobObject<NodesExtendedSnapshot> nodesExtendedSnapshot =
+			await readNodesExtendedSnapshotTask ??
+			new BlobObject<NodesExtendedSnapshot>
+			{
+				ProcessedBlockNumber = activationHeight,
+				Data = new NodesExtendedSnapshot
+				{
+					WithdrawalAddresses = new Dictionary<byte[], byte[]>(new FastByteArrayComparer()),
+					RPLWithdrawalAddresses = new Dictionary<byte[], byte[]>(new FastByteArrayComparer()),
+					StakeOnBehalfAddresses = new Dictionary<byte[], HashSet<byte[]>>(new FastByteArrayComparer()),
 				},
 			};
 
@@ -132,6 +149,9 @@ public record class NodesContext
 						StringComparer.OrdinalIgnoreCase),
 					TotalNodesCount = nodesSnapshot.Data.TotalNodeCount,
 					DailyRegistrations = nodesSnapshot.Data.DailyRegistrations,
+					WithdrawalAddresses = nodesExtendedSnapshot.Data.WithdrawalAddresses.ToDictionary(pair => pair.Key.ToHex(true), pair => pair.Value.ToHex(true), StringComparer.OrdinalIgnoreCase),
+					RPLWithdrawalAddresses = nodesExtendedSnapshot.Data.RPLWithdrawalAddresses.ToDictionary(pair => pair.Key.ToHex(true), pair => pair.Value.ToHex(true), StringComparer.OrdinalIgnoreCase),
+					StakeOnBehalfAddresses = nodesExtendedSnapshot.Data.StakeOnBehalfAddresses.ToDictionary(pair => pair.Key.ToHex(true), pair => new HashSet<string>(pair.Value.Select(y => y.ToHex(true)), StringComparer.OrdinalIgnoreCase)),
 				},
 			},
 			ValidatorInfo = new ValidatorInfo
@@ -189,6 +209,22 @@ public record class NodesContext
 				},
 			}, cancellationToken: cancellationToken);
 
+		Task writeNodesExtendedTask = storage.WriteAsync(
+			Keys.NodesExtendedSnapshot,
+			new BlobObject<NodesExtendedSnapshot>
+			{
+				ProcessedBlockNumber = CurrentBlockHeight,
+				Data = new NodesExtendedSnapshot
+				{
+					WithdrawalAddresses = Nodes.Data.WithdrawalAddresses.ToDictionary(
+						x => x.Key.HexToByteArray(), x => x.Value.HexToByteArray(), new FastByteArrayComparer()),
+					RPLWithdrawalAddresses = Nodes.Data.RPLWithdrawalAddresses.ToDictionary(
+						x => x.Key.HexToByteArray(), x => x.Value.HexToByteArray(), new FastByteArrayComparer()),
+					StakeOnBehalfAddresses = Nodes.Data.StakeOnBehalfAddresses.ToDictionary(
+						x => x.Key.HexToByteArray(), x => new HashSet<byte[]>(x.Value.Select(address => address.HexToByteArray()), new FastByteArrayComparer())),
+				},
+			}, cancellationToken: cancellationToken);
+
 		logger.LogInformation("Writing {snapshot}", Keys.QueueSnapshot);
 		Task writeQueueTask = storage.WriteAsync(
 			Keys.QueueSnapshot,
@@ -223,7 +259,7 @@ public record class NodesContext
 				},
 			}, cancellationToken: cancellationToken);
 
-		await Task.WhenAll(writeNodesTask, writeQueueTask, writeValidatorTask);
+		await Task.WhenAll(writeNodesTask, writeNodesExtendedTask, writeQueueTask, writeValidatorTask);
 
 		await Parallel.ForEachAsync(
 			Nodes.Partial.Updated.Values, cancellationToken, async (node, innerCancellationToken) =>

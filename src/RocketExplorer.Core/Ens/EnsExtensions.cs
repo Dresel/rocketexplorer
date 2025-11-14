@@ -176,7 +176,8 @@ public static class EnsExtensions
 	}
 
 	public static async Task UpdateEnsNameAsync(
-		this GlobalContext globalContext, string? obsoleteEnsName, byte[] address, string? ensName, CancellationToken cancellationToken = default)
+		this GlobalContext globalContext, string? obsoleteEnsName, byte[] address, string? ensName,
+		CancellationToken cancellationToken = default)
 	{
 		NodesContext nodesContext = await globalContext.NodesContextFactory;
 		TokensContext tokensContext = await globalContext.TokensContextFactory;
@@ -201,6 +202,9 @@ public static class EnsExtensions
 		}
 
 		bool nodeExists = NodeExists(nodesContext, candidateAddress);
+		List<string> withdrawalExists = WithdrawalExists(nodesContext, candidateAddress);
+		List<string> rplWithdrawalExists = RPLWithdrawalExists(nodesContext, candidateAddress);
+		List<string> stakeOnBehalfExists = StakeOnBehalfExists(nodesContext, candidateAddress);
 
 		bool rplUpdated = TokenHolderExists(tokensContext.RPLTokenInfo, candidateAddress);
 		bool rplOldUpdated = TokenHolderExists(tokensContext.RPLOldTokenInfo, candidateAddress);
@@ -212,11 +216,23 @@ public static class EnsExtensions
 			(rplUpdated ? IndexEntryType.RPLHolder : 0) |
 			(rplOldUpdated ? IndexEntryType.RPLOldHolder : 0) |
 			(rethUpdated ? IndexEntryType.RETHHolder : 0) |
-			(rockRETHUpdated ? IndexEntryType.RockRETHHolder : 0);
+			(rockRETHUpdated ? IndexEntryType.RockRETHHolder : 0) |
+			(withdrawalExists.Count > 0 ? IndexEntryType.WithdrawalAddress : 0) |
+			(rplWithdrawalExists.Count > 0 ? IndexEntryType.RPLWithdrawalAddress : 0) |
+			(stakeOnBehalfExists.Count > 0 ? IndexEntryType.StakeOnBehalfAddress : 0);
 
 		if (type == 0)
 		{
-			throw new InvalidOperationException("Type is not supposed to be 0");
+			// Case when valid ens but address not relevant anymore (e.g. no holder anymore)
+			_ = globalContext.Services.GlobalEnsIndexService.TryRemoveEntryAsync(
+				ensName[..^4], ensName, EventIndex.Zero, cancellationToken);
+
+			_ = globalContext.Services.GlobalIndexService.UpdateEntryAsync(
+				candidateAddress.RemoveHexPrefix(), address, EventIndex.Zero,
+				entry => entry.AddressEnsName = null,
+				cancellationToken: cancellationToken);
+
+			return;
 		}
 
 		_ = globalContext.Services.GlobalEnsIndexService.AddOrUpdateEntryAsync(
@@ -225,6 +241,11 @@ public static class EnsExtensions
 				Address = address,
 				AddressEnsName = ensName,
 				Type = type,
+				NodeAddresses =
+				[
+					..withdrawalExists.Concat(rplWithdrawalExists).Concat(stakeOnBehalfExists)
+						.Select(x => x.HexToByteArray()),
+				],
 			}, cancellationToken);
 
 		_ = globalContext.Services.GlobalIndexService.UpdateEntryAsync(
@@ -292,10 +313,6 @@ public static class EnsExtensions
 			forwardResolutionResult.ResolvedAddressReverseNameHash ??
 			throw new InvalidOperationException("ResolvedAddress must not be empty"), blockNumber);
 
-		if ((long)blockNumber.Value == 23456942)
-		{
-		}
-
 		return new EnsNameLookupResult
 		{
 			EnsNameHash = forwardResolutionResult.EnsNameHash,
@@ -318,5 +335,22 @@ public static class EnsExtensions
 		return true;
 	}
 
-	private static bool TokenHolderExists(TokenInfo tokenInfo, string address) => tokenInfo.Holders.ContainsKey(address);
+	private static List<string> RPLWithdrawalExists(NodesContext nodesContext, string address) =>
+
+		// TODO: HashSet if performance issue
+		nodesContext.Nodes.Data.RPLWithdrawalAddresses.Where(x =>
+			string.Equals(x.Value, address, StringComparison.OrdinalIgnoreCase)).Select(x => x.Key).ToList();
+
+	private static List<string> StakeOnBehalfExists(NodesContext nodesContext, string address) =>
+		nodesContext.Nodes.Data.StakeOnBehalfAddresses.Where(x => x.Value.Contains(address)).Select(x => x.Key)
+			.ToList();
+
+	private static bool TokenHolderExists(TokenInfo tokenInfo, string address) =>
+		tokenInfo.Holders.ContainsKey(address);
+
+	private static List<string> WithdrawalExists(NodesContext nodesContext, string address) =>
+
+		// TODO: HashSet if performance issue
+		nodesContext.Nodes.Data.WithdrawalAddresses.Where(x =>
+			string.Equals(x.Value, address, StringComparison.OrdinalIgnoreCase)).Select(x => x.Key).ToList();
 }

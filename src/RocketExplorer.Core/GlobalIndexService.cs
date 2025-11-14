@@ -9,16 +9,20 @@ public class GlobalIndexService(Storage storage, ILogger<GlobalIndexService> log
 		{
 			Type = entry.Type,
 			Address = entry.Address,
+			AddressEnsName = entry.AddressEnsName,
 			MegapoolAddress = entry.MegapoolAddress,
 			MegapoolIndex = entry.MegapoolIndex,
 			ValidatorIndex = entry.ValidatorIndex,
 			ValidatorPubKey = entry.ValidatorPubKey,
+			NodeAddresses = entry.NodeAddresses,
 		}, entry => new IndexEntry
 		{
 			Type = entry.Type,
 			Address = entry.Address,
+			AddressEnsName = entry.AddressEnsName,
 			MegapoolAddress = entry.MegapoolAddress,
 			MegapoolIndex = entry.MegapoolIndex,
 			ValidatorIndex = entry.ValidatorIndex,
 			ValidatorPubKey = entry.ValidatorPubKey,
+			NodeAddresses = entry.NodeAddresses,
 		}, new FastByteArrayComparer(), storage, Keys.GlobalIndexTemplate, logger);

@@ -135,6 +135,10 @@ header .mud-autocomplete {
 	padding: 8px 16px !important;
 }
 
+.highlight .mud-typography {
+	background-color: var(--mark-background-color);
+	color: var(--mark-color);
+}
 
 mark {
 	background-color: var(--mark-background-color);

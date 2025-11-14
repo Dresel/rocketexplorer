@@ -12,7 +12,7 @@ public record class IndexEntry
 	public required byte[] Address { get; init; }
 
 	[Key(2)]
-	public string? AddressEnsName { get; init; }
+	public required string? AddressEnsName { get; init; }
 
 	[Key(3)]
 	public required byte[]? MegapoolAddress { get; init; }
@@ -25,6 +25,9 @@ public record class IndexEntry
 
 	[Key(6)]
 	public required int? MegapoolIndex { get; init; }
+
+	[Key(7)]
+	public required List<byte[]> NodeAddresses { get; init; }
 
 	public virtual bool Equals(IndexEntry? other)
 	{
@@ -40,11 +43,13 @@ public record class IndexEntry
 
 		return Type == other.Type &&
 			Address.SequenceEqual(other.Address) &&
-			((MegapoolAddress is null && other.MegapoolAddress is null) || (MegapoolAddress is not null &&
-				other.MegapoolAddress is not null && MegapoolAddress.SequenceEqual(other.MegapoolAddress))) &&
-			((ValidatorPubKey is null && other.ValidatorPubKey is null) || (ValidatorPubKey is not null &&
-				other.ValidatorPubKey is not null && ValidatorPubKey.SequenceEqual(other.ValidatorPubKey))) &&
-			ValidatorIndex == other.ValidatorIndex && MegapoolIndex == other.MegapoolIndex && AddressEnsName == other.AddressEnsName;
+			((MegapoolAddress is null && other.MegapoolAddress is null) ||
+				MegapoolAddress?.SequenceEqual(other.MegapoolAddress) == true) &&
+			((ValidatorPubKey is null && other.ValidatorPubKey is null) ||
+				ValidatorPubKey?.SequenceEqual(other.ValidatorPubKey) == true) &&
+			ValidatorIndex == other.ValidatorIndex && MegapoolIndex == other.MegapoolIndex &&
+			string.Equals(AddressEnsName, other.AddressEnsName, StringComparison.OrdinalIgnoreCase) &&
+			NodeAddresses.SequenceEqual(other.NodeAddresses, new FastByteArrayComparer());
 	}
 
 	public override int GetHashCode()
@@ -61,7 +66,12 @@ public record class IndexEntry
 
 		hashCode.Add(ValidatorIndex);
 		hashCode.Add(MegapoolIndex);
-		hashCode.Add(AddressEnsName);
+		hashCode.Add(AddressEnsName, StringComparer.OrdinalIgnoreCase);
+
+		foreach (var address in NodeAddresses)
+		{
+			hashCode.AddBytes(address);
+		}
 
 		return hashCode.ToHashCode();
 	}

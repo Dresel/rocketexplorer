@@ -182,6 +182,48 @@ internal class IndexBuilder
 			}
 		}
 
+		foreach (KeyValuePair<string, string> withdrawalAddress in nodesContext.Nodes.Data.WithdrawalAddresses)
+		{
+			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+				withdrawalAddress.Value.RemoveHexPrefix(), withdrawalAddress.Value.HexToByteArray(),
+				EventIndex.Zero,
+				x =>
+				{
+					x.Type |= IndexEntryType.WithdrawalAddress;
+					x.Address = withdrawalAddress.Value.HexToByteArray();
+					x.NodeAddresses.Add(withdrawalAddress.Key.HexToByteArray());
+				}, cancellationToken: cancellationToken);
+		}
+
+		foreach (KeyValuePair<string, string> withdrawalAddress in nodesContext.Nodes.Data.RPLWithdrawalAddresses)
+		{
+			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+				withdrawalAddress.Value.RemoveHexPrefix(), withdrawalAddress.Value.HexToByteArray(),
+				EventIndex.Zero,
+				x =>
+				{
+					x.Type |= IndexEntryType.RPLWithdrawalAddress;
+					x.Address = withdrawalAddress.Value.HexToByteArray();
+					x.NodeAddresses.Add(withdrawalAddress.Key.HexToByteArray());
+				}, cancellationToken: cancellationToken);
+		}
+
+		foreach (var stakeOnBehalfAddresses in nodesContext.Nodes.Data.StakeOnBehalfAddresses)
+		{
+			foreach (string stakeOnBehalfAddress in stakeOnBehalfAddresses.Value)
+			{
+				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+					stakeOnBehalfAddress.RemoveHexPrefix(), stakeOnBehalfAddress.HexToByteArray(),
+					EventIndex.Zero,
+					x =>
+					{
+						x.Type |= IndexEntryType.StakeOnBehalfAddress;
+						x.Address = stakeOnBehalfAddress.HexToByteArray();
+						x.NodeAddresses.Add(stakeOnBehalfAddresses.Key.HexToByteArray());
+					}, cancellationToken: cancellationToken);
+			}
+		}
+
 		foreach (MinipoolValidatorIndexEntry minipoolValidator in nodesContext.ValidatorInfo.Data
 					.MinipoolValidatorIndex.Values)
 		{

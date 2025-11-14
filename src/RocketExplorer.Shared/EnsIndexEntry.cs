@@ -14,6 +14,9 @@ public record class EnsIndexEntry
 	[Key(2)]
 	public required string AddressEnsName { get; init; }
 
+	[Key(3)]
+	public required List<byte[]> NodeAddresses { get; init; }
+
 	public virtual bool Equals(EnsIndexEntry? other)
 	{
 		if (other is null)
@@ -28,7 +31,8 @@ public record class EnsIndexEntry
 
 		return Type == other.Type &&
 			Address.SequenceEqual(other.Address) &&
-			string.Equals(AddressEnsName, other.AddressEnsName, StringComparison.OrdinalIgnoreCase);
+			string.Equals(AddressEnsName, other.AddressEnsName, StringComparison.OrdinalIgnoreCase) &&
+			NodeAddresses.SequenceEqual(other.NodeAddresses, new FastByteArrayComparer());
 	}
 
 	public override int GetHashCode()
@@ -38,6 +42,11 @@ public record class EnsIndexEntry
 		hashCode.AddBytes(Address);
 
 		hashCode.Add(AddressEnsName, StringComparer.OrdinalIgnoreCase);
+
+		foreach (byte[] address in NodeAddresses)
+		{
+			hashCode.AddBytes(address);
+		}
 
 		return hashCode.ToHashCode();
 	}

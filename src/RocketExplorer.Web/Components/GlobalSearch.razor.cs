@@ -19,7 +19,7 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 
 	private static readonly char[] Digits = Enumerable.Range('0', 10).Select(x => (char)x).ToArray();
 	private static readonly char[] Letters = Enumerable.Range('a', 26).Select(x => (char)x).ToArray();
-	private static readonly char[] ValidNGramCharacters = [..Digits, ..Letters,];
+	private static readonly char[] ValidNGramCharacters = [.. Digits, .. Letters,];
 	private readonly IBrowserViewportService browserViewportService = browserViewportService;
 
 	private readonly DialogOptions dialogOptions = new()
@@ -94,6 +94,9 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			IndexEntryType.RPLHolder => "RPL Holder",
 			IndexEntryType.RPLOldHolder => "RPLv1 Holder",
 			IndexEntryType.RockRETHHolder => "rock.rETH Holder",
+			IndexEntryType.WithdrawalAddress => "Withdrawal Address",
+			IndexEntryType.RPLWithdrawalAddress => "RPL Withdrawal Address",
+			IndexEntryType.StakeOnBehalfAddress => "Stake On Behalf Address",
 			_ => throw new ArgumentOutOfRangeException(nameof(type)),
 		};
 
@@ -125,8 +128,10 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			Data = new IndexEntryViewModel
 			{
 				Address = entry.Address,
+				NodeAddresses = entry.NodeAddresses,
 				MegapoolAddress = entry.MegapoolAddress,
 				MegapoolIndex = entry.MegapoolIndex,
+				DisplayTextRaw = displayText,
 				DisplayText = displayText.Ellipsize(this.prefixLength, this.suffixLength),
 				IndexOfHighlightedText = displayText.ExtractIndexOf(searchText, this.prefixLength, this.suffixLength),
 				HighlightedTexts = displayText.ExtractHighlightTexts(searchText, this.prefixLength, this.suffixLength),
@@ -145,8 +150,10 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			Data = new IndexEntryViewModel
 			{
 				Address = entry.Address,
+				NodeAddresses = entry.NodeAddresses,
 				MegapoolAddress = null,
 				MegapoolIndex = null,
+				DisplayTextRaw = displayText,
 				DisplayText = displayText,
 				IndexOfHighlightedText = displayText.ExtractIndexOf(searchText, this.prefixLength, this.suffixLength),
 				HighlightedTexts = displayText.ExtractHighlightTexts(searchText, this.prefixLength, this.suffixLength),
@@ -170,6 +177,15 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			result.Data!.Type.HasFlag(IndexEntryType.Megapool))
 		{
 			NavigationManager.NavigateTo($"/node/{address}");
+			return;
+		}
+
+		if (result.Data!.Type.HasFlag(IndexEntryType.WithdrawalAddress) ||
+			result.Data!.Type.HasFlag(IndexEntryType.RPLWithdrawalAddress) ||
+			result.Data!.Type.HasFlag(IndexEntryType.StakeOnBehalfAddress))
+		{
+			NavigationManager.NavigateTo(
+				$"/node/{AddressUtil.Current.ConvertToChecksumAddress(result.Data.NodeAddresses.First())}?highlight={result.Data.DisplayTextRaw}");
 			return;
 		}
 
@@ -298,8 +314,8 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 			searchWithoutAddressPrefix = RemoveAddressPrefix(search);
 		}
 
-		if ((!startsWithAddressPrefix && !search.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f')) || (startsWithAddressPrefix &&
-				!searchWithoutAddressPrefix.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f')))
+		if ((!startsWithAddressPrefix && !search.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f')) ||
+			(startsWithAddressPrefix && !searchWithoutAddressPrefix.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f')))
 		{
 			return [];
 		}
@@ -430,6 +446,8 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 
 		public required string DisplayText { get; init; }
 
+		public required string DisplayTextRaw { get; set; }
+
 		public required IEnumerable<string> HighlightedTexts { get; init; }
 
 		public bool HighlightStartOnly { get; set; }
@@ -439,6 +457,8 @@ public partial class GlobalSearch(IBrowserViewportService browserViewportService
 		public required byte[]? MegapoolAddress { get; set; }
 
 		public required int? MegapoolIndex { get; init; }
+
+		public required List<byte[]> NodeAddresses { get; set; }
 
 		public required IndexEntryType Type { get; init; }
 	}

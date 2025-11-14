@@ -1,6 +1,8 @@
-<MudText Typo="Typo" Color="Color.Primary" Style="font-family: monospace; margin-bottom: -0.4em;">
-	<MudHighlighter Text="@Name" HighlightedText="@HighlightedText"></MudHighlighter>
-</MudText>
+<div class="@Class">
+	<MudText Inline="true" Typo="Typo" Color="Color.Primary" Style="font-family: monospace; margin-bottom: -0.4em;">
+		<MudHighlighter Text="@Name" HighlightedText="@HighlightedText"></MudHighlighter>
+	</MudText>
+</div>
 
 @code {
 
@@ -13,4 +15,6 @@
 	[Parameter]
 	public string HighlightedText { get; set; } = string.Empty;
 
+	[Parameter]
+	public string Class { get; set; } = string.Empty;
 }

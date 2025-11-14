@@ -10,9 +10,11 @@ public class GlobalEnsIndexService(Storage storage, ILogger<GlobalEnsIndexServic
 			Type = entry.Type,
 			Address = entry.Address,
 			AddressEnsName = entry.AddressEnsName,
+			NodeAddresses = entry.NodeAddresses,
 		}, entry => new EnsIndexEntry
 		{
 			Type = entry.Type,
 			Address = entry.Address,
 			AddressEnsName = entry.AddressEnsName,
+			NodeAddresses = entry.NodeAddresses,
 		}, StringComparer.OrdinalIgnoreCase, storage, Keys.GlobalIndexTemplate, logger);

@@ -1,7 +1,5 @@
-using System.ComponentModel.Design;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Threading;
 using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +16,6 @@ using RocketExplorer.Core.Ens;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Core.Tokens;
 using RocketExplorer.Shared;
-using RocketExplorer.Shared.Ens;
 using Serilog;
 using Serilog.Core;
 using Serilog.Sinks.SystemConsole.Themes;

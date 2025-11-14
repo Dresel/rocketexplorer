@@ -1,8 +1,11 @@
 @page "/node/{address}"
+
 @using MessagePack
 @using RocketExplorer.Shared
 @using RocketExplorer.Shared.Validators
 @inherits PageBase<RocketExplorer.Shared.Nodes.Node>
+
+@inject NavigationManager Navigation
 
 <PageTitle>Node @Address</PageTitle>
 <MudStack Spacing="6">
@@ -42,6 +45,73 @@
 				@if (Snapshot.Data.MegapoolAddress != null)
 				{
 					<Address Typo="Typo.body1" ContractAddress="@("0x" + Convert.ToHexString(Snapshot.Data.MegapoolAddress))" HighlightedText="@minipoolSearchString" AppendEtherscanCodeAnchor="true"></Address>
+				}
+				else
+				{
+					<MudText Typo="Typo.body1">-</MudText>
+				}
+			</MudItem>
+			<MudFlexBreak />
+			<MudFlexBreak />
+			<MudItem Class="label">
+				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Withdrawal Address</MudText>
+			</MudItem>
+			<MudItem>
+				@if (Snapshot.Data.WithdrawalAddress != null)
+				{
+					string? ensName = EnsName(Snapshot.Data.WithdrawalAddress);
+
+					if (ensName is not null)
+					{
+						<EnsName Typo="Typo.body1" Class="@HighlightClass(ensName)" Name="@ensName"></EnsName>
+					}
+
+					<Address Typo="Typo.body1" Class="@HighlightClass(Snapshot.Data.WithdrawalAddress)" ContractAddress="@("0x" + Convert.ToHexString(Snapshot.Data.WithdrawalAddress))" AppendEtherscanCodeAnchor="true"></Address>
+				}
+				else
+				{
+					<MudText Typo="Typo.body1">-</MudText>
+				}
+			</MudItem>
+			<MudFlexBreak />
+			<MudItem Class="label">
+				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">RPL Withdrawal Address</MudText>
+			</MudItem>
+			<MudItem>
+				@if (Snapshot.Data.RPLWithdrawalAddress != null)
+				{
+					string? ensName = EnsName(Snapshot.Data.RPLWithdrawalAddress);
+
+					if (ensName is not null)
+					{
+						<EnsName Typo="Typo.body1" Class="@HighlightClass(ensName)" Name="@ensName"></EnsName>
+					}
+
+					<Address Typo="Typo.body1" Class="@HighlightClass(Snapshot.Data.RPLWithdrawalAddress)" ContractAddress="@("0x" + Convert.ToHexString(Snapshot.Data.RPLWithdrawalAddress))" AppendEtherscanCodeAnchor="true"></Address>
+				}
+				else
+				{
+					<MudText Typo="Typo.body1">-</MudText>
+				}
+			</MudItem>
+			<MudFlexBreak />
+			<MudItem Class="label">
+				<MudText Typo="Typo.body1" Style="font-weight: var(--mud-typography-h6-weight);">Stake on behalf addresses</MudText>
+			</MudItem>
+			<MudItem>
+				@if (Snapshot.Data.StakeOnBehalfAddresses.Any())
+				{
+					foreach (byte[] stakeOnBehalfAddress in Snapshot.Data.StakeOnBehalfAddresses)
+					{
+						string? ensName = EnsName(stakeOnBehalfAddress);
+
+						if (ensName is not null)
+						{
+							<EnsName Typo="Typo.body1" Class="@HighlightClass(ensName)" Name="@ensName"></EnsName>
+						}
+
+						<Address Typo="Typo.body1" Class="@HighlightClass(stakeOnBehalfAddress)" ContractAddress="@("0x" + Convert.ToHexString(stakeOnBehalfAddress))" AppendEtherscanCodeAnchor="true"></Address>
+					}
 				}
 				else
 				{
@@ -137,6 +207,10 @@
 	[Parameter]
 	public string? Address { get; set; }
 
+	[Parameter]
+	[SupplyParameterFromQuery]
+	public string? Highlight { get; set; }
+
 	private MudTable<ValidatorViewModel> minipoolTable = null!;
 	private string minipoolSearchString = string.Empty;
 
@@ -147,6 +221,10 @@
 	private ValidatorIndexViewModel[] megapoolValidators = [];
 
 	protected override string? ObjectStoreKey => !string.IsNullOrWhiteSpace(Address) ? Keys.Node(Address.ToLowerInvariant()) : null;
+
+	private string HighlightClass(string ens) => string.Equals(ens, Highlight, StringComparison.OrdinalIgnoreCase) ? "highlight" : string.Empty;
+
+	private string HighlightClass(byte[] address) => string.Equals($"0x{Convert.ToHexString(address)}", Highlight, StringComparison.OrdinalIgnoreCase) ? "highlight" : string.Empty;
 
 	private void OnMinipoolSearch(string text)
 	{

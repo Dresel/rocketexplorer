@@ -20,5 +20,11 @@ public class NodeInfo
 		public required SortedList<DateOnly, int> DailyRegistrations { get; init; } = [];
 
 		public required SortedList<DateOnly, int> TotalNodesCount { get; init; } = [];
+
+		public required Dictionary<string, string> WithdrawalAddresses { get; set; }
+
+		public required Dictionary<string, string> RPLWithdrawalAddresses { get; set; }
+
+		public required Dictionary<string, HashSet<string>> StakeOnBehalfAddresses { get; set; }
 	}
 }

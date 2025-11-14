@@ -17,4 +17,6 @@ public class IndexEntry
 	public long? ValidatorIndex { get; set; }
 
 	public byte[]? ValidatorPubKey { get; set; }
+
+	public List<byte[]> NodeAddresses { get; set; } = new();
 }

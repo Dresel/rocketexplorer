@@ -113,19 +113,19 @@ public class ChartBase : ComponentBase
 		},
 	];
 
-	protected override async Task OnAfterRenderAsync(bool firstRender)
-	{
-		await base.OnAfterRenderAsync(firstRender);
+	////protected override async Task OnAfterRenderAsync(bool firstRender)
+	////{
+	////	await base.OnAfterRenderAsync(firstRender);
 
-		if (firstRender)
-		{
-			ThemeService.DarkModeChanged += (_, darkMode) =>
-			{
-				Key = Guid.NewGuid();
-				StateHasChanged();
-			};
-		}
-	}
+	////	if (firstRender)
+	////	{
+	////		ThemeService.DarkModeChanged += (_, darkMode) =>
+	////		{
+	////			Key = Guid.NewGuid();
+	////			StateHasChanged();
+	////		};
+	////	}
+	////}
 
 	protected override async Task OnInitializedAsync()
 	{

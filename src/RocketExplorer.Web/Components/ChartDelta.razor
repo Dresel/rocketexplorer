@@ -58,6 +58,7 @@
 
 		foreach ((SortedList<DateOnly, int> data, int index) in (Data ?? []).Select((data, index) => (data, index)))
 		{
+			(Series[index].Values as List<DateTimePoint>)?.Clear();
 			Series[index].Values = data.PrepareDelta(DataTransform?[index], Aggregation, target).ToList();
 		}
 	}

@@ -131,42 +131,118 @@
 
 	private void SetLiveChartsLightTheme()
 	{
-		LiveCharts.DefaultSettings.HasTheme(_ =>
+        // LiveCharts.DefaultSettings.HasTheme(_ =>
+        // {
+        // 	LiveChartsSettings defaultSettings = new();
+
+        // 	LiveCharts.DefaultSettings.TooltipBackgroundPaint = defaultSettings.TooltipBackgroundPaint;
+        // 	LiveCharts.DefaultSettings.TooltipTextPaint = defaultSettings.TooltipTextPaint;
+        // 	LiveCharts.DefaultSettings.LegendTextPaint = defaultSettings.LegendTextPaint;
+        // });
+
+		LiveCharts.Configure(configuration =>
 		{
-			LiveChartsSettings defaultSettings = new();
-
-			LiveCharts.DefaultSettings.TooltipBackgroundPaint = defaultSettings.TooltipBackgroundPaint;
-			LiveCharts.DefaultSettings.TooltipTextPaint = defaultSettings.TooltipTextPaint;
-			LiveCharts.DefaultSettings.LegendTextPaint = defaultSettings.LegendTextPaint;
-		});
-
-		LiveCharts.DefaultSettings.AddLightTheme(chartsTheme =>
-		{
-			chartsTheme.Colors =
-			[
-				ThemeService.CurrentPalette.Primary.ToLvcColor(),
-				CorePalette.Of(ColorUtils.ArgbFromRgb(156, 39, 176), Style.Vibrant).Primary[40].ToLvcColor(),
-				CorePalette.Of(ColorUtils.ArgbFromRgb(33, 150, 243), Style.Vibrant).Primary[40].ToLvcColor(),
-			];
-
-			chartsTheme.HasRuleForAxes(axis =>
+			configuration.AddDefaultTheme(chartsTheme =>
 			{
-				axis.NamePaint = ThemeService.CurrentPalette.OnSurface().ToPaint();
-				axis.LabelsPaint = ThemeService.CurrentPalette.OnSurfaceVariant().ToPaint();
+				chartsTheme.OnInitialized(() =>
+				{
+					chartsTheme.Colors =
+					[
+						ThemeService.CurrentPalette.Primary.ToLvcColor(),
+						CorePalette.Of(ColorUtils.ArgbFromRgb(156, 39, 176), Style.Vibrant).Primary[40].ToLvcColor(),
+						CorePalette.Of(ColorUtils.ArgbFromRgb(33, 150, 243), Style.Vibrant).Primary[40].ToLvcColor(),
+					];
+
+					chartsTheme.HasRuleForAxes(axis =>
+					{
+						axis.NamePaint = ThemeService.CurrentPalette.OnSurface().ToPaint();
+						axis.LabelsPaint = ThemeService.CurrentPalette.OnSurfaceVariant().ToPaint();
+					});
+
+					chartsTheme.HasRuleForLineSeries(rule =>
+					{
+						rule.Stroke!.StrokeThickness = 3.0f;
+
+						rule.GeometrySize = 10;
+						rule.GeometryStroke!.StrokeThickness = 3.0f;
+					});
+				});
 			});
 
-			chartsTheme.HasRuleForLineSeries(rule =>
-			{
-				rule.Stroke!.StrokeThickness = 3.0f;
+			// configuration.AddSkiaSharp()
 
-				rule.GeometrySize = 10;
-				rule.GeometryStroke!.StrokeThickness = 3.0f;
-			});
+			// 	.AddDefaultMappers()
+
+			// 	.AddDefaultTheme(
+
+
+			// 		// if neccessary, override the default theme, for more info see:
+			// 		// https://github.com/beto-rodriguez/LiveCharts2/blob/dev/samples/ViewModelsSamples/LiveChartsThemeExtensions.cs
+
+			// 		//theme =>
+			// 		//    theme.OnInitialized(() =>
+			// 		//    {
+			// 		//        theme.AnimationsSpeed = TimeSpan.FromSeconds(1);
+			// 		//        theme.EasingFunction = EasingFunctions.BounceOut;
+			// 		//        theme.Colors = theme.IsDark
+			// 		//            ? ColorPalletes.MaterialDesign200
+			// 		//            : ColorPalletes.MaterialDesign800;
+			// 		//    })
+			// 	);
+
+			// configuration.AddLightTheme(chartsTheme =>
+			// {
+			// 	chartsTheme.Colors =
+			// 	[
+			// 		ThemeService.CurrentPalette.Primary.ToLvcColor(),
+			// 		CorePalette.Of(ColorUtils.ArgbFromRgb(156, 39, 176), Style.Vibrant).Primary[40].ToLvcColor(),
+			// 		CorePalette.Of(ColorUtils.ArgbFromRgb(33, 150, 243), Style.Vibrant).Primary[40].ToLvcColor(),
+			// 	];
+
+			// 	chartsTheme.HasRuleForAxes(axis =>
+			// 	{
+			// 		axis.NamePaint = ThemeService.CurrentPalette.OnSurface().ToPaint();
+			// 		axis.LabelsPaint = ThemeService.CurrentPalette.OnSurfaceVariant().ToPaint();
+			// 	});
+
+			// 	chartsTheme.HasRuleForLineSeries(rule =>
+			// 	{
+			// 		rule.Stroke!.StrokeThickness = 3.0f;
+
+			// 		rule.GeometrySize = 10;
+			// 		rule.GeometryStroke!.StrokeThickness = 3.0f;
+			// 	});
+			// });
 		});
 
-		LiveCharts.DefaultSettings.WithTooltipBackgroundPaint(ThemeService.CurrentPalette.SurfaceContainerHigh().ToPaint());
-		LiveCharts.DefaultSettings.WithTooltipTextPaint(ThemeService.CurrentPalette.OnSurface().ToPaint());
-		LiveCharts.DefaultSettings.WithLegendTextPaint(ThemeService.CurrentPalette.OnSurface().ToPaint());
+
+		//LiveCharts.DefaultSettings.AddLightTheme(chartsTheme =>
+		// {
+		// 	chartsTheme.Colors =
+		// 	[
+		// 		ThemeService.CurrentPalette.Primary.ToLvcColor(),
+		// 		CorePalette.Of(ColorUtils.ArgbFromRgb(156, 39, 176), Style.Vibrant).Primary[40].ToLvcColor(),
+		// 		CorePalette.Of(ColorUtils.ArgbFromRgb(33, 150, 243), Style.Vibrant).Primary[40].ToLvcColor(),
+		// 	];
+
+		// 	chartsTheme.HasRuleForAxes(axis =>
+		// 	{
+		// 		axis.NamePaint = ThemeService.CurrentPalette.OnSurface().ToPaint();
+		// 		axis.LabelsPaint = ThemeService.CurrentPalette.OnSurfaceVariant().ToPaint();
+		// 	});
+
+		// 	chartsTheme.HasRuleForLineSeries(rule =>
+		// 	{
+		// 		rule.Stroke!.StrokeThickness = 3.0f;
+
+		// 		rule.GeometrySize = 10;
+		// 		rule.GeometryStroke!.StrokeThickness = 3.0f;
+		// 	});
+		// });
+
+		// LiveCharts.DefaultSettings.WithTooltipBackgroundPaint(ThemeService.CurrentPalette.SurfaceContainerHigh().ToPaint());
+		// LiveCharts.DefaultSettings.WithTooltipTextPaint(ThemeService.CurrentPalette.OnSurface().ToPaint());
+		// LiveCharts.DefaultSettings.WithLegendTextPaint(ThemeService.CurrentPalette.OnSurface().ToPaint());
 	}
 
 	private void SetLiveChartsDarkTheme()

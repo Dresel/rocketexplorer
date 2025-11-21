@@ -73,12 +73,12 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 
 	protected string GetObjectStoreUrl(string key) => $"{Configuration.ObjectStoreBaseUrl}/{key}";
 
-	protected async Task LoadAsync(CancellationToken cancellationToken = default)
+	protected async Task<bool> LoadAsync(CancellationToken cancellationToken = default)
 	{
 		if (string.IsNullOrWhiteSpace(ObjectStoreKey))
 		{
 			Logger.LogWarning("ObjectStoreKey is null or whitespace");
-			return;
+			return false;
 		}
 
 		await this.semaphore.WaitAsync(cancellationToken);
@@ -106,7 +106,11 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 
 				await OnAfterSnapshotLoadedAsync(cancellationToken);
 				DeserializeElapsedMilliseconds = (int)stopwatch.ElapsedMilliseconds;
+
+				return true;
 			}
+
+			return false;
 		}
 		finally
 		{
@@ -129,7 +133,10 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 		Task.CompletedTask;
 
 	protected virtual void OnAppStateChanged(object? sender, AppState e) =>
-		LoadAsync().ContinueWith(async _ => await InvokeAsync(StateHasChanged));
+		LoadAsync().ContinueWith(async t =>
+		{
+			await (t.Result ? InvokeAsync(StateHasChanged) : Task.CompletedTask);
+		});
 
 	protected override async Task OnParametersSetAsync()
 	{

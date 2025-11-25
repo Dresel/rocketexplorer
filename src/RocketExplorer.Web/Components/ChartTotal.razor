@@ -15,7 +15,7 @@
 	}
 </ChartTemplate>
 
-@code {
+	@code {
 
 	protected override void OnInitialized() =>
 		Series =
@@ -27,7 +27,7 @@
 			},
 		];
 
-	protected override void SetSeries()
+	protected override async void SetSeries()
 	{
 		// TODO: Support Data.Length > 1
 		if (Series == null || Data == null || Series.Length != Data.Length)
@@ -65,6 +65,8 @@
 				throw new ArgumentOutOfRangeException(nameof(Aggregation));
 		}
 
+		Series[0].Values = new List<DateTimePoint>();
+		await Task.Delay(100);
 		Series[0].Values = Data.FirstOrDefault()?.PrepareTotal(Aggregation, target).ToList() ?? [];
 	}
 

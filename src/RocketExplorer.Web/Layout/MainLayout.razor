@@ -3,6 +3,7 @@
 @using MaterialColorUtilities.Palettes
 @using MaterialColorUtilities.Schemes
 @using MaterialColorUtilities.Utils
+@using SkiaSharp
 @using Environment = Environment
 
 @inherits LayoutComponentBase
@@ -140,8 +141,21 @@
         // 	LiveCharts.DefaultSettings.LegendTextPaint = defaultSettings.LegendTextPaint;
         // });
 
+		LiveCharts.DefaultSettings.WithTooltipBackgroundPaint(ThemeService.CurrentPalette.SurfaceContainerHigh().ToPaint());
+		LiveCharts.DefaultSettings.WithTooltipTextPaint(ThemeService.CurrentPalette.OnSurface().ToPaint());
+		LiveCharts.DefaultSettings.WithLegendTextPaint(ThemeService.CurrentPalette.OnSurface().ToPaint());
+
+		// // LiveCharts.DefaultSettings.HasGlobalSKTypeface(
+		// // 	SKTypeface.FromStream(new MemoryStream(await HttpClient.GetByteArrayAsync("fonts/Manrope.ttf"))));
+
 		LiveCharts.Configure(configuration =>
 		{
+			configuration.HasTextSettings(
+				new TextSettings()
+				{
+					DefaultTypeface = SKTypeface.FromFile("fonts/Manrope.ttf"),
+				});
+
 			configuration.AddDefaultTheme(chartsTheme =>
 			{
 				chartsTheme.OnInitialized(() =>

@@ -19,7 +19,7 @@
 		<PackageReference Include="Nethereum.Web3Lite" Version="4.29.0" />
 		<PackageReference Include="SkiaSharp" Version="3.119.2-preview.1" />
 		<PackageReference Include="SkiaSharp.HarfBuzz" Version="3.119.2-preview.1" />
-		<PackageReference Include="SkiaSharp.Views.Blazor" Version="3.119.2-preview.1-custom" />
+		<PackageReference Include="SkiaSharp.Views.Blazor" Version="3.119.2-preview.1" />
 	</ItemGroup>
 
 	<ItemGroup>

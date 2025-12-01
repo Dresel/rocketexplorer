@@ -84,7 +84,7 @@ public class ChartBase : ComponentBase
 				case ChartAggregation.Monthly:
 					target = DateOnly.FromDateTime(DateTime.Today).AddMonths(Expanded ? -36 : -12);
 					dateTimeAxis.MinLimit = new DateTime(target.Year, target.Month, 1).Ticks;
-					dateTimeAxis.MaxLimit = new DateTime(DateTime.Now.Year, DateTime.Now.Month + 1, 1).Ticks;
+					dateTimeAxis.MaxLimit = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(1).Ticks;
 					break;
 
 				case ChartAggregation.Daily:

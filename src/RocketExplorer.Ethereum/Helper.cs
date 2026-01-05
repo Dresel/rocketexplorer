@@ -12,7 +12,7 @@ public class Helper
 		long lastFalse = initialBlock;
 		long firstTrue = 0;
 
-		while (currentBlock < latestBlock)
+		while (currentBlock <= latestBlock)
 		{
 			if (await smartContractCall(new BlockParameter((ulong)currentBlock)))
 			{
@@ -21,6 +21,12 @@ public class Helper
 			}
 
 			lastFalse = currentBlock;
+
+			if (currentBlock == latestBlock)
+			{
+				break;
+			}
+
 			currentBlock = Math.Min(latestBlock, currentBlock + blockIncrement);
 		}
 

@@ -17,6 +17,11 @@ public static class Web3Extensions
 		this Web3 web3, long fromBlock, long toBlock, ICollection<Type> eventDtoTypes,
 		ICollection<string> contractAddresses, AsyncRetryPolicy policy)
 	{
+		if (fromBlock > toBlock)
+		{
+			return [];
+		}
+
 		Debug.Assert(
 			eventDtoTypes.All(eventDtoType => typeof(IEventDTO).IsAssignableFrom(eventDtoType)),
 			"eventDtoTypes must contain IEventDTO types");

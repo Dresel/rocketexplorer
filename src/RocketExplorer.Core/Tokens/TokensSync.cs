@@ -31,7 +31,7 @@ public class TokensSync(IOptions<SyncOptions> options, GlobalContext globalConte
 		TokensContext context = await GlobalContext.TokensContextFactory;
 
 		IEnumerable<IEventLog> rplOldEvents = await GlobalContext.Services.Web3.FilterAsync(
-			fromBlock, toBlock, [typeof(TransferEventDTO),],
+			Math.Max(context.RPLOldSnapshotBlockHeight, fromBlock), toBlock, [typeof(TransferEventDTO),],
 			[context.RPLOldTokenAddress,], GlobalContext.Policy);
 
 		foreach (IEventLog eventLog in rplOldEvents)
@@ -41,7 +41,7 @@ public class TokensSync(IOptions<SyncOptions> options, GlobalContext globalConte
 		}
 
 		IEnumerable<IEventLog> rplEvents = await GlobalContext.Services.Web3.FilterAsync(
-			fromBlock, toBlock, [typeof(TransferEventDTO), typeof(RPLFixedSupplyBurnEventDTO),],
+			Math.Max(context.RPLSnapshotBlockHeight, fromBlock), toBlock, [typeof(TransferEventDTO), typeof(RPLFixedSupplyBurnEventDTO),],
 			[context.RPLTokenAddress,], GlobalContext.Policy);
 
 		foreach (IEventLog eventLog in rplEvents)
@@ -54,7 +54,7 @@ public class TokensSync(IOptions<SyncOptions> options, GlobalContext globalConte
 		}
 
 		IEnumerable<IEventLog> rethEvents = await GlobalContext.Services.Web3.FilterAsync(
-			fromBlock, toBlock, [typeof(TransferEventDTO),],
+			Math.Max(context.RETHSnapshotBlockHeight, fromBlock), toBlock, [typeof(TransferEventDTO),],
 			[context.RETHTokenAddress,], GlobalContext.Policy);
 
 		foreach (IEventLog eventLog in rethEvents)
@@ -64,7 +64,7 @@ public class TokensSync(IOptions<SyncOptions> options, GlobalContext globalConte
 		}
 
 		IEnumerable<IEventLog> preSaturn1StakingEvents = await GlobalContext.Services.Web3.FilterAsync(
-			fromBlock, toBlock, [
+			Math.Max(context.StakedRPLSnapshotBlockHeight, fromBlock), toBlock, [
 				typeof(RPLLegacyStakedEventDto),
 				typeof(RPLOrRPLLegacyWithdrawnEventDTO),
 			],
@@ -80,7 +80,7 @@ public class TokensSync(IOptions<SyncOptions> options, GlobalContext globalConte
 		}
 
 		IEnumerable<IEventLog> postSaturn1StakingEvents = await GlobalContext.Services.Web3.FilterAsync(
-			fromBlock, toBlock, [
+			Math.Max(context.StakedRPLSnapshotBlockHeight, fromBlock), toBlock, [
 				typeof(RPLLegacyWithdrawnEventDTO),
 				typeof(RPLStakedEventDTO),
 				typeof(RPLUnstakedEventDTO),
@@ -102,7 +102,7 @@ public class TokensSync(IOptions<SyncOptions> options, GlobalContext globalConte
 		if (context.RockRETHTokenAddress is not null)
 		{
 			IEnumerable<IEventLog> rockRETHEvents = await GlobalContext.Services.Web3.FilterAsync(
-				fromBlock, toBlock, [typeof(TransferEventDTO),],
+				Math.Max(context.RockRETHSnapshotBlockHeight, fromBlock), toBlock, [typeof(TransferEventDTO),],
 				[context.RockRETHTokenAddress,], GlobalContext.Policy);
 
 			foreach (IEventLog eventLog in rockRETHEvents)
@@ -111,6 +111,14 @@ public class TokensSync(IOptions<SyncOptions> options, GlobalContext globalConte
 					TokenEventHandlers.HandleRockRETHAsync, GlobalContext, cancellationToken);
 			}
 		}
+	}
+
+	protected override async Task OnHandleBlocksErrorAsync(Exception e, CancellationToken cancellationToken)
+	{
+		await base.OnHandleBlocksErrorAsync(e, cancellationToken);
+
+		TokensContext context = await GlobalContext.TokensContextFactory;
+		context.ProcessingCompletionSource.TrySetException(e);
 	}
 
 	protected override async Task SetCurrentBlockHeightAsync(

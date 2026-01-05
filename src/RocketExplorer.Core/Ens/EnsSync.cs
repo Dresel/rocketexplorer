@@ -12,7 +12,7 @@ using RocketExplorer.Ethereum;
 
 namespace RocketExplorer.Core.Ens;
 
-// TODO Expiration
+// TODO: Expiration
 public class EnsSync(IOptions<SyncOptions> options, GlobalContext globalContext)
 	: SyncBase(options, globalContext)
 {

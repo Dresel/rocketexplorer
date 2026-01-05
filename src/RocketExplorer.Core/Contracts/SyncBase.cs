@@ -50,7 +50,19 @@ public abstract class SyncBase(IOptions<SyncOptions> syncOptions, GlobalContext 
 				toBlock,
 				isNormal ? TimeSpan.FromMilliseconds(remainingTimeInMilliseconds) : "-");
 
-			await HandleBlocksAsync(currentBlock, toBlock, cancellationToken);
+			try
+			{
+				await HandleBlocksAsync(currentBlock, toBlock, cancellationToken);
+			}
+			catch (Exception e)
+			{
+				GlobalContext.GetLogger<SyncBase>().LogError(
+					e, "Error processing blocks {FromBlock} to {ToBlock}", currentBlock, toBlock);
+
+				await OnHandleBlocksErrorAsync(e, cancellationToken);
+				throw;
+			}
+
 			await SetCurrentBlockHeightAsync(toBlock, cancellationToken);
 
 			currentBlock = toBlock + 1;
@@ -58,7 +70,11 @@ public abstract class SyncBase(IOptions<SyncOptions> syncOptions, GlobalContext 
 		while (currentBlock <= GlobalContext.LatestBlockHeight);
 
 		await AfterHandleBlocksAsync(true, cancellationToken);
+
+		GlobalContext.GetLogger<SyncBase>().LogInformation("{Type}: Block processing finished", GetType().Name);
 	}
+
+	protected virtual Task OnHandleBlocksErrorAsync(Exception e, CancellationToken cancellationToken) => Task.CompletedTask;
 
 	protected virtual Task AfterHandleBlocksAsync(bool processedBlocks, CancellationToken cancellationToken) => Task.CompletedTask;
 

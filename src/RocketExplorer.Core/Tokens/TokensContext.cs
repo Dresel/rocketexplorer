@@ -21,23 +21,33 @@ public record class TokensContext
 
 	public TaskCompletionSource ProcessingCompletionSource { get; } = new();
 
+	public required long RETHSnapshotBlockHeight { get; set; }
+
 	public required string RETHTokenAddress { get; init; }
 
 	public required TokenInfo RETHTokenInfo { get; init; }
+
+	public required long RockRETHSnapshotBlockHeight { get; set; }
 
 	public required string? RockRETHTokenAddress { get; set; }
 
 	public required TokenInfo RockRETHTokenInfo { get; init; }
 
+	public required long RPLOldSnapshotBlockHeight { get; set; }
+
 	public required string RPLOldTokenAddress { get; init; }
 
 	public required RPLOldTokenInfo RPLOldTokenInfo { get; init; }
+
+	public required long RPLSnapshotBlockHeight { get; set; }
 
 	public required string RPLTokenAddress { get; init; }
 
 	public required TokenInfo RPLTokenInfo { get; init; }
 
 	public required StakedRPLInfo StakedRPLInfo { get; set; }
+
+	public required long StakedRPLSnapshotBlockHeight { get; set; }
 
 	public static async Task<TokensContext> ReadAsync(
 		Func<string, Task<long?>> findDeploymentBlock,
@@ -71,7 +81,8 @@ public record class TokensContext
 			await readRPLOldTask ??
 			new BlobObject<TokensRPLOldSnapshot>
 			{
-				ProcessedBlockNumber = await findDeploymentBlock(rplOldContractAddress) ?? throw new InvalidOperationException("Deployment block not found"),
+				ProcessedBlockNumber = await findDeploymentBlock(rplOldContractAddress) ??
+					throw new InvalidOperationException("Deployment block not found"),
 				Data = new TokensRPLOldSnapshot
 				{
 					RPLOld = new RPLOldToken
@@ -91,7 +102,8 @@ public record class TokensContext
 			await readRPLTask ??
 			new BlobObject<TokensRPLSnapshot>
 			{
-				ProcessedBlockNumber = await findDeploymentBlock(rplContractAddress) ?? throw new InvalidOperationException("Deployment block not found"),
+				ProcessedBlockNumber = await findDeploymentBlock(rplContractAddress) ??
+					throw new InvalidOperationException("Deployment block not found"),
 				Data = new TokensRPLSnapshot
 				{
 					RPL = new Token
@@ -109,7 +121,8 @@ public record class TokensContext
 			await readRETHTask ??
 			new BlobObject<TokensRETHSnapshot>
 			{
-				ProcessedBlockNumber = await findDeploymentBlock(rethContractAddress) ?? throw new InvalidOperationException("Deployment block not found"),
+				ProcessedBlockNumber = await findDeploymentBlock(rethContractAddress) ??
+					throw new InvalidOperationException("Deployment block not found"),
 				Data = new TokensRETHSnapshot
 				{
 					RETH = new Token
@@ -127,7 +140,8 @@ public record class TokensContext
 			await readStakedRPLTask ??
 			new BlobObject<StakedRPLSnapshot>
 			{
-				ProcessedBlockNumber = await findDeploymentBlock(rplContractAddress) ?? throw new InvalidOperationException("Deployment block not found"),
+				ProcessedBlockNumber = await findDeploymentBlock(rplContractAddress) ??
+					throw new InvalidOperationException("Deployment block not found"),
 				Data = new StakedRPLSnapshot
 				{
 					LegacyStakedDaily = [],
@@ -152,7 +166,8 @@ public record class TokensContext
 			await readRockRETHTask ??
 			new BlobObject<TokensRockRETHSnapshot>
 			{
-				ProcessedBlockNumber = rockRETHTokenAddress is null ? 0 : await findDeploymentBlock(rockRETHTokenAddress) ?? 0,
+				ProcessedBlockNumber =
+					rockRETHTokenAddress is null ? 0 : await findDeploymentBlock(rockRETHTokenAddress) ?? 0,
 				Data = new TokensRockRETHSnapshot
 				{
 					RockRETH = rockRETHTokenAddress is null
@@ -170,7 +185,19 @@ public record class TokensContext
 
 		return new TokensContext
 		{
-			CurrentBlockHeight = new[] { rplOldSnapshot.ProcessedBlockNumber, rplSnapshot.ProcessedBlockNumber, rethSnapshot.ProcessedBlockNumber }.Min(),
+			CurrentBlockHeight = Math.Max(
+				0,
+				new[]
+				{
+					rplOldSnapshot.ProcessedBlockNumber - 1, rplSnapshot.ProcessedBlockNumber - 1,
+					rethSnapshot.ProcessedBlockNumber - 1, rockRETHSnapshot.ProcessedBlockNumber - 1,
+				}.Min()),
+
+			RPLOldSnapshotBlockHeight = rplOldSnapshot.ProcessedBlockNumber,
+			RPLSnapshotBlockHeight = rplSnapshot.ProcessedBlockNumber,
+			RETHSnapshotBlockHeight = rethSnapshot.ProcessedBlockNumber,
+			RockRETHSnapshotBlockHeight = rockRETHSnapshot.ProcessedBlockNumber,
+			StakedRPLSnapshotBlockHeight = stakedRPLSnapshot.ProcessedBlockNumber,
 
 			PreSaturn1RocketNodeStakingAddresses = contracts["rocketNodeStaking"].Versions
 				.Where(x => x.Version <= 6)

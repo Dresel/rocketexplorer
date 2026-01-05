@@ -18,6 +18,12 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 		GlobalContext.ContractsContext.ProcessingCompletionSource.TrySetResult();
 	}
 
+	protected override async Task OnHandleBlocksErrorAsync(Exception e, CancellationToken cancellationToken)
+	{
+		await base.OnHandleBlocksErrorAsync(e, cancellationToken);
+		GlobalContext.ContractsContext.ProcessingCompletionSource.TrySetException(e);
+	}
+
 	protected override async Task BeforeHandleBlocksAsync(CancellationToken cancellationToken)
 	{
 		if (await GetCurrentBlockHeightAsync(cancellationToken) == 0)

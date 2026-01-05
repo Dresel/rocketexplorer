@@ -191,6 +191,14 @@ public class NodesSync(IOptions<SyncOptions> options, GlobalContext globalContex
 		}
 	}
 
+	protected override async Task OnHandleBlocksErrorAsync(Exception e, CancellationToken cancellationToken)
+	{
+		await base.OnHandleBlocksErrorAsync(e, cancellationToken);
+
+		NodesContext context = await GlobalContext.NodesContextFactory;
+		context.ProcessingCompletionSource.TrySetException(e);
+	}
+
 	protected override async Task SetCurrentBlockHeightAsync(
 		long currentBlockHeight, CancellationToken cancellationToken = default)
 	{

@@ -156,12 +156,14 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 
 						if (bucket is null)
 						{
-							throw new InvalidOperationException("Bucket does not exist");
+							this.logger.LogError("Bucket does not exist for nGram {nGram} ({Key})", nGram, key);
+							return;
 						}
 
 						if (!bucket.TryGetValue(identifier, out TEntry? entry))
 						{
-							throw new InvalidOperationException("Entry does not exist");
+							this.logger.LogError("Entry does not exist for identifier {identifier} in nGram {nGram} ({Key})", identifier, nGram, key);
+							return;
 						}
 
 						updater(entry);
@@ -213,12 +215,14 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 
 						if (bucket is null)
 						{
-							throw new InvalidOperationException("Bucket does not exist");
+							this.logger.LogError("Bucket does not exist for nGram {nGram} ({Key})", nGram, key);
+							return;
 						}
 
 						if (!bucket.Remove(identifier, out TEntry? _))
 						{
-							throw new InvalidOperationException("Entry does not exist");
+							this.logger.LogError("Entry does not exist for identifier {identifier} in nGram {nGram} ({Key})", identifier, nGram, key);
+							return;
 						}
 
 						if (bucket.Count == 0)

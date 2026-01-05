@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'src/RocketExplorer.Functions'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'
   DOTNET_VERSION: '9.0.x'
 
 jobs:
@@ -36,9 +36,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_0023F9B699BC46F9BFA1C026C9280BA3 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_DB165C0980FF48BFB5916B5E84716C6E }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_6E3AF125776348AB8C85EB2939C9DF40 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_69B3D25FBA1649AE87BCD98DF2510266 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_B59FCE4904E34A19AA3562EF1D270A7C }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F67ADBB7B2054BB08235048BA7BEB8CB }}
 
       - name: 'Run Azure Functions Action'
         uses: Azure/functions-action@v1

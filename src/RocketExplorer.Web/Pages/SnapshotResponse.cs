@@ -16,8 +16,8 @@ public class SnapshotResponse<T>(HttpResponseMessage httpResponseMessage) : IDis
 		new()
 		{
 			ETag = ETag,
-			Data = MessagePackSerializer.Deserialize<T>(
+			Data = await MessagePackSerializer.DeserializeAsync<T>(
 				await this.httpResponseMessage.Content.ReadAsStreamAsync(cancellationToken),
-				MessagePackSerializerOptions.Standard),
+				MessagePackSerializerOptions.Standard, cancellationToken),
 		};
 }

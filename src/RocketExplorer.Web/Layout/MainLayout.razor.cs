@@ -18,13 +18,13 @@ public partial class MainLayout : LayoutComponentBase
 	public Configuration Configuration { get; set; } = null!;
 
 	[Inject]
+	public IWebAssemblyHostEnvironment HostEnvironment { get; set; } = null!;
+
+	[Inject]
 	public HttpClient HttpClient { get; set; } = null!;
 
 	[Inject]
 	public ThemeService ThemeService { get; set; } = null!;
-
-	[Inject]
-	public IWebAssemblyHostEnvironment HostEnvironment { get; set; } = null!;
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
@@ -49,8 +49,12 @@ public partial class MainLayout : LayoutComponentBase
 
 		if (!HostEnvironment.Environment.Contains("Prerendering", StringComparison.OrdinalIgnoreCase))
 		{
-			LiveCharts.DefaultSettings.HasGlobalSKTypeface(
-				SKTypeface.FromStream(new MemoryStream(await HttpClient.GetByteArrayAsync("fonts/Manrope.ttf"))));
+			LiveCharts.DefaultSettings.HasTextSettings(
+				new TextSettings
+				{
+					DefaultTypeface = SKTypeface.FromStream(
+						new MemoryStream(await HttpClient.GetByteArrayAsync("fonts/Manrope.ttf"))),
+				});
 		}
 	}
 

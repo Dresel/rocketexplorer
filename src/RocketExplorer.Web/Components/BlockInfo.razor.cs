@@ -54,7 +54,7 @@ public partial class BlockInfo : ComponentBase, IDisposable
 			await LoadAsync();
 			await InvokeAsync(StateHasChanged);
 
-			this.timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+			this.timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
 			_ = UpdateBlockInfo(this.cancellationTokenSourceTimer.Token);
 		}
 	}
@@ -69,8 +69,8 @@ public partial class BlockInfo : ComponentBase, IDisposable
 		await Task.WhenAll(getBlockTask, getMetadataStreamTask);
 
 		BlockWithTransactions block = await getBlockTask;
-		SnapshotMetadata snapshotMetadata = MessagePackSerializer.Deserialize<SnapshotMetadata>(
-			await getMetadataStreamTask, MessagePackSerializerOptions.Standard);
+		SnapshotMetadata snapshotMetadata = await MessagePackSerializer.DeserializeAsync<SnapshotMetadata>(
+			await getMetadataStreamTask, MessagePackSerializerOptions.Standard, cancellationToken);
 
 		AppState.Set(block, snapshotMetadata);
 	}

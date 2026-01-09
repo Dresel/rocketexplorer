@@ -1,7 +1,7 @@
 @using LiveChartsCore.Defaults
 @inherits ChartBase
 
-<ChartTemplate Title="@Title" Aggregation="Aggregation" AggregationChanged="SetAggregation" Expanded="Expanded" ExpandedChanged="SetExpanded">
+<ChartTemplate Title="@Title" Aggregation="aggregation" AggregationChanged="SetAggregation" Expanded="Expanded" ExpandedChanged="SetExpanded">
 	@if (Data == null)
 	{
 		<MudText Align="Align.Center">
@@ -27,7 +27,7 @@
 			},
 		];
 
-	protected override void SetSeries()
+	protected override async Task SetSeriesAsync()
 	{
 		// TODO: Support Data.Length > 1
 		if (Series == null || Data == null || Series.Length != Data.Length)
@@ -37,7 +37,7 @@
 
 		DateOnly target;
 
-		switch (Aggregation)
+		switch (aggregation.Value)
 		{
 			case ChartAggregation.Yearly:
 				if (Data.FirstOrDefault()?.Count > 0)
@@ -62,10 +62,20 @@
 				break;
 
 			default:
-				throw new ArgumentOutOfRangeException(nameof(Aggregation));
+				throw new ArgumentOutOfRangeException(nameof(aggregation));
 		}
 
-		Series[0].Values = Data.FirstOrDefault()?.PrepareTotal(Aggregation, target).ToList() ?? [];
+		int oldCount = Series[0].Values?.OfType<DateTimePoint>().Count() ?? 0;
+		List<DateTimePoint> dateTimePoints = Data.FirstOrDefault()?.PrepareTotal(aggregation, target).ToList() ?? [];
+
+		// Workaround for regression, see https://github.com/Live-Charts/LiveCharts2/issues/2040
+		if (dateTimePoints.Count < oldCount)
+		{
+			Series[0].Values = new List<DateTimePoint>();
+			await Task.Delay(100);
+		}
+
+		Series[0].Values = dateTimePoints;
 	}
 
 }

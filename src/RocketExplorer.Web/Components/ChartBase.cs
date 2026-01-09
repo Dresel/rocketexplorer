@@ -2,12 +2,43 @@ using LiveChartsCore;
 using LiveChartsCore.Kernel.Sketches;
 using LiveChartsCore.SkiaSharpView;
 using Microsoft.AspNetCore.Components;
+using MudBlazor;
+using MudBlazor.State;
+using MudBlazor.State.Builder;
 using RocketExplorer.Web.Theming;
 
 namespace RocketExplorer.Web.Components;
 
-public class ChartBase : ComponentBase
+public class ChartBase : MudComponentBase
 {
+	public ChartBase()
+	{
+		using IParameterRegistrationBuilderScope registerScope = CreateRegisterScope();
+
+		//new TrackedParameter(() => Data),
+		//new TrackedParameter(() => DataTransform),
+		//new TrackedParameter(() => MinLimit),
+		//new TrackedParameter(() => Series),
+		//new TrackedParameter(() => Title),
+		//new TrackedParameter(() => YAxesName),
+
+		//registerScope.RegisterParameter<SortedList<DateOnly, int>[]?>(nameof(Data))
+		//	.WithParameter(() => Data)
+		//	.WithChangeHandler(OnParametersChanged);
+
+		//registerScope.RegisterParameter<Func<int, int>[]?>(nameof(DataTransform))
+		//	.WithParameter(() => DataTransform)
+		//	.WithChangeHandler(OnParametersChanged);
+
+		aggregation = registerScope.RegisterParameter<ChartAggregation>(nameof(aggregation))
+			.WithParameter(() => Aggregation)
+			.WithChangeHandler(OnParametersChanged);
+
+		registerScope.RegisterParameter<double?>(nameof(MinLimit))
+			.WithParameter(() => MinLimit)
+			.WithChangeHandler(OnParametersChanged);
+	}
+
 	[Parameter]
 	public SortedList<DateOnly, int>[]? Data { get; set; }
 
@@ -26,7 +57,9 @@ public class ChartBase : ComponentBase
 	[Parameter]
 	public string? YAxesName { get; set; }
 
-	protected ChartAggregation Aggregation { get; set; } = ChartAggregation.Monthly;
+	protected ChartAggregation Aggregation { get; private set; }
+
+	protected ParameterState<ChartAggregation> aggregation { get; private set; }
 
 	protected bool Expanded { get; set; }
 
@@ -37,70 +70,9 @@ public class ChartBase : ComponentBase
 
 	protected List<TrackedParameter> TrackedParameters { get; set; } = [];
 
-	protected virtual ICartesianAxis[] XAxes
-	{
-		get
-		{
-			TimeSpan unit = Aggregation switch
-			{
-				ChartAggregation.Daily => TimeSpan.FromDays(1),
-				ChartAggregation.Monthly => TimeSpan.FromDays(30),
-				ChartAggregation.Yearly => TimeSpan.FromDays(365),
-				_ => throw new ArgumentOutOfRangeException(nameof(Aggregation)),
-			};
+	protected ICartesianAxis[] XAxes { get; private set; } = [];
 
-			string dateTimeFormat = Aggregation switch
-			{
-				ChartAggregation.Daily => "dd.MM.yyyy",
-				ChartAggregation.Monthly => "MM.yyyy",
-				ChartAggregation.Yearly => "yyyy",
-				_ => throw new ArgumentOutOfRangeException(nameof(Aggregation)),
-			};
-
-			DateTimeAxis dateTimeAxis = new(unit, date => date.ToString(dateTimeFormat))
-			{
-				TextSize = 13,
-				NameTextSize = 14,
-			};
-
-			DateOnly target;
-
-			switch (Aggregation)
-			{
-				case ChartAggregation.Yearly:
-					DateTime[] customSeparators = Enumerable.Range(2020, DateTime.Now.Year - 2020 + 1)
-						.Select(y => new DateTime(y, 7, 1))
-						.ToArray();
-					dateTimeAxis.CustomSeparators = customSeparators.Select(x => (double)x.Ticks).ToArray();
-
-					if (this.GetType() == typeof(ChartDelta) && Data?.Sum(x => x.Count) == 0)
-					{
-						dateTimeAxis.MinLimit = customSeparators.Last().AddMonths(-6).Ticks;
-						dateTimeAxis.MaxLimit = customSeparators.Last().AddMonths(6).Ticks;
-					}
-
-					break;
-
-				case ChartAggregation.Monthly:
-					target = DateOnly.FromDateTime(DateTime.Today).AddMonths(Expanded ? -36 : -12);
-					dateTimeAxis.MinLimit = new DateTime(target.Year, target.Month, 1).Ticks;
-					dateTimeAxis.MaxLimit = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(1).Ticks;
-					break;
-
-				case ChartAggregation.Daily:
-					target = DateOnly.FromDateTime(DateTime.Now).AddDays(Expanded ? -42 : -14);
-					dateTimeAxis.MinLimit = new DateTime(target.Year, target.Month, target.Day).AddDays(-0.5).Ticks;
-					dateTimeAxis.MaxLimit = DateTime.Today.AddDays(0.5).Ticks;
-					break;
-			}
-
-			return
-			[
-				dateTimeAxis,
-			];
-		}
-	}
-
+	// TODO: Do not automatically
 	protected virtual ICartesianAxis[] YAxes =>
 	[
 		new Axis
@@ -127,51 +99,107 @@ public class ChartBase : ComponentBase
 		}
 	}
 
-	protected override async Task OnInitializedAsync()
-	{
-		await base.OnInitializedAsync();
-
-		TrackedParameters =
-		[
-			new TrackedParameter(() => Data),
-			new TrackedParameter(() => DataTransform),
-			new TrackedParameter(() => MinLimit),
-			new TrackedParameter(() => Series),
-			new TrackedParameter(() => Title),
-			new TrackedParameter(() => YAxesName),
-		];
-	}
-
-	protected override async Task OnParametersSetAsync()
-	{
-		await base.OnParametersSetAsync();
-
-		bool shouldSetSeries = false;
-
-		foreach (TrackedParameter trackedParameter in TrackedParameters)
-		{
-			shouldSetSeries |= trackedParameter.Update();
-		}
-
-		if (shouldSetSeries)
-		{
-			SetSeries();
-		}
-	}
-
 	protected void SetAggregation(ChartAggregation value)
 	{
-		Aggregation = value;
-		SetSeries();
+		_ = aggregation.SetValueAsync(value);
+		//_ = SetSeriesAsync();
 	}
 
 	protected void SetExpanded(bool value)
 	{
 		Expanded = value;
-		SetSeries();
+		//_ = SetSeriesAsync();
 	}
 
-	protected virtual void SetSeries()
+	protected virtual Task SetSeriesAsync() => Task.CompletedTask;
+
+	private ICartesianAxis[] CreateXAxes()
 	{
+		TimeSpan unit = aggregation.Value switch
+		{
+			ChartAggregation.Daily => TimeSpan.FromDays(1),
+			ChartAggregation.Monthly => TimeSpan.FromDays(30),
+			ChartAggregation.Yearly => TimeSpan.FromDays(365),
+			_ => throw new ArgumentOutOfRangeException(nameof(aggregation)),
+		};
+
+		string dateTimeFormat = aggregation.Value switch
+		{
+			ChartAggregation.Daily => "dd.MM.yyyy",
+			ChartAggregation.Monthly => "MM.yyyy",
+			ChartAggregation.Yearly => "yyyy",
+			_ => throw new ArgumentOutOfRangeException(nameof(aggregation)),
+		};
+
+		DateTimeAxis dateTimeAxis = new(unit, date => date.ToString(dateTimeFormat))
+		{
+			TextSize = 13,
+			NameTextSize = 14,
+		};
+
+		DateOnly target;
+
+		switch (aggregation.Value)
+		{
+			case ChartAggregation.Yearly:
+				DateTime[] customSeparators = Enumerable.Range(2020, DateTime.Now.Year - 2020 + 1)
+					.Select(y => new DateTime(y, 7, 1))
+					.ToArray();
+				dateTimeAxis.CustomSeparators = customSeparators.Select(x => (double)x.Ticks).ToArray();
+
+				if (GetType() == typeof(ChartDelta) && Data?.Sum(x => x.Count) == 0)
+				{
+					dateTimeAxis.MinLimit = customSeparators.Last().AddMonths(-6).Ticks;
+					dateTimeAxis.MaxLimit = customSeparators.Last().AddMonths(6).Ticks;
+				}
+
+				break;
+
+			case ChartAggregation.Monthly:
+				target = DateOnly.FromDateTime(DateTime.Now).AddMonths(Expanded ? -36 : -12);
+				dateTimeAxis.MinLimit = new DateTime(target.Year, target.Month, 1).Ticks;
+				dateTimeAxis.MaxLimit = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(1).Ticks;
+				break;
+
+			case ChartAggregation.Daily:
+				target = DateOnly.FromDateTime(DateTime.Now).AddDays(Expanded ? -42 : -14);
+				dateTimeAxis.MinLimit = new DateTime(target.Year, target.Month, target.Day).AddDays(-0.5).Ticks;
+				dateTimeAxis.MaxLimit = DateTime.Now.Date.AddDays(0.5).Ticks;
+				break;
+		}
+
+		return
+		[
+			dateTimeAxis,
+		];
+	}
+
+	private async Task OnParametersChanged()
+	{
+		//UpdateXAxes();
+		//await SetSeriesAsync();
+	}
+
+	private void UpdateXAxes()
+	{
+		ICartesianAxis[] cartesianAxisArray = CreateXAxes();
+
+		if (XAxes.Length > 0)
+		{
+			// Check for equality
+			bool customSeparatorsEqual = XAxes[0].CustomSeparators is { } a &&
+				cartesianAxisArray[0].CustomSeparators is { } b
+					? a.SequenceEqual(b)
+					: ReferenceEquals(XAxes[0].CustomSeparators, cartesianAxisArray[0].CustomSeparators);
+
+			if (Math.Abs(XAxes[0].MinLimit!.Value - cartesianAxisArray[0].MinLimit!.Value) < double.Epsilon &&
+				Math.Abs(XAxes[0].MaxLimit!.Value - cartesianAxisArray[0].MaxLimit!.Value) < double.Epsilon &&
+				customSeparatorsEqual)
+			{
+				return;
+			}
+		}
+
+		XAxes = cartesianAxisArray;
 	}
 }

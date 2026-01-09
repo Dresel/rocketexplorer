@@ -216,7 +216,7 @@
 		{
 			Index = index + 1,
 			NodeOperatorAddress = entry.NodeAddress.ToHex(true),
-			NodeOperatorAddressEnsName = entry.NodeAddressEns,
+			NodeOperatorAddressEnsName = EnsName(entry.NodeAddress),
 			MinipoolAddress = entry.MinipoolAddress.ToHex(true),
 			PubKey = entry.PubKey?.ToHex(),
 			TimeInQueue = DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(entry.EnqueueTimestamp),
@@ -230,7 +230,7 @@
 			{
 				Index = currentIndex + index + 1,
 				NodeOperatorAddress = entry.Item.NodeAddress.ToHex(true),
-				NodeOperatorAddressEnsName = entry.Item.NodeAddressEns,
+				NodeOperatorAddressEnsName = EnsName(entry.Item.NodeAddress),
 				MegapoolAddress = entry.Item.MegapoolAddress.ToHex(true),
 				MegapoolIndex = entry.Item.MegapoolIndex,
 				PubKey = entry.Item.PubKey.ToHex(),

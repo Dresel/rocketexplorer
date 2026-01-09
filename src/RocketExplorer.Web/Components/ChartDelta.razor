@@ -1,8 +1,8 @@
-@using System.Runtime.InteropServices.JavaScript
+@using System.Collections.ObjectModel
 @using LiveChartsCore.Defaults
 @inherits ChartBase
 
-<ChartTemplate Title="@Title" Aggregation="Aggregation" AggregationChanged="SetAggregation" Expanded="Expanded" ExpandedChanged="SetExpanded">
+<ChartTemplate Title="@Title" Aggregation="aggregation" AggregationChanged="SetAggregation" Expanded="Expanded" ExpandedChanged="SetExpanded">
 	@if (Data == null)
 	{
 		<MudText Align="Align.Center">
@@ -16,50 +16,86 @@
 	}
 </ChartTemplate>
 
-@code {
+    @code {
 
-	protected override void OnInitialized() =>
-		Series =
+    protected override void OnInitialized() =>
+        Series =
 		[
-			new ColumnSeries<DateTimePoint>
+            new ColumnSeries<DateTimePoint>
 			{
 				Padding = 6,
 				MaxBarWidth = 20,
+				Values = new ObservableCollection<DateTimePoint>(),
 			},
-		];
+        ];
 
-	protected override void SetSeries()
-	{
-		if (Series == null || Data == null || Series.Length != Data.Length)
-		{
-			return;
+    protected override Task SetSeriesAsync()
+    {
+        if (Series == null || Data == null || Series.Length != Data.Length)
+        {
+            return Task.CompletedTask;
+        }
+
+        DateOnly target;
+
+        switch (aggregation.Value)
+        {
+            case ChartAggregation.Yearly:
+                target = Data?.Sum(x => x.Count) > 0 ? Data.Where(data => data.Count > 0).Min(data => data.Min(x => x.Key)) : new DateOnly(2020, 1, 1);
+                break;
+
+            case ChartAggregation.Monthly:
+                target = DateOnly.FromDateTime(DateTime.Now).AddMonths(Expanded ? -36 : -12);
+                target = new DateOnly(target.Year, target.Month, 1);
+                break;
+
+            case ChartAggregation.Daily:
+                target = DateOnly.FromDateTime(DateTime.Now).AddDays(Expanded ? -42 : -14);
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(aggregation));
+        }
+
+        foreach ((SortedList<DateOnly, int> data, int index) in (Data ?? []).Select((data, index) => (data, index)))
+        {
+            var dateTimePoints = data.PrepareDelta(DataTransform?[index], aggregation, target).ToList();
+
+            var oldValues = Series[index].Values!.OfType<DateTimePoint>().ToDictionary(x => x.DateTime, x => x);
+            var newValues = data.PrepareDelta(DataTransform?[index], aggregation, target).ToDictionary(x => x.DateTime, x => x);
+
+            var elementsToInsert = newValues
+                .Where(x => !oldValues.ContainsKey(x.Key))
+                .Select(x => x.Value)
+                .ToList();
+
+            var elementsToDelete = oldValues
+                .Where(x => !newValues.ContainsKey(x.Key))
+                .Select(x => x.Value)
+                .ToList();
+
+			ObservableCollection<DateTimePoint> values = (ObservableCollection<DateTimePoint>)Series[index].Values!;
+
+			foreach (DateTimePoint dateTimePoint in elementsToDelete)
+			{
+				values.Remove(dateTimePoint);
+			}
+
+			foreach (DateTimePoint dateTimePoint in elementsToInsert)
+			{
+				values.Add(dateTimePoint);
+			}
+
+			foreach (KeyValuePair<DateTime, DateTimePoint> newDateTimePoint in newValues)
+			{
+				if (oldValues.TryGetValue(newDateTimePoint.Key, out var oldDateTimePoint))
+				{
+					oldDateTimePoint.Value = newDateTimePoint.Value.Value;
+				}
+			}
 		}
 
-		DateOnly target;
-
-		switch (Aggregation)
-		{
-			case ChartAggregation.Yearly:
-				target = Data?.Sum(x => x.Count) > 0 ? Data.Where(data => data.Count > 0).Min(data => data.Min(x => x.Key)) : new DateOnly(2020, 1, 1);
-				break;
-
-			case ChartAggregation.Monthly:
-				target = DateOnly.FromDateTime(DateTime.Now).AddMonths(Expanded ? -36 : -12);
-				target = new DateOnly(target.Year, target.Month, 1);
-				break;
-
-			case ChartAggregation.Daily:
-				target = DateOnly.FromDateTime(DateTime.Now).AddDays(Expanded ? -42 : -14);
-				break;
-
-			default:
-				throw new ArgumentOutOfRangeException(nameof(Aggregation));
-		}
-
-		foreach ((SortedList<DateOnly, int> data, int index) in (Data ?? []).Select((data, index) => (data, index)))
-		{
-			Series[index].Values = data.PrepareDelta(DataTransform?[index], Aggregation, target).ToList();
-		}
+		return Task.CompletedTask;
 	}
 
 }

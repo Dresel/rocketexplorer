@@ -100,7 +100,7 @@ public abstract class PageBase<T> : ComponentBase, IDisposable
 			Stopwatch stopwatch = Stopwatch.StartNew();
 
 			// Check manually to avoid additional render cycles
-			//if (Snapshot is null || string.IsNullOrWhiteSpace(response.ETag) || Snapshot.ETag != response.ETag)
+			if (Snapshot is null || string.IsNullOrWhiteSpace(response.ETag) || Snapshot.ETag != response.ETag)
 			{
 				Snapshot = await response.ToSnapshotAsync(cancellationToken);
 

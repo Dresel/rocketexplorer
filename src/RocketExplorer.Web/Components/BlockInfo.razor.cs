@@ -54,7 +54,7 @@ public partial class BlockInfo : ComponentBase, IDisposable
 			await LoadAsync();
 			await InvokeAsync(StateHasChanged);
 
-			this.timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+			this.timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
 			_ = UpdateBlockInfo(this.cancellationTokenSourceTimer.Token);
 		}
 	}

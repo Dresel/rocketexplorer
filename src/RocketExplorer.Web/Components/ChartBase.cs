@@ -15,27 +15,28 @@ public class ChartBase : MudComponentBase
 	{
 		using IParameterRegistrationBuilderScope registerScope = CreateRegisterScope();
 
-		//new TrackedParameter(() => Data),
-		//new TrackedParameter(() => DataTransform),
-		//new TrackedParameter(() => MinLimit),
-		//new TrackedParameter(() => Series),
-		//new TrackedParameter(() => Title),
-		//new TrackedParameter(() => YAxesName),
-
-		//registerScope.RegisterParameter<SortedList<DateOnly, int>[]?>(nameof(Data))
-		//	.WithParameter(() => Data)
-		//	.WithChangeHandler(OnParametersChanged);
-
-		//registerScope.RegisterParameter<Func<int, int>[]?>(nameof(DataTransform))
-		//	.WithParameter(() => DataTransform)
-		//	.WithChangeHandler(OnParametersChanged);
-
-		aggregation = registerScope.RegisterParameter<ChartAggregation>(nameof(aggregation))
-			.WithParameter(() => Aggregation)
+		registerScope.RegisterParameter<SortedList<DateOnly, int>[]?>(nameof(Data))
+			.WithParameter(() => Data)
 			.WithChangeHandler(OnParametersChanged);
+
+		registerScope.RegisterParameter<Func<int, int>[]?>(nameof(DataTransform))
+			.WithParameter(() => DataTransform)
+			.WithChangeHandler(OnParametersChanged);
+
+		//aggregationParameterState = registerScope.RegisterParameter<ChartAggregation>(nameof(Aggregation))
+		//	.WithParameter(() => Aggregation)
+		//	.WithChangeHandler(OnParametersChanged);
 
 		registerScope.RegisterParameter<double?>(nameof(MinLimit))
 			.WithParameter(() => MinLimit)
+			.WithChangeHandler(OnParametersChanged);
+
+		registerScope.RegisterParameter<string?>(nameof(Title))
+			.WithParameter(() => Title)
+			.WithChangeHandler(OnParametersChanged);
+
+		registerScope.RegisterParameter<string?>(nameof(YAxesName))
+			.WithParameter(() => YAxesName)
 			.WithChangeHandler(OnParametersChanged);
 	}
 
@@ -59,8 +60,6 @@ public class ChartBase : MudComponentBase
 
 	protected ChartAggregation Aggregation { get; private set; }
 
-	protected ParameterState<ChartAggregation> aggregation { get; private set; }
-
 	protected bool Expanded { get; set; }
 
 	protected Guid Key { get; set; } = Guid.NewGuid();
@@ -73,17 +72,7 @@ public class ChartBase : MudComponentBase
 	protected ICartesianAxis[] XAxes { get; private set; } = [];
 
 	// TODO: Do not automatically
-	protected virtual ICartesianAxis[] YAxes =>
-	[
-		new Axis
-		{
-			Name = YAxesName ?? string.Empty,
-			MinStep = 1,
-			TextSize = 13,
-			NameTextSize = 14,
-			MinLimit = MinLimit,
-		},
-	];
+	protected ICartesianAxis[] YAxes { get; set; } = [];
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
@@ -99,36 +88,37 @@ public class ChartBase : MudComponentBase
 		}
 	}
 
-	protected void SetAggregation(ChartAggregation value)
+	protected async Task SetAggregation(ChartAggregation value)
 	{
-		_ = aggregation.SetValueAsync(value);
-		//_ = SetSeriesAsync();
+		Aggregation = value;
+		await SetSeriesAsync();
+		StateHasChanged();
 	}
 
 	protected void SetExpanded(bool value)
 	{
 		Expanded = value;
-		//_ = SetSeriesAsync();
+		_ = SetSeriesAsync();
 	}
 
 	protected virtual Task SetSeriesAsync() => Task.CompletedTask;
 
 	private ICartesianAxis[] CreateXAxes()
 	{
-		TimeSpan unit = aggregation.Value switch
+		TimeSpan unit = Aggregation switch
 		{
 			ChartAggregation.Daily => TimeSpan.FromDays(1),
 			ChartAggregation.Monthly => TimeSpan.FromDays(30),
 			ChartAggregation.Yearly => TimeSpan.FromDays(365),
-			_ => throw new ArgumentOutOfRangeException(nameof(aggregation)),
+			_ => throw new ArgumentOutOfRangeException(nameof(Aggregation)),
 		};
 
-		string dateTimeFormat = aggregation.Value switch
+		string dateTimeFormat = Aggregation switch
 		{
 			ChartAggregation.Daily => "dd.MM.yyyy",
 			ChartAggregation.Monthly => "MM.yyyy",
 			ChartAggregation.Yearly => "yyyy",
-			_ => throw new ArgumentOutOfRangeException(nameof(aggregation)),
+			_ => throw new ArgumentOutOfRangeException(nameof(Aggregation)),
 		};
 
 		DateTimeAxis dateTimeAxis = new(unit, date => date.ToString(dateTimeFormat))
@@ -139,7 +129,7 @@ public class ChartBase : MudComponentBase
 
 		DateOnly target;
 
-		switch (aggregation.Value)
+		switch (Aggregation)
 		{
 			case ChartAggregation.Yearly:
 				DateTime[] customSeparators = Enumerable.Range(2020, DateTime.Now.Year - 2020 + 1)
@@ -176,8 +166,8 @@ public class ChartBase : MudComponentBase
 
 	private async Task OnParametersChanged()
 	{
-		//UpdateXAxes();
-		//await SetSeriesAsync();
+		UpdateXAxes();
+		await SetSeriesAsync();
 	}
 
 	private void UpdateXAxes()
@@ -202,4 +192,17 @@ public class ChartBase : MudComponentBase
 
 		XAxes = cartesianAxisArray;
 	}
+
+	private void UpdateYAxes() =>
+		YAxes =
+		[
+			new Axis
+			{
+				Name = YAxesName ?? string.Empty,
+				MinStep = 1,
+				TextSize = 13,
+				NameTextSize = 14,
+				MinLimit = MinLimit,
+			},
+		];
 }

@@ -1,7 +1,7 @@
 @using LiveChartsCore.Defaults
 @inherits ChartBase
 
-<ChartTemplate Title="@Title" Aggregation="aggregation" AggregationChanged="SetAggregation" Expanded="Expanded" ExpandedChanged="SetExpanded">
+<ChartTemplate Title="@Title" Aggregation="Aggregation" AggregationChanged="SetAggregation" Expanded="Expanded" ExpandedChanged="SetExpanded">
 	@if (Data == null)
 	{
 		<MudText Align="Align.Center">
@@ -37,7 +37,7 @@
 
 		DateOnly target;
 
-		switch (aggregation.Value)
+		switch (Aggregation)
 		{
 			case ChartAggregation.Yearly:
 				if (Data.FirstOrDefault()?.Count > 0)
@@ -62,11 +62,11 @@
 				break;
 
 			default:
-				throw new ArgumentOutOfRangeException(nameof(aggregation));
+				throw new ArgumentOutOfRangeException(nameof(Aggregation));
 		}
 
 		int oldCount = Series[0].Values?.OfType<DateTimePoint>().Count() ?? 0;
-		List<DateTimePoint> dateTimePoints = Data.FirstOrDefault()?.PrepareTotal(aggregation, target).ToList() ?? [];
+		List<DateTimePoint> dateTimePoints = Data.FirstOrDefault()?.PrepareTotal(Aggregation, target).ToList() ?? [];
 
 		// Workaround for regression, see https://github.com/Live-Charts/LiveCharts2/issues/2040
 		if (dateTimePoints.Count < oldCount)

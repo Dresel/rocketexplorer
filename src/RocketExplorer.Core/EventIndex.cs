@@ -8,6 +8,10 @@ public readonly struct EventIndex(HexBigInteger blockNumber, HexBigInteger logIn
 	public readonly HexBigInteger BlockNumber = blockNumber;
 	public readonly HexBigInteger LogIndex = logIndex;
 
+	private static long localLogIndex;
+
+	public static EventIndex Next => new(new HexBigInteger(0), new HexBigInteger(Interlocked.Increment(ref localLogIndex)));
+
 	public static bool operator ==(EventIndex a, EventIndex b)
 	{
 		return a.Equals(b);
@@ -37,8 +41,6 @@ public readonly struct EventIndex(HexBigInteger blockNumber, HexBigInteger logIn
 	{
 		return a.CompareTo(b) >= 0;
 	}
-
-	public static EventIndex Zero => new(new HexBigInteger(0), new HexBigInteger(0));
 
 	public int CompareTo(EventIndex other)
 	{

@@ -151,7 +151,7 @@ public record class NodesContext
 					DailyRegistrations = nodesSnapshot.Data.DailyRegistrations,
 					WithdrawalAddresses = nodesExtendedSnapshot.Data.WithdrawalAddresses.ToDictionary(pair => pair.Key.ToHex(true), pair => pair.Value.ToHex(true), StringComparer.OrdinalIgnoreCase),
 					RPLWithdrawalAddresses = nodesExtendedSnapshot.Data.RPLWithdrawalAddresses.ToDictionary(pair => pair.Key.ToHex(true), pair => pair.Value.ToHex(true), StringComparer.OrdinalIgnoreCase),
-					StakeOnBehalfAddresses = nodesExtendedSnapshot.Data.StakeOnBehalfAddresses.ToDictionary(pair => pair.Key.ToHex(true), pair => new HashSet<string>(pair.Value.Select(y => y.ToHex(true)), StringComparer.OrdinalIgnoreCase)),
+					StakeOnBehalfAddresses = nodesExtendedSnapshot.Data.StakeOnBehalfAddresses.ToDictionary(pair => pair.Key.ToHex(true), pair => new HashSet<string>(pair.Value.Select(y => y.ToHex(true)), StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase),
 				},
 			},
 			ValidatorInfo = new ValidatorInfo
@@ -221,7 +221,10 @@ public record class NodesContext
 					RPLWithdrawalAddresses = Nodes.Data.RPLWithdrawalAddresses.ToDictionary(
 						x => x.Key.HexToByteArray(), x => x.Value.HexToByteArray(), new FastByteArrayComparer()),
 					StakeOnBehalfAddresses = Nodes.Data.StakeOnBehalfAddresses.ToDictionary(
-						x => x.Key.HexToByteArray(), x => new HashSet<byte[]>(x.Value.Select(address => address.HexToByteArray()), new FastByteArrayComparer())),
+						x => x.Key.HexToByteArray(),
+						x => new HashSet<byte[]>(
+							x.Value.Select(address => address.HexToByteArray()), new FastByteArrayComparer()),
+						new FastByteArrayComparer()),
 				},
 			}, cancellationToken: cancellationToken);
 

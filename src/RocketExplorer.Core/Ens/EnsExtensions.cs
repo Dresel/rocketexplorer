@@ -188,13 +188,13 @@ public static class EnsExtensions
 		{
 			// Existing ens entry is obsolete (either no new one or different one)
 			_ = globalContext.Services.GlobalEnsIndexService.TryRemoveEntryAsync(
-				obsoleteEnsName[..^4], obsoleteEnsName, EventIndex.Zero, cancellationToken);
+				obsoleteEnsName[..^4], obsoleteEnsName, EventIndex.Next, cancellationToken);
 		}
 
 		if (ensName is null)
 		{
 			_ = globalContext.Services.GlobalIndexService.UpdateEntryAsync(
-				candidateAddress.RemoveHexPrefix(), address, EventIndex.Zero,
+				candidateAddress.RemoveHexPrefix(), address, EventIndex.Next,
 				entry => entry.AddressEnsName = null,
 				cancellationToken: cancellationToken);
 
@@ -225,10 +225,10 @@ public static class EnsExtensions
 		{
 			// Case when valid ens but address not relevant anymore (e.g. no holder anymore)
 			_ = globalContext.Services.GlobalEnsIndexService.TryRemoveEntryAsync(
-				ensName[..^4], ensName, EventIndex.Zero, cancellationToken);
+				ensName[..^4], ensName, EventIndex.Next, cancellationToken);
 
 			_ = globalContext.Services.GlobalIndexService.UpdateEntryAsync(
-				candidateAddress.RemoveHexPrefix(), address, EventIndex.Zero,
+				candidateAddress.RemoveHexPrefix(), address, EventIndex.Next,
 				entry => entry.AddressEnsName = null,
 				cancellationToken: cancellationToken);
 
@@ -236,7 +236,7 @@ public static class EnsExtensions
 		}
 
 		_ = globalContext.Services.GlobalEnsIndexService.AddOrUpdateEntryAsync(
-			ensName[..^4], ensName, EventIndex.Zero, new EnsIndexEntry
+			ensName[..^4], ensName, EventIndex.Next, new EnsIndexEntry
 			{
 				Address = address,
 				AddressEnsName = ensName,
@@ -249,7 +249,7 @@ public static class EnsExtensions
 			}, cancellationToken);
 
 		_ = globalContext.Services.GlobalIndexService.UpdateEntryAsync(
-			candidateAddress.RemoveHexPrefix(), address, EventIndex.Zero,
+			candidateAddress.RemoveHexPrefix(), address, EventIndex.Next,
 			entry => entry.AddressEnsName = ensName,
 			cancellationToken: cancellationToken);
 	}

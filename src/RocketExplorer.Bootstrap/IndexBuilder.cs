@@ -50,7 +50,7 @@ internal class IndexBuilder
 	private static Task AddHolderAsync(
 		GlobalIndexService index, byte[] address, TokenType tokenType, CancellationToken cancellationToken = default) =>
 		index.AddOrUpdateEntryAsync(
-			address.ToHex(), address, EventIndex.Zero,
+			address.ToHex(), address, EventIndex.Next,
 			entry =>
 			{
 				entry.Type |= tokenType switch
@@ -160,7 +160,7 @@ internal class IndexBuilder
 		foreach (NodeIndexEntry nodeIndexEntry in nodesContext.Nodes.Data.Index.Values)
 		{
 			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-				nodeIndexEntry.ContractAddress.ToHex(), nodeIndexEntry.ContractAddress, EventIndex.Zero,
+				nodeIndexEntry.ContractAddress.ToHex(), nodeIndexEntry.ContractAddress, EventIndex.Next,
 				x =>
 				{
 					x.Type |= IndexEntryType.NodeOperator;
@@ -172,7 +172,7 @@ internal class IndexBuilder
 				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 					nodeIndexEntry.MegapoolAddress.ToHex(),
 					nodeIndexEntry.MegapoolAddress,
-					EventIndex.Zero,
+					EventIndex.Next,
 					x =>
 					{
 						x.Type |= IndexEntryType.Megapool;
@@ -186,7 +186,7 @@ internal class IndexBuilder
 		{
 			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 				withdrawalAddress.Value.RemoveHexPrefix(), withdrawalAddress.Value.HexToByteArray(),
-				EventIndex.Zero,
+				EventIndex.Next,
 				x =>
 				{
 					x.Type |= IndexEntryType.WithdrawalAddress;
@@ -199,7 +199,7 @@ internal class IndexBuilder
 		{
 			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 				withdrawalAddress.Value.RemoveHexPrefix(), withdrawalAddress.Value.HexToByteArray(),
-				EventIndex.Zero,
+				EventIndex.Next,
 				x =>
 				{
 					x.Type |= IndexEntryType.RPLWithdrawalAddress;
@@ -214,7 +214,7 @@ internal class IndexBuilder
 			{
 				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 					stakeOnBehalfAddress.RemoveHexPrefix(), stakeOnBehalfAddress.HexToByteArray(),
-					EventIndex.Zero,
+					EventIndex.Next,
 					x =>
 					{
 						x.Type |= IndexEntryType.StakeOnBehalfAddress;
@@ -230,7 +230,7 @@ internal class IndexBuilder
 			byte[] minipoolAddress = minipoolValidator.MinipoolAddress;
 
 			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-				minipoolAddress.ToHex(), minipoolAddress, EventIndex.Zero,
+				minipoolAddress.ToHex(), minipoolAddress, EventIndex.Next,
 				x =>
 				{
 					x.Type |= IndexEntryType.MinipoolValidator;
@@ -240,7 +240,7 @@ internal class IndexBuilder
 			if (minipoolValidator.PubKey is not null)
 			{
 				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-					minipoolValidator.PubKey.ToHex(), minipoolAddress, EventIndex.Zero,
+					minipoolValidator.PubKey.ToHex(), minipoolAddress, EventIndex.Next,
 					x =>
 					{
 						x.Type |= IndexEntryType.MinipoolValidator;
@@ -254,7 +254,7 @@ internal class IndexBuilder
 				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 					minipoolValidator.ValidatorIndex.Value.ToString(CultureInfo.InvariantCulture),
 					minipoolAddress,
-					EventIndex.Zero,
+					EventIndex.Next,
 					x =>
 					{
 						x.Type |= IndexEntryType.MinipoolValidator;
@@ -274,13 +274,13 @@ internal class IndexBuilder
 			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 				megapoolAddress.ToHex(),
 				megapoolAddress,
-				EventIndex.Zero,
+				EventIndex.Next,
 				x => { x.Type |= IndexEntryType.Megapool; }, cancellationToken: cancellationToken);
 
 			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 				megapoolValidator.PubKey.ToHex(),
 				megapoolAddress.Concat(BitConverter.GetBytes(megapoolIndex)).ToArray(),
-				EventIndex.Zero,
+				EventIndex.Next,
 				x =>
 				{
 					x.Type |= IndexEntryType.MegapoolValidator;
@@ -295,7 +295,7 @@ internal class IndexBuilder
 				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 					megapoolValidator.ValidatorIndex.Value.ToString(CultureInfo.InvariantCulture), megapoolAddress
 						.Concat(BitConverter.GetBytes(megapoolIndex))
-						.ToArray(), EventIndex.Zero,
+						.ToArray(), EventIndex.Next,
 					x =>
 					{
 						x.Type |= IndexEntryType.MegapoolValidator;

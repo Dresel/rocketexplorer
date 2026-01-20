@@ -46,13 +46,13 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 		ConcurrentQueue<EventIndex> queue = this.queues.GetOrAdd(identifier, x => []);
 		queue.Enqueue(index);
 
-		while (queue.TryPeek(out EventIndex currentEventIndex) && currentEventIndex != index)
-		{
-			await Task.Delay(10, cancellationToken);
-		}
-
 		try
 		{
+			while (queue.TryPeek(out EventIndex currentEventIndex) && currentEventIndex != index)
+			{
+				await Task.Delay(10, cancellationToken);
+			}
+
 			await Parallel.ForEachAsync(
 				key.NGrams(this.nGramLength), cancellationToken, async (nGram, innerCancellationToken) =>
 				{
@@ -101,13 +101,13 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 		ConcurrentQueue<EventIndex> queue = this.queues.GetOrAdd(identifier, x => []);
 		queue.Enqueue(index);
 
-		while (queue.TryPeek(out EventIndex currentEventIndex) && currentEventIndex != index)
-		{
-			await Task.Delay(10, cancellationToken);
-		}
-
 		try
 		{
+			while (queue.TryPeek(out EventIndex currentEventIndex) && currentEventIndex != index)
+			{
+				await Task.Delay(10, cancellationToken);
+			}
+
 			await Parallel.ForEachAsync(
 				key.NGrams(this.nGramLength), cancellationToken, async (nGram, innerCancellationToken) =>
 				{
@@ -139,13 +139,13 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 		ConcurrentQueue<EventIndex> queue = this.queues.GetOrAdd(identifier, x => []);
 		queue.Enqueue(index);
 
-		while (queue.TryPeek(out EventIndex currentEventIndex) && currentEventIndex != index)
-		{
-			await Task.Delay(10, cancellationToken);
-		}
-
 		try
 		{
+			while (queue.TryPeek(out EventIndex currentEventIndex) && currentEventIndex != index)
+			{
+				await Task.Delay(10, cancellationToken);
+			}
+
 			await Parallel.ForEachAsync(
 				key.NGrams(this.nGramLength), cancellationToken, async (nGram, innerCancellationToken) =>
 				{
@@ -157,13 +157,13 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 						if (bucket is null)
 						{
 							this.logger.LogError("Bucket does not exist for nGram {nGram} ({Key})", nGram, key);
-							return;
+							throw new InvalidOperationException("Bucket does not exist");
 						}
 
 						if (!bucket.TryGetValue(identifier, out TEntry? entry))
 						{
 							this.logger.LogError("Entry does not exist for identifier {identifier} in nGram {nGram} ({Key})", identifier, nGram, key);
-							return;
+							throw new InvalidOperationException("Bucket does not exist");
 						}
 
 						updater(entry);
@@ -198,13 +198,13 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 		ConcurrentQueue<EventIndex> queue = this.queues.GetOrAdd(identifier, x => []);
 		queue.Enqueue(index);
 
-		while (queue.TryPeek(out EventIndex currentEventIndex) && currentEventIndex != index)
-		{
-			await Task.Delay(10, cancellationToken);
-		}
-
 		try
 		{
+			while (queue.TryPeek(out EventIndex currentEventIndex) && currentEventIndex != index)
+			{
+				await Task.Delay(10, cancellationToken);
+			}
+
 			await Parallel.ForEachAsync(
 				key.NGrams(this.nGramLength), cancellationToken, async (nGram, innerCancellationToken) =>
 				{
@@ -215,13 +215,13 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 
 						if (bucket is null)
 						{
-							this.logger.LogError("Bucket does not exist for nGram {nGram} ({Key})", nGram, key);
+							this.logger.LogDebug("Bucket does not exist for nGram {nGram} ({Key})", nGram, key);
 							return;
 						}
 
 						if (!bucket.Remove(identifier, out TEntry? _))
 						{
-							this.logger.LogError("Entry does not exist for identifier {identifier} in nGram {nGram} ({Key})", identifier, nGram, key);
+							this.logger.LogDebug("Entry does not exist for identifier {identifier} in nGram {nGram} ({Key})", identifier, nGram, key);
 							return;
 						}
 

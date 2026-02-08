@@ -68,12 +68,13 @@ public class ChartBase : ComponentBase
 			switch (Aggregation)
 			{
 				case ChartAggregation.Yearly:
-					DateTime[] customSeparators = Enumerable.Range(2020, DateTime.Now.Year - 2020 + 1)
+					int minYear = Data?.SelectMany(x => x.Keys).Min(x => x.Year - 1) ?? 2020;
+					DateTime[] customSeparators = Enumerable.Range(minYear, DateTime.Now.Year - minYear + 1)
 						.Select(y => new DateTime(y, 7, 1))
 						.ToArray();
 					dateTimeAxis.CustomSeparators = customSeparators.Select(x => (double)x.Ticks).ToArray();
 
-					if (this.GetType() == typeof(ChartDelta) && Data?.Sum(x => x.Count) == 0)
+					if (GetType() == typeof(ChartDelta) && Data?.Sum(x => x.Count) == 0)
 					{
 						dateTimeAxis.MinLimit = customSeparators.Last().AddMonths(-6).Ticks;
 						dateTimeAxis.MaxLimit = customSeparators.Last().AddMonths(6).Ticks;

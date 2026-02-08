@@ -39,7 +39,7 @@
 
 		switch (Aggregation)
 		{
-			case ChartAggregation.Yearly:
+		case ChartAggregation.Yearly:
 				if (Data.FirstOrDefault()?.Count > 0)
 				{
 					target = Data.FirstOrDefault()!.Min(x => x.Key);
@@ -47,7 +47,7 @@
 				}
 				else
 				{
-					target = new DateOnly(2020, 1, 1);
+					target = new DateOnly(DateTime.Now.Year - 1, 1, 1);
 				}
 
 				break;

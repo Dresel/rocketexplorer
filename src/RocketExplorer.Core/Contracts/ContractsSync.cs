@@ -127,7 +127,7 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 				pair.Contract,
 				blockParameter => GetExecutedFunction(globalContext.Services.Web3, pair.Contract.Address)
 					.CallAsync<bool>(blockParameter),
-				"rocketDAONodeTrustedUpgrade", globalContext.ContractsContext.CurrentBlockHeight);
+				pair.Name, globalContext.ContractsContext.CurrentBlockHeight);
 		}
 	}
 
@@ -196,7 +196,7 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 
 			VersionedRocketPoolUpgradeContract upgradeContract = new()
 			{
-				ActivationHeight = (uint)currentBlock,
+				ActivationHeight = currentBlock,
 				ActivationMethod = "rocketDAONodeTrustedUpgrade",
 				Address = contractAddress,
 				IsExecuted = false,

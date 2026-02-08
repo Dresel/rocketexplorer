@@ -96,6 +96,11 @@ public class EnsSync(IOptions<SyncOptions> options, GlobalContext globalContext)
 				obsoleteEns = candidate.Ens;
 			}
 
+			if (targetEns is null && obsoleteEns is null)
+			{
+				continue;
+			}
+
 			await GlobalContext.UpdateEnsNameAsync(obsoleteEns, candidate.Address, targetEns, cancellationToken);
 		}
 	}

@@ -48,7 +48,11 @@ IHostBuilder builder = new HostBuilder()
 		services.AddTransient<GlobalEnsIndexService>();
 
 		services.AddTransient<ContractsSync>();
-		services.AddTransient<TokensSync>();
+		services.AddTransient<TokensSyncRPL>();
+		services.AddTransient<TokensSyncRPLOld>();
+		services.AddTransient<TokensSyncRETH>();
+		services.AddTransient<TokensSyncRockRETH>();
+		services.AddTransient<TokensSyncStakedRPL>();
 		services.AddTransient<NodesSync>();
 		services.AddTransient<EnsSync>();
 

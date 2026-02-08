@@ -34,7 +34,15 @@ public record class GlobalContext
 
 	public required ContextServices Services { get; init; }
 
-	public required Task<TokensContext> TokensContextFactory { get; init; }
+	public required Task<TokensContextRETH> TokensContextRETHFactory { get; init; }
+
+	public required Task<TokensContextRockRETH> TokensContextRockRETHFactory { get; init; }
+
+	public required Task<TokensContextRPL> TokensContextRPLFactory { get; init; }
+
+	public required Task<TokensContextRPLOld> TokensContextRPLOldFactory { get; init; }
+
+	public required Task<TokensContextStakedRPL> TokensContextStakedRPLFactory { get; init; }
 
 	public ILogger GetLogger<T>() => LoggerFactory.CreateLogger<T>();
 }

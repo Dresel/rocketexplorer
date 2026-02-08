@@ -31,14 +31,22 @@ public record class EnsContext
 		StringComparer.OrdinalIgnoreCase, new FastByteArrayComparer());
 
 	public static async Task<EnsContext> ReadAsync(
-		Storage storage, Task<NodesContext> nodesContextFactory, Task<TokensContext> tokensContextFactory,
+		Storage storage, Task<NodesContext> nodesContextFactory, Task<TokensContextRPL> tokensContextRPLFactory,
+		Task<TokensContextRPLOld> tokensContextRPLOldFactory, Task<TokensContextRETH> tokensContextRETHFactory,
+		Task<TokensContextRockRETH> tokensContextRockRETHFactory,
 		AddressEnsProcessHistory addressEnsProcessHistory, ILogger<EnsContext> logger,
 		CancellationToken cancellationToken = default)
 	{
 		NodesContext nodesContext = await nodesContextFactory;
-		TokensContext tokensContext = await tokensContextFactory;
 
-		await Task.WhenAll(nodesContext.IsFinished, tokensContext.IsFinished);
+		TokensContextRPL tokensContextRPL = await tokensContextRPLFactory;
+		TokensContextRPLOld tokensContextRPLOld = await tokensContextRPLOldFactory;
+		TokensContextRETH tokensContextRETH = await tokensContextRETHFactory;
+		TokensContextRockRETH tokensContextRockRETH = await tokensContextRockRETHFactory;
+
+		await Task.WhenAll(
+			nodesContext.IsFinished, tokensContextRPL.IsFinished, tokensContextRPLOld.IsFinished,
+			tokensContextRETH.IsFinished, tokensContextRockRETH.IsFinished);
 
 		logger.LogInformation("Loading {snapshot}", Keys.EnsSnapshot);
 		BlobObject<EnsSnapshot>? ensSnapshot =
@@ -51,18 +59,22 @@ public record class EnsContext
 
 		// Add nodes and known node ens names
 		ensContext.AddToReverseAddressNameHashMap(nodesContext.Nodes.Data.Index.Select(x => x.Value.ContractAddress));
-		ensContext.AddToReverseAddressNameHashMap(nodesContext.Nodes.Data.WithdrawalAddresses.Select(x => x.Value.HexToByteArray()));
-		ensContext.AddToReverseAddressNameHashMap(nodesContext.Nodes.Data.RPLWithdrawalAddresses.Select(x => x.Value.HexToByteArray()));
-		ensContext.AddToReverseAddressNameHashMap(nodesContext.Nodes.Data.StakeOnBehalfAddresses.SelectMany(list => list.Value.Select(x => x.HexToByteArray())));
+		ensContext.AddToReverseAddressNameHashMap(
+			nodesContext.Nodes.Data.WithdrawalAddresses.Select(x => x.Value.HexToByteArray()));
+		ensContext.AddToReverseAddressNameHashMap(
+			nodesContext.Nodes.Data.RPLWithdrawalAddresses.Select(x => x.Value.HexToByteArray()));
+		ensContext.AddToReverseAddressNameHashMap(
+			nodesContext.Nodes.Data.StakeOnBehalfAddresses.SelectMany(list =>
+				list.Value.Select(x => x.HexToByteArray())));
 
 		ensContext.AddToReverseAddressNameHashMap(
-			tokensContext.RETHTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
+			tokensContextRETH.RETHTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
 		ensContext.AddToReverseAddressNameHashMap(
-			tokensContext.RockRETHTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
+			tokensContextRockRETH.RockRETHTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
 		ensContext.AddToReverseAddressNameHashMap(
-			tokensContext.RPLTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
+			tokensContextRPL.RPLTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
 		ensContext.AddToReverseAddressNameHashMap(
-			tokensContext.RPLOldTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
+			tokensContextRPLOld.RPLOldTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));
 
 		ensContext.AddToEnsMaps(ensSnapshot?.Data.AddressEnsMap.Select(pair => (pair.Key, pair.Value)) ?? []);
 

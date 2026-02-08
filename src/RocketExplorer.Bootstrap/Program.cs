@@ -8,7 +8,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Web3;
-using RocketExplorer.Bootstrap;
 using RocketExplorer.Core;
 using RocketExplorer.Core.BeaconChain;
 using RocketExplorer.Core.Contracts;
@@ -49,7 +48,11 @@ IHost host = Host.CreateDefaultBuilder(args)
 		services.AddTransient<GlobalEnsIndexService>();
 
 		services.AddTransient<ContractsSync>();
-		services.AddTransient<TokensSync>();
+		services.AddTransient<TokensSyncRPL>();
+		services.AddTransient<TokensSyncRPLOld>();
+		services.AddTransient<TokensSyncRETH>();
+		services.AddTransient<TokensSyncRockRETH>();
+		services.AddTransient<TokensSyncStakedRPL>();
 		services.AddTransient<NodesSync>();
 		services.AddTransient<EnsSync>();
 
@@ -110,6 +113,8 @@ GlobalContext globalContext = await host.Services.CreateGlobalContextAsync();
 host.Services.GetRequiredService<GlobalContextAccessor>().GlobalContext = globalContext;
 
 // Initial sync
+bool skipIndexEns = false;
+////bool skipIndexEns = true;
 ////globalContext.Services.GlobalIndexService.SkipLoading = true;
 ////globalContext.Services.GlobalEnsIndexService.SkipLoading = true;
 
@@ -119,23 +124,18 @@ host.Services.GetRequiredService<GlobalContextAccessor>().GlobalContext = global
 ////return;
 
 Task contractsSyncTask = host.Services.GetRequiredService<ContractsSync>().HandleBlocksAsync();
-Task tokensSyncTask = host.Services.GetRequiredService<TokensSync>().HandleBlocksAsync();
 Task nodesSyncTask = host.Services.GetRequiredService<NodesSync>().HandleBlocksAsync();
-Task ensSyncTask = host.Services.GetRequiredService<EnsSync>().HandleBlocksAsync();
+List<Task> tokenSyncTasks = host.Services.HandleTokenBlocksAsync();
 
-await Task.WhenAll(contractsSyncTask, nodesSyncTask, tokensSyncTask, ensSyncTask);
+await Task.WhenAll([contractsSyncTask, nodesSyncTask, ..tokenSyncTasks]);
 
 Task writeContractsTask = globalContext.ContractsContext.SaveAsync(
 	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<ContractsContext>>());
 NodesContext nodesContext = await globalContext.NodesContextFactory;
 Task writeNodesTask = nodesContext.SaveAsync(
 	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<NodesContext>>());
-TokensContext tokensContext = await globalContext.TokensContextFactory;
-Task writeTokensTask = tokensContext.SaveAsync(
-	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<TokensContext>>());
-EnsContext ensContext = await globalContext.EnsContextFactory;
-Task writeEnsTask = ensContext.SaveAsync(
-	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<EnsContext>>());
+
+List<Task> writeTokenTasks = await host.Services.SaveTokenTasksAsync();
 
 Task writeDashboardTask = globalContext.DashboardContext.SaveAsync(
 	globalContext.Services.Storage, globalContext.LatestBlockHeight,
@@ -153,9 +153,20 @@ Task writeMetadataTask = globalContext.Services.Storage.WriteAsync(
 		},
 	}, 10);
 
-Task writeIndexTask = globalContext.Services.GlobalIndexService.WriteAsync(globalContext.LatestBlockHeight);
-Task writeEnsIndexTask = globalContext.Services.GlobalEnsIndexService.WriteAsync(globalContext.LatestBlockHeight);
+await Task.WhenAll([writeContractsTask, writeNodesTask, ..writeTokenTasks, writeDashboardTask, writeMetadataTask]);
 
-await Task.WhenAll(writeContractsTask, writeNodesTask, writeTokensTask, writeEnsTask, writeDashboardTask, writeMetadataTask, writeIndexTask, writeEnsIndexTask);
+if (!skipIndexEns)
+{
+	await host.Services.GetRequiredService<EnsSync>().HandleBlocksAsync();
+
+	EnsContext ensContext = await globalContext.EnsContextFactory;
+	Task writeEnsTask = ensContext.SaveAsync(
+		globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<EnsContext>>());
+
+	Task writeIndexTask = globalContext.Services.GlobalIndexService.WriteAsync(globalContext.LatestBlockHeight);
+	Task writeEnsIndexTask = globalContext.Services.GlobalEnsIndexService.WriteAsync(globalContext.LatestBlockHeight);
+
+	await Task.WhenAll(writeEnsTask, writeIndexTask, writeEnsIndexTask);
+}
 
 logger.LogInformation("Sync completed");

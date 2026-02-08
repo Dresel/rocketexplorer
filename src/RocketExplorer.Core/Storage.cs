@@ -7,6 +7,7 @@ using MessagePack;
 using MessagePack.Resolvers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Polly.Retry;
 using RocketExplorer.Shared;
 
 namespace RocketExplorer.Core;
@@ -21,6 +22,7 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 		CompositeResolver.Create(BigIntegerResolver.Instance, StandardResolver.Instance);
 
 	private readonly SyncOptions options = options.Value;
+	private readonly AsyncRetryPolicy retryPolicy = StoragePolicies.Retry(logger);
 
 	private readonly AmazonS3Client s3Client = s3Client;
 
@@ -55,13 +57,14 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 	{
 		Stopwatch stopwatch = Stopwatch.StartNew();
 
-		await this.s3Client.DeleteObjectAsync(
-			new DeleteObjectRequest
-			{
-				BucketName = this.bucketName,
-				Key = $"{this.options.Environment.ToLower()}/{key}",
-			},
-			cancellationToken);
+		await this.retryPolicy.ExecuteAsync(() =>
+			this.s3Client.DeleteObjectAsync(
+				new DeleteObjectRequest
+				{
+					BucketName = this.bucketName,
+					Key = $"{this.options.Environment.ToLower()}/{key}",
+				},
+				cancellationToken));
 
 		this.logger.LogDebug($"DeleteObject took {stopwatch.ElapsedMilliseconds}ms");
 	}
@@ -95,13 +98,13 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 		{
 			Stopwatch stopwatch = Stopwatch.StartNew();
 
-			using GetObjectResponse response = await this.s3Client.GetObjectAsync(
+			using GetObjectResponse response = await this.retryPolicy.ExecuteAsync(() => this.s3Client.GetObjectAsync(
 				new GetObjectRequest
 				{
 					BucketName = this.bucketName,
 					Key = $"{this.options.Environment.ToLower()}/{key}",
 				},
-				cancellationToken);
+				cancellationToken));
 
 			using MemoryStream memoryStream = new();
 			await response.ResponseStream.CopyToAsync(memoryStream, cancellationToken);
@@ -110,7 +113,8 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 			this.logger.LogDebug($"GetObject took {stopwatch.ElapsedMilliseconds}ms for {memoryStream.Length} bytes");
 
 			T data = MessagePackSerializer.Deserialize<T>(
-				memoryStream.ToArray(), MessagePackSerializerOptions.Standard.WithResolver(this.messagePackResolver));
+				memoryStream.ToArray(),
+				MessagePackSerializerOptions.Standard.WithResolver(this.messagePackResolver));
 
 			return new BlobObject<T>
 			{
@@ -133,22 +137,23 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 
 		Stopwatch stopwatch = Stopwatch.StartNew();
 
-		await this.s3Client.PutObjectAsync(
-			new PutObjectRequest
-			{
-				BucketName = this.bucketName,
-				Key = $"{this.options.Environment.ToLower()}/{key}",
-				InputStream = memoryStream,
-				Headers =
+		await this.retryPolicy.ExecuteAsync(() =>
+			this.s3Client.PutObjectAsync(
+				new PutObjectRequest
 				{
-					["Cache-Control"] = $"public, max-age={maxAge}, must-revalidate",
+					BucketName = this.bucketName,
+					Key = $"{this.options.Environment.ToLower()}/{key}",
+					InputStream = memoryStream,
+					Headers =
+					{
+						["Cache-Control"] = $"public, max-age={maxAge}, must-revalidate",
+					},
+					Metadata =
+					{
+						["ProcessedBlockNumber"] = snapshot.ProcessedBlockNumber.ToString(CultureInfo.InvariantCulture),
+					},
 				},
-				Metadata =
-				{
-					["ProcessedBlockNumber"] = snapshot.ProcessedBlockNumber.ToString(CultureInfo.InvariantCulture),
-				},
-			},
-			cancellationToken);
+				cancellationToken));
 
 		this.logger.LogDebug($"PutObject took {stopwatch.ElapsedMilliseconds}ms for {data.Length} bytes");
 	}

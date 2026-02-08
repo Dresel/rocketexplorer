@@ -50,7 +50,8 @@ public static class ServiceProviderExtensions
 			return await Helper.FindFirstBlockAsync(
 				async blockParameter =>
 				{
-					string code = await policy.ExecuteAsync(() => web3.Eth.GetCode.SendRequestAsync(address, blockParameter));
+					string code =
+						await policy.ExecuteAsync(() => web3.Eth.GetCode.SendRequestAsync(address, blockParameter));
 					return !string.Equals(code, "0x", StringComparison.OrdinalIgnoreCase);
 				},
 				0,
@@ -58,8 +59,29 @@ public static class ServiceProviderExtensions
 				TimeSpan.FromDays(60).BlockCount());
 		};
 
-		Task<TokensContext> tokensContextFactory = TokensContext.ReadAsync(getDeploymentBlock,
-			storage, contractsContext, options, serviceProvider.GetRequiredService<ILogger<TokensContext>>(),
+		Task<TokensContextRPL> tokensContextRPLFactory = TokensContextRPL.ReadAsync(
+			getDeploymentBlock,
+			storage, contractsContext, options, serviceProvider.GetRequiredService<ILogger<TokensContextRPL>>(),
+			cancellationToken);
+
+		Task<TokensContextRPLOld> tokensContextOldFactory = TokensContextRPLOld.ReadAsync(
+			getDeploymentBlock,
+			storage, contractsContext, options, serviceProvider.GetRequiredService<ILogger<TokensContextRPLOld>>(),
+			cancellationToken);
+
+		Task<TokensContextStakedRPL> tokensContextStakedRPLFactory = TokensContextStakedRPL.ReadAsync(
+			getDeploymentBlock,
+			storage, contractsContext, options, serviceProvider.GetRequiredService<ILogger<TokensContextStakedRPL>>(),
+			cancellationToken);
+
+		Task<TokensContextRETH> tokensContextRETHFactory = TokensContextRETH.ReadAsync(
+			getDeploymentBlock,
+			storage, contractsContext, options, serviceProvider.GetRequiredService<ILogger<TokensContextRETH>>(),
+			cancellationToken);
+
+		Task<TokensContextRockRETH> tokensContextRockRETHFactory = TokensContextRockRETH.ReadAsync(
+			getDeploymentBlock,
+			storage, contractsContext, options, serviceProvider.GetRequiredService<ILogger<TokensContextRockRETH>>(),
 			cancellationToken);
 
 		AddressEnsProcessHistory addressEnsProcessHistory = new();
@@ -91,15 +113,73 @@ public static class ServiceProviderExtensions
 
 			ContractsContext = contractsContext,
 			NodesContextFactory = nodesContextFactory,
-			TokensContextFactory =
-				tokensContextFactory,
+
+			TokensContextRPLFactory = tokensContextRPLFactory,
+			TokensContextRPLOldFactory = tokensContextOldFactory,
+			TokensContextStakedRPLFactory = tokensContextStakedRPLFactory,
+			TokensContextRETHFactory = tokensContextRETHFactory,
+			TokensContextRockRETHFactory = tokensContextRockRETHFactory,
+
 			EnsContextFactory = EnsContext.ReadAsync(
 				storage,
 				nodesContextFactory,
-				tokensContextFactory,
+				tokensContextRPLFactory,
+				tokensContextOldFactory,
+				tokensContextRETHFactory,
+				tokensContextRockRETHFactory,
 				addressEnsProcessHistory,
 				serviceProvider.GetRequiredService<ILogger<EnsContext>>(),
 				cancellationToken),
 		};
+	}
+
+	public static List<Task> HandleTokenBlocksAsync(this IServiceProvider serviceProvider)
+	{
+		Task tokensSyncRPLTask = serviceProvider.GetRequiredService<TokensSyncRPL>().HandleBlocksAsync();
+		Task tokensSyncRPLOldTask = serviceProvider.GetRequiredService<TokensSyncRPLOld>().HandleBlocksAsync();
+		Task tokensSyncStakedRPLTask = serviceProvider.GetRequiredService<TokensSyncStakedRPL>().HandleBlocksAsync();
+		Task tokensSyncRETHTask = serviceProvider.GetRequiredService<TokensSyncRETH>().HandleBlocksAsync();
+		Task tokensSyncRockRETHTask = serviceProvider.GetRequiredService<TokensSyncRockRETH>().HandleBlocksAsync();
+
+		return
+		[
+			tokensSyncRPLTask,
+			tokensSyncRPLOldTask,
+			tokensSyncStakedRPLTask,
+			tokensSyncRETHTask,
+			tokensSyncRockRETHTask,
+		];
+	}
+
+	public static async Task<List<Task>> SaveTokenTasksAsync(this IServiceProvider serviceProvider)
+	{
+		GlobalContext globalContext = serviceProvider.GetRequiredService<GlobalContextAccessor>().GlobalContext ??
+			throw new InvalidOperationException("GlobalContext not initialized");
+
+		TokensContextRPL tokensContextRPL = await globalContext.TokensContextRPLFactory;
+		TokensContextRPLOld tokensContextRPLOld = await globalContext.TokensContextRPLOldFactory;
+		TokensContextStakedRPL tokensContextStakedRPL = await globalContext.TokensContextStakedRPLFactory;
+		TokensContextRETH tokensContextRETH = await globalContext.TokensContextRETHFactory;
+		TokensContextRockRETH tokensContextRockRETH = await globalContext.TokensContextRockRETHFactory;
+
+		Task writeTokensRPLTask = tokensContextRPL.SaveAsync(
+			globalContext.Services.Storage, serviceProvider.GetRequiredService<ILogger<TokensContextRPL>>());
+		Task writeTokensRPLOldTask = tokensContextRPLOld.SaveAsync(
+			globalContext.Services.Storage, serviceProvider.GetRequiredService<ILogger<TokensContextRPLOld>>());
+		Task writeTokensStakedRPLTask = tokensContextStakedRPL.SaveAsync(
+			globalContext.Services.Storage, serviceProvider.GetRequiredService<ILogger<TokensContextStakedRPL>>());
+		Task writeTokensRETHTask = tokensContextRETH.SaveAsync(
+			globalContext.Services.Storage, serviceProvider.GetRequiredService<ILogger<TokensContextRETH>>());
+		Task writeTokensRockRETHTask = tokensContextRockRETH.SaveAsync(
+			globalContext.Services.Storage, serviceProvider.GetRequiredService<ILogger<TokensContextRockRETH>>());
+
+		return
+		[
+			writeTokensRPLTask,
+			writeTokensRPLOldTask,
+			writeTokensStakedRPLTask,
+			writeTokensRETHTask,
+			writeTokensRockRETHTask,
+		];
 	}
 }

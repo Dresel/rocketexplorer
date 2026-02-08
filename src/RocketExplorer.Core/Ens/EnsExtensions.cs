@@ -180,7 +180,11 @@ public static class EnsExtensions
 		CancellationToken cancellationToken = default)
 	{
 		NodesContext nodesContext = await globalContext.NodesContextFactory;
-		TokensContext tokensContext = await globalContext.TokensContextFactory;
+
+		TokensContextRPL tokensContextRPL = await globalContext.TokensContextRPLFactory;
+		TokensContextRPLOld tokensContextRPLOld = await globalContext.TokensContextRPLOldFactory;
+		TokensContextRETH tokensContextRETH = await globalContext.TokensContextRETHFactory;
+		TokensContextRockRETH tokensContextRockRETH = await globalContext.TokensContextRockRETHFactory;
 
 		string candidateAddress = address.ToHex(true);
 
@@ -206,10 +210,10 @@ public static class EnsExtensions
 		List<string> rplWithdrawalExists = RPLWithdrawalExists(nodesContext, candidateAddress);
 		List<string> stakeOnBehalfExists = StakeOnBehalfExists(nodesContext, candidateAddress);
 
-		bool rplUpdated = TokenHolderExists(tokensContext.RPLTokenInfo, candidateAddress);
-		bool rplOldUpdated = TokenHolderExists(tokensContext.RPLOldTokenInfo, candidateAddress);
-		bool rethUpdated = TokenHolderExists(tokensContext.RETHTokenInfo, candidateAddress);
-		bool rockRETHUpdated = TokenHolderExists(tokensContext.RockRETHTokenInfo, candidateAddress);
+		bool rplUpdated = TokenHolderExists(tokensContextRPL.RPLTokenInfo, candidateAddress);
+		bool rplOldUpdated = TokenHolderExists(tokensContextRPLOld.RPLOldTokenInfo, candidateAddress);
+		bool rethUpdated = TokenHolderExists(tokensContextRETH.RETHTokenInfo, candidateAddress);
+		bool rockRETHUpdated = TokenHolderExists(tokensContextRockRETH.RockRETHTokenInfo, candidateAddress);
 
 		IndexEntryType type =
 			(nodeExists ? IndexEntryType.NodeOperator : 0) |

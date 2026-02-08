@@ -1,4 +1,5 @@
 using System.Numerics;
+using Microsoft.Extensions.Logging;
 using Nethereum.Contracts;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.RPC.Eth.DTOs;
@@ -18,7 +19,7 @@ public class TokenEventHandlers
 	{
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
 
-		TokensContext context = await globalContext.TokensContextFactory;
+		TokensContextRPLOld context = await globalContext.TokensContextRPLOldFactory;
 
 		context.RPLOldTokenInfo.SwappedDaily[key] =
 			context.RPLOldTokenInfo.SwappedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
@@ -38,7 +39,7 @@ public class TokenEventHandlers
 		GlobalContext globalContext, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
-		TokensContext context = await globalContext.TokensContextFactory;
+		TokensContextRETH context = await globalContext.TokensContextRETHFactory;
 		await HandleAsync(globalContext, context.RETHTokenInfo, TokenType.RETH, eventLog, cancellationToken);
 
 		globalContext.DashboardContext.RETHSupplyTotal = context.RETHTokenInfo.SupplyTotal.GetLatestValueOrDefault();
@@ -48,7 +49,7 @@ public class TokenEventHandlers
 		GlobalContext globalContext, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
-		TokensContext context = await globalContext.TokensContextFactory;
+		TokensContextRockRETH context = await globalContext.TokensContextRockRETHFactory;
 		await HandleAsync(globalContext, context.RockRETHTokenInfo, TokenType.RockRETH, eventLog, cancellationToken);
 
 		globalContext.DashboardContext.RockRETHSupplyTotal =
@@ -59,7 +60,7 @@ public class TokenEventHandlers
 		GlobalContext globalContext, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
-		TokensContext context = await globalContext.TokensContextFactory;
+		TokensContextRPL context = await globalContext.TokensContextRPLFactory;
 		await HandleAsync(globalContext, context.RPLTokenInfo, TokenType.RPL, eventLog, cancellationToken);
 
 		globalContext.DashboardContext.RPLSupplyTotal = context.RPLTokenInfo.SupplyTotal.GetLatestValueOrDefault();
@@ -69,7 +70,7 @@ public class TokenEventHandlers
 		GlobalContext globalContext, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
-		TokensContext context = await globalContext.TokensContextFactory;
+		TokensContextRPLOld context = await globalContext.TokensContextRPLOldFactory;
 		await HandleAsync(globalContext, context.RPLOldTokenInfo, TokenType.RPLOld, eventLog, cancellationToken);
 
 		globalContext.DashboardContext.RPLOldSupplyTotal =
@@ -81,7 +82,8 @@ public class TokenEventHandlers
 		TokenInfo tokenInfo, TokenType tokenType, EventLog<TransferEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
-		if (eventLog.Event.Value.IsZero || string.Equals(eventLog.Event.From, eventLog.Event.To, StringComparison.OrdinalIgnoreCase))
+		if (eventLog.Event.Value.IsZero || string.Equals(
+				eventLog.Event.From, eventLog.Event.To, StringComparison.OrdinalIgnoreCase))
 		{
 			return;
 		}
@@ -90,7 +92,8 @@ public class TokenEventHandlers
 
 		if (!fromAddress.IsTheSameAddress(AddressUtil.ZERO_ADDRESS))
 		{
-			BigInteger fromBalance = (tokenInfo.Holders.GetValueOrDefault(fromAddress)?.Balance ?? 0) - eventLog.Event.Value;
+			BigInteger fromBalance =
+				(tokenInfo.Holders.GetValueOrDefault(fromAddress)?.Balance ?? 0) - eventLog.Event.Value;
 
 			if (fromBalance.IsZero)
 			{
@@ -118,6 +121,13 @@ public class TokenEventHandlers
 			}
 			else
 			{
+				if (!tokenInfo.Holders.ContainsKey(fromAddress))
+				{
+					globalContext.GetLogger<TokenEventHandlers>().LogError(
+						"Holder Address is missing: {Address} ({Block} / {Transaction})",
+						fromAddress, eventLog.Log.BlockNumber, eventLog.Log.TransactionHash);
+				}
+
 				tokenInfo.Holders[fromAddress] = tokenInfo.Holders[fromAddress] with
 				{
 					Balance = fromBalance,
@@ -167,7 +177,8 @@ public class TokenEventHandlers
 				};
 			}
 
-			BigInteger toBalance = (tokenInfo.Holders.GetValueOrDefault(toAddress)?.Balance ?? 0) + eventLog.Event.Value;
+			BigInteger toBalance =
+				(tokenInfo.Holders.GetValueOrDefault(toAddress)?.Balance ?? 0) + eventLog.Event.Value;
 
 			tokenInfo.Holders[toAddress] = tokenInfo.Holders[toAddress] with
 			{

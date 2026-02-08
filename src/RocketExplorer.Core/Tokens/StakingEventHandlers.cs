@@ -10,7 +10,7 @@ public class StakingEventHandlers
 	{
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
 
-		TokensContext context = await globalContext.TokensContextFactory;
+		TokensContextStakedRPL context = await globalContext.TokensContextStakedRPLFactory;
 
 		context.StakedRPLInfo.LegacyStakedDaily[key] =
 			context.StakedRPLInfo.LegacyStakedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
@@ -23,7 +23,7 @@ public class StakingEventHandlers
 	{
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
 
-		TokensContext context = await globalContext.TokensContextFactory;
+		TokensContextStakedRPL context = await globalContext.TokensContextStakedRPLFactory;
 
 		context.StakedRPLInfo.LegacyUnstakedDaily[key] =
 			context.StakedRPLInfo.LegacyUnstakedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
@@ -37,7 +37,7 @@ public class StakingEventHandlers
 	{
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
 
-		TokensContext context = await globalContext.TokensContextFactory;
+		TokensContextStakedRPL context = await globalContext.TokensContextStakedRPLFactory;
 
 		context.StakedRPLInfo.LegacyUnstakedDaily[key] =
 			context.StakedRPLInfo.LegacyUnstakedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
@@ -50,7 +50,7 @@ public class StakingEventHandlers
 	{
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
 
-		TokensContext context = await globalContext.TokensContextFactory;
+		TokensContextStakedRPL context = await globalContext.TokensContextStakedRPLFactory;
 
 		context.StakedRPLInfo.MegapoolStakedDaily[key] =
 			context.StakedRPLInfo.MegapoolStakedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;
@@ -62,7 +62,7 @@ public class StakingEventHandlers
 	{
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
 
-		TokensContext context = await globalContext.TokensContextFactory;
+		TokensContextStakedRPL context = await globalContext.TokensContextStakedRPLFactory;
 
 		context.StakedRPLInfo.MegapoolUnstakedDaily[key] =
 			context.StakedRPLInfo.MegapoolUnstakedDaily.GetValueOrDefault(key) + eventLog.Event.Amount;

@@ -24,8 +24,11 @@ internal class IndexBuilder
 		NodesContext nodesContext = await globalContext.NodesContextFactory;
 		nodesContext.ProcessingCompletionSource.TrySetResult();
 
-		TokensContext tokensContext = await globalContext.TokensContextFactory;
-		tokensContext.ProcessingCompletionSource.TrySetResult();
+		(await globalContext.TokensContextRPLFactory).ProcessingCompletionSource.TrySetResult();
+		(await globalContext.TokensContextRPLOldFactory).ProcessingCompletionSource.TrySetResult();
+		(await globalContext.TokensContextStakedRPLFactory).ProcessingCompletionSource.TrySetResult();
+		(await globalContext.TokensContextRETHFactory).ProcessingCompletionSource.TrySetResult();
+		(await globalContext.TokensContextRockRETHFactory).ProcessingCompletionSource.TrySetResult();
 
 		await BuildInitialIndexAsync(globalContext);
 		await BuildInitialEnsIndexAsync(globalContext);
@@ -34,17 +37,10 @@ internal class IndexBuilder
 		await globalContext.Services.GlobalEnsIndexService.WriteAsync(
 			globalContext.ContractsContext.CurrentBlockHeight);
 
-		Task writeNodesTask = nodesContext.SaveAsync(
-			globalContext.Services.Storage, globalContext.LoggerFactory.CreateLogger<NodesContext>());
-		Task writeTokensTask = tokensContext.SaveAsync(
-			globalContext.Services.Storage, globalContext.LoggerFactory.CreateLogger<TokensContext>());
 		EnsContext ensContext = await globalContext.EnsContextFactory;
 
 		ensContext.CurrentBlockHeight = nodesContext.CurrentBlockHeight;
-		Task writeEnsTask = ensContext.SaveAsync(
-			globalContext.Services.Storage, globalContext.LoggerFactory.CreateLogger<EnsContext>());
-
-		await Task.WhenAll(writeNodesTask, writeTokensTask, writeEnsTask);
+		await ensContext.SaveAsync(globalContext.Services.Storage, globalContext.LoggerFactory.CreateLogger<EnsContext>());
 	}
 
 	private static Task AddHolderAsync(
@@ -70,7 +66,12 @@ internal class IndexBuilder
 		globalContext.GetLogger<EnsContext>().LogInformation("Building initial ens index");
 
 		NodesContext nodesContext = await globalContext.NodesContextFactory;
-		TokensContext tokensContext = await globalContext.TokensContextFactory;
+
+		TokensContextRPL tokensContextRPL = await globalContext.TokensContextRPLFactory;
+		TokensContextRPLOld tokensContextRPLOld = await globalContext.TokensContextRPLOldFactory;
+		TokensContextRETH tokensContextRETH = await globalContext.TokensContextRETHFactory;
+		TokensContextRockRETH tokensContextRockRETH = await globalContext.TokensContextRockRETHFactory;
+
 		EnsContext ensContext = await globalContext.EnsContextFactory;
 
 		globalContext.Services.GlobalEnsIndexService.SkipLoading = true;
@@ -82,22 +83,22 @@ internal class IndexBuilder
 			addresses.Add(addressBytes);
 		}
 
-		foreach (HolderEntry holder in tokensContext.RPLTokenInfo.Holders.Values)
+		foreach (HolderEntry holder in tokensContextRPL.RPLTokenInfo.Holders.Values)
 		{
 			addresses.Add(holder.Address.HexToByteArray());
 		}
 
-		foreach (HolderEntry holder in tokensContext.RPLOldTokenInfo.Holders.Values)
+		foreach (HolderEntry holder in tokensContextRPLOld.RPLOldTokenInfo.Holders.Values)
 		{
 			addresses.Add(holder.Address.HexToByteArray());
 		}
 
-		foreach (HolderEntry holder in tokensContext.RETHTokenInfo.Holders.Values)
+		foreach (HolderEntry holder in tokensContextRETH.RETHTokenInfo.Holders.Values)
 		{
 			addresses.Add(holder.Address.HexToByteArray());
 		}
 
-		foreach (HolderEntry holder in tokensContext.RockRETHTokenInfo.Holders.Values)
+		foreach (HolderEntry holder in tokensContextRockRETH.RockRETHTokenInfo.Holders.Values)
 		{
 			addresses.Add(holder.Address.HexToByteArray());
 		}
@@ -307,30 +308,33 @@ internal class IndexBuilder
 			}
 		}
 
-		TokensContext tokensContext = await globalContext.TokensContextFactory;
+		TokensContextRPL tokensContextRPL = await globalContext.TokensContextRPLFactory;
+		TokensContextRPLOld tokensContextRPLOld = await globalContext.TokensContextRPLOldFactory;
+		TokensContextRETH tokensContextRETH = await globalContext.TokensContextRETHFactory;
+		TokensContextRockRETH tokensContextRockRETH = await globalContext.TokensContextRockRETHFactory;
 
-		foreach (HolderEntry holderEntry in tokensContext.RETHTokenInfo.Holders.Values)
+		foreach (HolderEntry holderEntry in tokensContextRETH.RETHTokenInfo.Holders.Values)
 		{
 			_ = AddHolderAsync(
 				globalContext.Services.GlobalIndexService, holderEntry.Address.HexToByteArray(),
 				TokenType.RETH, cancellationToken);
 		}
 
-		foreach (HolderEntry holderEntry in tokensContext.RockRETHTokenInfo.Holders.Values)
+		foreach (HolderEntry holderEntry in tokensContextRockRETH.RockRETHTokenInfo.Holders.Values)
 		{
 			_ = AddHolderAsync(
 				globalContext.Services.GlobalIndexService, holderEntry.Address.HexToByteArray(),
 				TokenType.RockRETH, cancellationToken);
 		}
 
-		foreach (HolderEntry holderEntry in tokensContext.RPLTokenInfo.Holders.Values)
+		foreach (HolderEntry holderEntry in tokensContextRPL.RPLTokenInfo.Holders.Values)
 		{
 			_ = AddHolderAsync(
 				globalContext.Services.GlobalIndexService, holderEntry.Address.HexToByteArray(),
 				TokenType.RPL, cancellationToken);
 		}
 
-		foreach (HolderEntry holderEntry in tokensContext.RPLOldTokenInfo.Holders.Values)
+		foreach (HolderEntry holderEntry in tokensContextRPLOld.RPLOldTokenInfo.Holders.Values)
 		{
 			_ = AddHolderAsync(
 				globalContext.Services.GlobalIndexService, holderEntry.Address.HexToByteArray(),

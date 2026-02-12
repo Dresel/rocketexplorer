@@ -9,9 +9,7 @@ using RocketExplorer.Core.Ens;
 using RocketExplorer.Core.Nodes;
 using RocketExplorer.Core.Tokens;
 using RocketExplorer.Shared;
-using RocketExplorer.Shared.Nodes;
 using RocketExplorer.Shared.Tokens;
-using RocketExplorer.Shared.Validators;
 
 namespace RocketExplorer.Bootstrap;
 
@@ -21,7 +19,7 @@ internal class IndexBuilder
 	{
 		globalContext.ContractsContext.ProcessingCompletionSource.TrySetResult();
 
-		NodesContext nodesContext = await globalContext.NodesContextFactory;
+		NodesMasterContext nodesContext = await globalContext.NodesMasterContextFactory;
 		nodesContext.ProcessingCompletionSource.TrySetResult();
 
 		(await globalContext.TokensContextRPLFactory).ProcessingCompletionSource.TrySetResult();
@@ -65,7 +63,7 @@ internal class IndexBuilder
 	{
 		globalContext.GetLogger<EnsContext>().LogInformation("Building initial ens index");
 
-		NodesContext nodesContext = await globalContext.NodesContextFactory;
+		NodesMasterContext nodesContext = await globalContext.NodesMasterContextFactory;
 
 		TokensContextRPL tokensContextRPL = await globalContext.TokensContextRPLFactory;
 		TokensContextRPLOld tokensContextRPLOld = await globalContext.TokensContextRPLOldFactory;
@@ -78,7 +76,7 @@ internal class IndexBuilder
 
 		HashSet<byte[]> addresses = new(new FastByteArrayComparer());
 
-		foreach (byte[] addressBytes in nodesContext.Nodes.Data.Index.Select(x => x.Value.ContractAddress))
+		foreach (byte[] addressBytes in nodesContext.Nodes.Data.Nodes.Select(x => x.Value.ContractAddress))
 		{
 			addresses.Add(addressBytes);
 		}
@@ -156,155 +154,149 @@ internal class IndexBuilder
 
 		globalContext.Services.GlobalIndexService.SkipLoading = true;
 
-		NodesContext nodesContext = await globalContext.NodesContextFactory;
+		NodesMasterContext nodesContext = await globalContext.NodesMasterContextFactory;
 
-		foreach (NodeIndexEntry nodeIndexEntry in nodesContext.Nodes.Data.Index.Values)
+		foreach (NodeMasterInfo nodeMaster in nodesContext.Nodes.Data.Nodes.Values)
 		{
 			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-				nodeIndexEntry.ContractAddress.ToHex(), nodeIndexEntry.ContractAddress, EventIndex.Next,
+				nodeMaster.ContractAddress.ToHex(), nodeMaster.ContractAddress, EventIndex.Next,
 				x =>
 				{
 					x.Type |= IndexEntryType.NodeOperator;
-					x.Address = nodeIndexEntry.ContractAddress;
+					x.Address = nodeMaster.ContractAddress;
 				}, cancellationToken: cancellationToken);
 
-			if (nodeIndexEntry.MegapoolAddress is not null)
+			if (nodeMaster.MegapoolAddress is not null)
 			{
 				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-					nodeIndexEntry.MegapoolAddress.ToHex(),
-					nodeIndexEntry.MegapoolAddress,
+					nodeMaster.MegapoolAddress.ToHex(),
+					nodeMaster.MegapoolAddress,
 					EventIndex.Next,
 					x =>
 					{
 						x.Type |= IndexEntryType.Megapool;
-						x.Address = nodeIndexEntry.ContractAddress;
-						x.MegapoolAddress = nodeIndexEntry.MegapoolAddress;
+						x.Address = nodeMaster.ContractAddress;
+						x.MegapoolAddress = nodeMaster.MegapoolAddress;
 					}, cancellationToken: cancellationToken);
 			}
-		}
 
-		foreach (KeyValuePair<string, string> withdrawalAddress in nodesContext.Nodes.Data.WithdrawalAddresses)
-		{
-			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-				withdrawalAddress.Value.RemoveHexPrefix(), withdrawalAddress.Value.HexToByteArray(),
-				EventIndex.Next,
-				x =>
-				{
-					x.Type |= IndexEntryType.WithdrawalAddress;
-					x.Address = withdrawalAddress.Value.HexToByteArray();
-					x.NodeAddresses.Add(withdrawalAddress.Key.HexToByteArray());
-				}, cancellationToken: cancellationToken);
-		}
-
-		foreach (KeyValuePair<string, string> withdrawalAddress in nodesContext.Nodes.Data.RPLWithdrawalAddresses)
-		{
-			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-				withdrawalAddress.Value.RemoveHexPrefix(), withdrawalAddress.Value.HexToByteArray(),
-				EventIndex.Next,
-				x =>
-				{
-					x.Type |= IndexEntryType.RPLWithdrawalAddress;
-					x.Address = withdrawalAddress.Value.HexToByteArray();
-					x.NodeAddresses.Add(withdrawalAddress.Key.HexToByteArray());
-				}, cancellationToken: cancellationToken);
-		}
-
-		foreach (var stakeOnBehalfAddresses in nodesContext.Nodes.Data.StakeOnBehalfAddresses)
-		{
-			foreach (string stakeOnBehalfAddress in stakeOnBehalfAddresses.Value)
+			if (nodeMaster.WithdrawalAddress is not null)
 			{
 				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-					stakeOnBehalfAddress.RemoveHexPrefix(), stakeOnBehalfAddress.HexToByteArray(),
+					nodeMaster.WithdrawalAddress.ToHex(), nodeMaster.WithdrawalAddress,
+					EventIndex.Next,
+					x =>
+					{
+						x.Type |= IndexEntryType.WithdrawalAddress;
+						x.Address = nodeMaster.WithdrawalAddress;
+						x.NodeAddresses.Add(nodeMaster.ContractAddress);
+					}, cancellationToken: cancellationToken);
+			}
+
+			if (nodeMaster.RPLWithdrawalAddress is not null)
+			{
+				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+					nodeMaster.RPLWithdrawalAddress.ToHex(), nodeMaster.RPLWithdrawalAddress,
+					EventIndex.Next,
+					x =>
+					{
+						x.Type |= IndexEntryType.RPLWithdrawalAddress;
+						x.Address = nodeMaster.RPLWithdrawalAddress;
+						x.NodeAddresses.Add(nodeMaster.ContractAddress);
+					}, cancellationToken: cancellationToken);
+			}
+
+			foreach (byte[] stakeOnBehalfAddress in nodeMaster.StakeOnBehalfAddresses)
+			{
+				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+					stakeOnBehalfAddress.ToHex(), stakeOnBehalfAddress,
 					EventIndex.Next,
 					x =>
 					{
 						x.Type |= IndexEntryType.StakeOnBehalfAddress;
-						x.Address = stakeOnBehalfAddress.HexToByteArray();
-						x.NodeAddresses.Add(stakeOnBehalfAddresses.Key.HexToByteArray());
+						x.Address = stakeOnBehalfAddress;
+						x.NodeAddresses.Add(nodeMaster.ContractAddress);
 					}, cancellationToken: cancellationToken);
 			}
-		}
 
-		foreach (MinipoolValidatorIndexEntry minipoolValidator in nodesContext.ValidatorInfo.Data
-					.MinipoolValidatorIndex.Values)
-		{
-			byte[] minipoolAddress = minipoolValidator.MinipoolAddress;
-
-			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-				minipoolAddress.ToHex(), minipoolAddress, EventIndex.Next,
-				x =>
-				{
-					x.Type |= IndexEntryType.MinipoolValidator;
-					x.Address = minipoolAddress;
-				}, cancellationToken: cancellationToken);
-
-			if (minipoolValidator.PubKey is not null)
+			foreach (ValidatorMasterInfo minipoolValidator in nodeMaster.MinipoolValidators.Values)
 			{
+				byte[] minipoolAddress = minipoolValidator.MinipoolAddress!;
+
 				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-					minipoolValidator.PubKey.ToHex(), minipoolAddress, EventIndex.Next,
+					minipoolAddress.ToHex(), minipoolAddress, EventIndex.Next,
 					x =>
 					{
 						x.Type |= IndexEntryType.MinipoolValidator;
 						x.Address = minipoolAddress;
-						x.ValidatorPubKey = minipoolValidator.PubKey;
 					}, cancellationToken: cancellationToken);
+
+				if (minipoolValidator.PubKey is not null)
+				{
+					_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+						minipoolValidator.PubKey.ToHex(), minipoolAddress, EventIndex.Next,
+						x =>
+						{
+							x.Type |= IndexEntryType.MinipoolValidator;
+							x.Address = minipoolAddress;
+							x.ValidatorPubKey = minipoolValidator.PubKey;
+						}, cancellationToken: cancellationToken);
+				}
+
+				if (minipoolValidator.ValidatorIndex is not null)
+				{
+					_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+						minipoolValidator.ValidatorIndex.Value.ToString(CultureInfo.InvariantCulture),
+						minipoolAddress,
+						EventIndex.Next,
+						x =>
+						{
+							x.Type |= IndexEntryType.MinipoolValidator;
+							x.Address = minipoolAddress;
+							x.ValidatorIndex = minipoolValidator.ValidatorIndex;
+						}, cancellationToken: cancellationToken);
+				}
 			}
 
-			if (minipoolValidator.ValidatorIndex is not null)
+			foreach (ValidatorMasterInfo megapoolValidator in nodeMaster.MegapoolValidators.Values)
 			{
+				byte[] megapoolAddress = megapoolValidator.MegapoolAddress!;
+				int megapoolIndex = megapoolValidator.MegapoolIndex!.Value;
+
 				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-					minipoolValidator.ValidatorIndex.Value.ToString(CultureInfo.InvariantCulture),
-					minipoolAddress,
+					megapoolAddress.ToHex(),
+					megapoolAddress,
+					EventIndex.Next,
+					x => { x.Type |= IndexEntryType.Megapool; }, cancellationToken: cancellationToken);
+
+				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+					megapoolValidator.PubKey!.ToHex(),
+					megapoolAddress.Concat(BitConverter.GetBytes(megapoolIndex)).ToArray(),
 					EventIndex.Next,
 					x =>
 					{
-						x.Type |= IndexEntryType.MinipoolValidator;
-						x.Address = minipoolAddress;
-						x.ValidatorIndex = minipoolValidator.ValidatorIndex;
-					}, cancellationToken: cancellationToken);
-			}
-		}
-
-		foreach (MegapoolValidatorIndexEntry megapoolValidator in nodesContext.ValidatorInfo.Data
-					.MegapoolValidatorIndex.Values)
-		{
-			byte[] megapoolAddress = megapoolValidator.MegapoolAddress;
-
-			int megapoolIndex = megapoolValidator.MegapoolIndex;
-
-			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-				megapoolAddress.ToHex(),
-				megapoolAddress,
-				EventIndex.Next,
-				x => { x.Type |= IndexEntryType.Megapool; }, cancellationToken: cancellationToken);
-
-			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-				megapoolValidator.PubKey.ToHex(),
-				megapoolAddress.Concat(BitConverter.GetBytes(megapoolIndex)).ToArray(),
-				EventIndex.Next,
-				x =>
-				{
-					x.Type |= IndexEntryType.MegapoolValidator;
-					x.Address = megapoolValidator.NodeAddress; // TODO: Check
-					x.MegapoolAddress = megapoolAddress;
-					x.ValidatorPubKey = megapoolValidator.PubKey;
-					x.MegapoolIndex = megapoolIndex;
-				}, cancellationToken: cancellationToken);
-
-			if (megapoolValidator.ValidatorIndex is not null)
-			{
-				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
-					megapoolValidator.ValidatorIndex.Value.ToString(CultureInfo.InvariantCulture), megapoolAddress
-						.Concat(BitConverter.GetBytes(megapoolIndex))
-						.ToArray(), EventIndex.Next,
-					x =>
-					{
 						x.Type |= IndexEntryType.MegapoolValidator;
-						x.Address = megapoolValidator.NodeAddress; // TODO: Check
+						x.Address = nodeMaster.ContractAddress;
 						x.MegapoolAddress = megapoolAddress;
-						x.ValidatorIndex = megapoolValidator.ValidatorIndex;
+						x.ValidatorPubKey = megapoolValidator.PubKey;
 						x.MegapoolIndex = megapoolIndex;
 					}, cancellationToken: cancellationToken);
+
+				if (megapoolValidator.ValidatorIndex is not null)
+				{
+					_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
+						megapoolValidator.ValidatorIndex.Value.ToString(CultureInfo.InvariantCulture), megapoolAddress
+							.Concat(BitConverter.GetBytes(megapoolIndex))
+							.ToArray(), EventIndex.Next,
+						x =>
+						{
+							x.Type |= IndexEntryType.MegapoolValidator;
+							x.Address = nodeMaster.ContractAddress;
+							x.MegapoolAddress = megapoolAddress;
+							x.ValidatorIndex = megapoolValidator.ValidatorIndex;
+							x.MegapoolIndex = megapoolIndex;
+						}, cancellationToken: cancellationToken);
+				}
 			}
 		}
 

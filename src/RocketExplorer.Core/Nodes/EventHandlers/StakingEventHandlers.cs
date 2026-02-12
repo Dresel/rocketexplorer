@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Nethereum.Contracts;
 using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
-using RocketExplorer.Shared;
-using RocketExplorer.Shared.Nodes;
 
 namespace RocketExplorer.Core.Nodes.EventHandlers;
 
@@ -14,17 +12,16 @@ public class StakingEventHandlers
 	{
 		string nodeOperatorAddress = eventLog.Event.From;
 
-		if (!await EnsureNodeOperatorLoadedAsync(globalContext, cancellationToken, nodeOperatorAddress))
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
+
+		if (!context.Nodes.Data.Nodes.TryGetValue(nodeOperatorAddress, out NodeMasterInfo? node))
 		{
+			globalContext.GetLogger<StakingEventHandlers>().LogError("Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
 			return;
 		}
 
-		NodesContext context = await globalContext.NodesContextFactory;
-
-		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
-		{
-			RPLLegacyStaked = context.Nodes.Partial.Updated[nodeOperatorAddress].RPLLegacyStaked + eventLog.Event.Amount,
-		};
+		node.RPLLegacyStaked += eventLog.Event.Amount;
+		context.Nodes.NodesUpdated.Add(nodeOperatorAddress);
 
 		globalContext.DashboardContext.RPLLegacyStakedTotal += eventLog.Event.Amount;
 	}
@@ -35,16 +32,16 @@ public class StakingEventHandlers
 	{
 		string nodeOperatorAddress = eventLog.Event.To;
 
-		if (!await EnsureNodeOperatorLoadedAsync(globalContext, cancellationToken, nodeOperatorAddress))
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
+
+		if (!context.Nodes.Data.Nodes.TryGetValue(nodeOperatorAddress, out NodeMasterInfo? node))
 		{
+			globalContext.GetLogger<StakingEventHandlers>().LogError("Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
 			return;
 		}
 
-		NodesContext context = await globalContext.NodesContextFactory;
-		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
-		{
-			RPLLegacyStaked = context.Nodes.Partial.Updated[nodeOperatorAddress].RPLLegacyStaked - eventLog.Event.Amount,
-		};
+		node.RPLLegacyStaked -= eventLog.Event.Amount;
+		context.Nodes.NodesUpdated.Add(nodeOperatorAddress);
 
 		globalContext.DashboardContext.RPLLegacyStakedTotal -= eventLog.Event.Amount;
 	}
@@ -55,16 +52,16 @@ public class StakingEventHandlers
 	{
 		string nodeOperatorAddress = eventLog.Event.To;
 
-		if (!await EnsureNodeOperatorLoadedAsync(globalContext, cancellationToken, nodeOperatorAddress))
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
+
+		if (!context.Nodes.Data.Nodes.TryGetValue(nodeOperatorAddress, out NodeMasterInfo? node))
 		{
+			globalContext.GetLogger<StakingEventHandlers>().LogError("Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
 			return;
 		}
 
-		NodesContext context = await globalContext.NodesContextFactory;
-		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
-		{
-			RPLLegacyStaked = context.Nodes.Partial.Updated[nodeOperatorAddress].RPLLegacyStaked - eventLog.Event.Amount,
-		};
+		node.RPLLegacyStaked -= eventLog.Event.Amount;
+		context.Nodes.NodesUpdated.Add(nodeOperatorAddress);
 
 		globalContext.DashboardContext.RPLLegacyStakedTotal -= eventLog.Event.Amount;
 	}
@@ -75,16 +72,16 @@ public class StakingEventHandlers
 	{
 		string nodeOperatorAddress = eventLog.Event.Node;
 
-		if (!await EnsureNodeOperatorLoadedAsync(globalContext, cancellationToken, nodeOperatorAddress))
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
+
+		if (!context.Nodes.Data.Nodes.TryGetValue(nodeOperatorAddress, out NodeMasterInfo? node))
 		{
+			globalContext.GetLogger<StakingEventHandlers>().LogError("Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
 			return;
 		}
 
-		NodesContext context = await globalContext.NodesContextFactory;
-		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
-		{
-			RPLMegapoolStaked = context.Nodes.Partial.Updated[nodeOperatorAddress].RPLMegapoolStaked + eventLog.Event.Amount,
-		};
+		node.RPLMegapoolStaked += eventLog.Event.Amount;
+		context.Nodes.NodesUpdated.Add(nodeOperatorAddress);
 
 		globalContext.DashboardContext.RPLMegapoolStakedTotal += eventLog.Event.Amount;
 	}
@@ -95,40 +92,17 @@ public class StakingEventHandlers
 	{
 		string nodeOperatorAddress = eventLog.Event.From;
 
-		if (!await EnsureNodeOperatorLoadedAsync(globalContext, cancellationToken, nodeOperatorAddress))
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
+
+		if (!context.Nodes.Data.Nodes.TryGetValue(nodeOperatorAddress, out NodeMasterInfo? node))
 		{
+			globalContext.GetLogger<StakingEventHandlers>().LogError("Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
 			return;
 		}
 
-		NodesContext context = await globalContext.NodesContextFactory;
-		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
-		{
-			RPLMegapoolStaked = context.Nodes.Partial.Updated[nodeOperatorAddress].RPLMegapoolStaked - eventLog.Event.Amount,
-		};
+		node.RPLMegapoolStaked -= eventLog.Event.Amount;
+		context.Nodes.NodesUpdated.Add(nodeOperatorAddress);
 
 		globalContext.DashboardContext.RPLMegapoolStakedTotal -= eventLog.Event.Amount;
-	}
-
-	private static async Task<bool> EnsureNodeOperatorLoadedAsync(
-		GlobalContext globalContext, CancellationToken cancellationToken,
-		string nodeOperatorAddress)
-	{
-		NodesContext context = await globalContext.NodesContextFactory;
-
-		// This should not happen
-		if (!context.Nodes.Data.Index.ContainsKey(nodeOperatorAddress))
-		{
-			globalContext.GetLogger<StakingEventHandlers>().LogError("Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
-			return false;
-		}
-
-		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
-		{
-			context.Nodes.Partial.Updated[nodeOperatorAddress] =
-				(await globalContext.Services.Storage.ReadAsync<Node>(Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
-				throw new InvalidOperationException("Cannot read node operator from storage.");
-		}
-
-		return true;
 	}
 }

@@ -31,13 +31,13 @@ public record class EnsContext
 		StringComparer.OrdinalIgnoreCase, new FastByteArrayComparer());
 
 	public static async Task<EnsContext> ReadAsync(
-		Storage storage, Task<NodesContext> nodesContextFactory, Task<TokensContextRPL> tokensContextRPLFactory,
+		Storage storage, Task<NodesMasterContext> nodesMasterContextFactory, Task<TokensContextRPL> tokensContextRPLFactory,
 		Task<TokensContextRPLOld> tokensContextRPLOldFactory, Task<TokensContextRETH> tokensContextRETHFactory,
 		Task<TokensContextRockRETH> tokensContextRockRETHFactory,
 		AddressEnsProcessHistory addressEnsProcessHistory, ILogger<EnsContext> logger,
 		CancellationToken cancellationToken = default)
 	{
-		NodesContext nodesContext = await nodesContextFactory;
+		NodesMasterContext nodesContext = await nodesMasterContextFactory;
 
 		TokensContextRPL tokensContextRPL = await tokensContextRPLFactory;
 		TokensContextRPLOld tokensContextRPLOld = await tokensContextRPLOldFactory;
@@ -58,14 +58,13 @@ public record class EnsContext
 		};
 
 		// Add nodes and known node ens names
-		ensContext.AddToReverseAddressNameHashMap(nodesContext.Nodes.Data.Index.Select(x => x.Value.ContractAddress));
+		ensContext.AddToReverseAddressNameHashMap(nodesContext.Nodes.Data.Nodes.Select(x => x.Value.ContractAddress));
 		ensContext.AddToReverseAddressNameHashMap(
-			nodesContext.Nodes.Data.WithdrawalAddresses.Select(x => x.Value.HexToByteArray()));
+			nodesContext.Nodes.Data.Nodes.Values.Where(x => x.WithdrawalAddress is not null).Select(x => x.WithdrawalAddress!));
 		ensContext.AddToReverseAddressNameHashMap(
-			nodesContext.Nodes.Data.RPLWithdrawalAddresses.Select(x => x.Value.HexToByteArray()));
+			nodesContext.Nodes.Data.Nodes.Values.Where(x => x.RPLWithdrawalAddress is not null).Select(x => x.RPLWithdrawalAddress!));
 		ensContext.AddToReverseAddressNameHashMap(
-			nodesContext.Nodes.Data.StakeOnBehalfAddresses.SelectMany(list =>
-				list.Value.Select(x => x.HexToByteArray())));
+			nodesContext.Nodes.Data.Nodes.Values.SelectMany(x => x.StakeOnBehalfAddresses));
 
 		ensContext.AddToReverseAddressNameHashMap(
 			tokensContextRETH.RETHTokenInfo.Holders.Select(x => x.Value.Address.HexToByteArray()));

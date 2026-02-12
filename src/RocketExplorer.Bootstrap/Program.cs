@@ -131,9 +131,9 @@ await Task.WhenAll([contractsSyncTask, nodesSyncTask, ..tokenSyncTasks]);
 
 Task writeContractsTask = globalContext.ContractsContext.SaveAsync(
 	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<ContractsContext>>());
-NodesContext nodesContext = await globalContext.NodesContextFactory;
-Task writeNodesTask = nodesContext.SaveAsync(
-	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<NodesContext>>());
+NodesMasterContext nodesMasterContext = await globalContext.NodesMasterContextFactory;
+Task writeNodesTask = nodesMasterContext.SaveAsync(
+	globalContext.Services.Storage, host.Services.GetRequiredService<ILogger<NodesMasterContext>>());
 
 List<Task> writeTokenTasks = await host.Services.SaveTokenTasksAsync();
 

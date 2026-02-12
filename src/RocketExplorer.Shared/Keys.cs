@@ -8,6 +8,8 @@ public static class Keys
 
 	public const string DashboardSnapshot = "dashboard-snapshot.msgpack";
 
+	public const string NodesMasterSnapshot = "nodes-master-snapshot.msgpack";
+
 	public const string NodesSnapshot = "nodes-snapshot.msgpack";
 
 	public const string NodesExtendedSnapshot = "nodes-extended-snapshot.msgpack";

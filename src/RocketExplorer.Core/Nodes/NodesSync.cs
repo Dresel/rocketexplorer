@@ -20,13 +20,13 @@ public class NodesSync(IOptions<SyncOptions> options, GlobalContext globalContex
 	{
 		await base.AfterHandleBlocksAsync(processedBlocks, cancellationToken);
 
-		NodesContext context = await GlobalContext.NodesContextFactory;
+		NodesMasterContext context = await GlobalContext.NodesMasterContextFactory;
 		context.ProcessingCompletionSource.TrySetResult();
 	}
 
 	protected override async Task<long> GetCurrentBlockHeightAsync(CancellationToken cancellationToken = default)
 	{
-		NodesContext context = await GlobalContext.NodesContextFactory;
+		NodesMasterContext context = await GlobalContext.NodesMasterContextFactory;
 		return context.CurrentBlockHeight;
 	}
 
@@ -34,7 +34,7 @@ public class NodesSync(IOptions<SyncOptions> options, GlobalContext globalContex
 		long fromBlock, long toBlock,
 		CancellationToken cancellationToken = default)
 	{
-		NodesContext context = await GlobalContext.NodesContextFactory;
+		NodesMasterContext context = await GlobalContext.NodesMasterContextFactory;
 
 		IEnumerable<IEventLog> nodeAddedEvents = await GlobalContext.Services.Web3.FilterAsync(
 			fromBlock, toBlock, [
@@ -123,7 +123,7 @@ public class NodesSync(IOptions<SyncOptions> options, GlobalContext globalContex
 
 		IEnumerable<IEventLog> minipoolCreatedEvents = await GlobalContext.Services.Web3.FilterAsync(
 			fromBlock, toBlock, [typeof(MinipoolCreatedEventDTO),],
-			context.ValidatorInfo.RocketMinipoolManagerAddresses, GlobalContext.Policy);
+			context.RocketMinipoolManagerAddresses, GlobalContext.Policy);
 
 		foreach (IEventLog eventLog in minipoolCreatedEvents)
 		{
@@ -195,14 +195,14 @@ public class NodesSync(IOptions<SyncOptions> options, GlobalContext globalContex
 	{
 		await base.OnHandleBlocksErrorAsync(e, cancellationToken);
 
-		NodesContext context = await GlobalContext.NodesContextFactory;
+		NodesMasterContext context = await GlobalContext.NodesMasterContextFactory;
 		context.ProcessingCompletionSource.TrySetException(e);
 	}
 
 	protected override async Task SetCurrentBlockHeightAsync(
 		long currentBlockHeight, CancellationToken cancellationToken = default)
 	{
-		NodesContext context = await GlobalContext.NodesContextFactory;
+		NodesMasterContext context = await GlobalContext.NodesMasterContextFactory;
 		context.CurrentBlockHeight = currentBlockHeight;
 	}
 }

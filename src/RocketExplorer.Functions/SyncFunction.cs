@@ -31,8 +31,8 @@ public class SyncFunction(IServiceProvider serviceProvider)
 
 		Task writeContractsTask = globalContext.ContractsContext.SaveAsync(storage, this.serviceProvider.GetRequiredService<ILogger<ContractsContext>>());
 
-		NodesContext nodesContext = await globalContext.NodesContextFactory;
-		Task writeNodesTask = nodesContext.SaveAsync(storage, this.serviceProvider.GetRequiredService<ILogger<NodesContext>>());
+		NodesMasterContext nodesMasterContext = await globalContext.NodesMasterContextFactory;
+		Task writeNodesTask = nodesMasterContext.SaveAsync(storage, this.serviceProvider.GetRequiredService<ILogger<NodesMasterContext>>());
 
 		List<Task> writeTokenTasks = await this.serviceProvider.SaveTokenTasksAsync();
 

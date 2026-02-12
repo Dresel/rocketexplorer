@@ -23,25 +23,23 @@ public class MinipoolEventHandlers
 			Status = ValidatorStatus.InQueue,
 		};
 
-		string? nodeOperatorAddress =
+		(string? nodeOperatorAddress, ValidatorMasterInfo? validator) =
 			await EventMinipoolValidatorUpdateAsync(globalContext, updatedEvent, cancellationToken);
 
-		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
+		if (string.IsNullOrWhiteSpace(nodeOperatorAddress) || validator is null)
 		{
 			return;
 		}
 
 		globalContext.DashboardContext.QueueLength++;
 
-		NodesContext context = await globalContext.NodesContextFactory;
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
 
-		MinipoolValidatorIndexEntry indexEntry =
-			context.ValidatorInfo.Data.MinipoolValidatorIndex[updatedEvent.MinipoolAddress];
 		MinipoolValidatorQueueEntry queueEntry = new()
 		{
-			NodeAddress = indexEntry.NodeAddress,
-			MinipoolAddress = indexEntry.MinipoolAddress,
-			PubKey = indexEntry.PubKey,
+			NodeAddress = context.Nodes.Data.Nodes[nodeOperatorAddress].ContractAddress,
+			MinipoolAddress = validator.MinipoolAddress!,
+			PubKey = validator.PubKey,
 			EnqueueTimestamp = (long)eventLog.Event.Time,
 		};
 
@@ -60,7 +58,6 @@ public class MinipoolEventHandlers
 			context.QueueInfo.MinipoolVariableQueue.Add(queueEntry);
 		}
 
-		// TODO: Throw if none
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
 		context.QueueInfo.TotalQueueCount[key] = context.QueueInfo.TotalQueueCount.GetLatestValueOrDefault() + 1;
 		context.QueueInfo.DailyEnqueued[key] = context.QueueInfo.DailyEnqueued.GetValueOrDefault(key) + 1;
@@ -79,7 +76,7 @@ public class MinipoolEventHandlers
 			Status = ValidatorStatus.Dequeued,
 		};
 
-		string? nodeOperatorAddress =
+		(string? nodeOperatorAddress, _) =
 			await EventMinipoolValidatorUpdateAsync(globalContext, updatedEvent, cancellationToken);
 
 		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
@@ -89,7 +86,7 @@ public class MinipoolEventHandlers
 
 		globalContext.DashboardContext.QueueLength--;
 
-		NodesContext context = await globalContext.NodesContextFactory;
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
 
 		if ("minipools.available.half".Sha3().SequenceEqual(eventLog.Event.QueueId))
 		{
@@ -134,7 +131,7 @@ public class MinipoolEventHandlers
 	{
 		string minipoolAddress = eventLog.Log.Address;
 
-		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(
+		(string? nodeOperatorAddress, _) = await EventMinipoolValidatorUpdateAsync(
 			globalContext, new MinipoolUpdatedEvent
 			{
 				Log = eventLog.Log,
@@ -148,26 +145,13 @@ public class MinipoolEventHandlers
 			return;
 		}
 
-		NodesContext context = await globalContext.NodesContextFactory;
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
+		NodeMasterInfo node = context.Nodes.Data.Nodes[nodeOperatorAddress];
 
-		context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress] =
-			context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress] with
-			{
-				PubKey = eventLog.Event.ValidatorPubkey,
-			};
-
-		context.ValidatorInfo.Partial.UpdatedMinipoolValidators[minipoolAddress] =
-			context.ValidatorInfo.Partial.UpdatedMinipoolValidators[minipoolAddress] with
-			{
-				PubKey = eventLog.Event.ValidatorPubkey,
-			};
-
-		context.Nodes.Partial.Updated[nodeOperatorAddress].MinipoolValidators.ReplaceWhere(
-			x => x.MinipoolAddress.SequenceEqual(minipoolAddress.HexToByteArray()),
-			x => x with
-			{
-				PubKey = eventLog.Event.ValidatorPubkey,
-			});
+		if (node.MinipoolValidators.TryGetValue(minipoolAddress, out ValidatorMasterInfo? minipoolValidator))
+		{
+			minipoolValidator.PubKey = eventLog.Event.ValidatorPubkey;
+		}
 
 		_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 			eventLog.Event.ValidatorPubkey.ToHex(), minipoolAddress.HexToByteArray(),
@@ -204,7 +188,7 @@ public class MinipoolEventHandlers
 
 		ValidatorStatus validatorStatus = eventLog.Event.Status.ToValidatorStatus();
 
-		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(
+		(string? nodeOperatorAddress, _) = await EventMinipoolValidatorUpdateAsync(
 			globalContext, new MinipoolUpdatedEvent
 			{
 				Log = eventLog.Log,
@@ -220,25 +204,21 @@ public class MinipoolEventHandlers
 
 		if (validatorStatus == ValidatorStatus.Staking)
 		{
-			NodesContext context = await globalContext.NodesContextFactory;
+			NodesMasterContext context = await globalContext.NodesMasterContextFactory;
+			NodeMasterInfo node = context.Nodes.Data.Nodes[nodeOperatorAddress];
+
+			node.MinipoolValidators.TryGetValue(minipoolAddress, out ValidatorMasterInfo? validator);
 
 			try
 			{
 				long validatorIndex = await globalContext.Services.BeaconChainService.GetValidatorIndex(
-						context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress].PubKey!) ??
+						validator?.PubKey!) ??
 					throw new InvalidOperationException();
 
-				context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress] =
-					context.ValidatorInfo.Data.MinipoolValidatorIndex[minipoolAddress] with
-					{
-						ValidatorIndex = validatorIndex,
-					};
-
-				context.ValidatorInfo.Partial.UpdatedMinipoolValidators[minipoolAddress] =
-					context.ValidatorInfo.Partial.UpdatedMinipoolValidators[minipoolAddress] with
-					{
-						ValidatorIndex = validatorIndex,
-					};
+				if (validator is not null)
+				{
+					validator.ValidatorIndex = validatorIndex;
+				}
 
 				_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 					validatorIndex.ToString(CultureInfo.InvariantCulture), minipoolAddress.HexToByteArray(),
@@ -265,44 +245,33 @@ public class MinipoolEventHandlers
 		}
 	}
 
-	private static async Task<string?> EventMinipoolValidatorUpdateAsync(
+	private static async Task<(string? NodeOperatorAddress, ValidatorMasterInfo? Validator)> EventMinipoolValidatorUpdateAsync(
 		GlobalContext globalContext, MinipoolUpdatedEvent updatedEvent,
 		CancellationToken cancellationToken = default)
 	{
-		NodesContext context = await globalContext.NodesContextFactory;
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
 
-		if (!context.ValidatorInfo.Data.MinipoolValidatorIndex.TryGetValue(
-				updatedEvent.MinipoolAddress, out MinipoolValidatorIndexEntry? indexEntry))
+		if (!context.Nodes.Data.MinipoolNodeAddresses.TryGetValue(updatedEvent.MinipoolAddress, out string? nodeOperatorAddress)
+			|| !context.Nodes.Data.Nodes.TryGetValue(nodeOperatorAddress, out NodeMasterInfo? node))
 		{
-			return null;
+			return (null, null);
 		}
 
-		// TODO: Can get from index?
-		string nodeOperatorAddress = indexEntry.NodeAddress.ToHex(true);
-
-		if (!context.ValidatorInfo.Partial.UpdatedMinipoolValidators.ContainsKey(updatedEvent.MinipoolAddress))
+		if (!node.MinipoolValidators.TryGetValue(updatedEvent.MinipoolAddress, out ValidatorMasterInfo? validator))
 		{
-			context.ValidatorInfo.Partial.UpdatedMinipoolValidators[updatedEvent.MinipoolAddress] =
-				(await globalContext.Services.Storage.ReadAsync<Validator>(
-					Keys.MinipoolValidator(updatedEvent.MinipoolAddress), cancellationToken))?.Data ??
-				throw new InvalidOperationException("Cannot read node operator from storage.");
+			return (null, null);
 		}
 
-		context.ValidatorInfo.Partial.UpdatedMinipoolValidators[updatedEvent.MinipoolAddress] =
-			context.ValidatorInfo.Partial.UpdatedMinipoolValidators[updatedEvent.MinipoolAddress] with
-			{
-				Status = updatedEvent.Status,
-				History =
-				[
-					.. context.ValidatorInfo.Partial.UpdatedMinipoolValidators[updatedEvent.MinipoolAddress].History,
-					new ValidatorHistory
-					{
-						Status = updatedEvent.Status,
-						Timestamp = (long)updatedEvent.Time,
-					},
-				],
-			};
+		validator.Status = updatedEvent.Status;
+		validator.History.Add(new ValidatorHistory
+		{
+			Status = updatedEvent.Status,
+			Timestamp = (long)updatedEvent.Time,
+		});
 
-		return nodeOperatorAddress;
+		context.Nodes.NodesUpdated.Add(nodeOperatorAddress);
+		context.Nodes.MinipoolValidatorsUpdated.Add((nodeOperatorAddress, updatedEvent.MinipoolAddress));
+
+		return (nodeOperatorAddress, validator);
 	}
 }

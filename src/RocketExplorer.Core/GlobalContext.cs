@@ -26,7 +26,7 @@ public record class GlobalContext
 
 	public required ILoggerFactory LoggerFactory { get; set; }
 
-	public required Task<NodesContext> NodesContextFactory { get; init; }
+	public required Task<NodesMasterContext> NodesMasterContextFactory { get; init; }
 
 	public required AsyncRetryPolicy Policy { get; init; }
 

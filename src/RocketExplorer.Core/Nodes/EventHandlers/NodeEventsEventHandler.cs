@@ -7,7 +7,7 @@ using RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition;
 using RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition;
 using RocketExplorer.Ethereum.rocketStorage.ContractDefinition;
 using RocketExplorer.Shared;
-using RocketExplorer.Shared.Nodes;
+using RocketExplorer.Shared.Validators;
 
 namespace RocketExplorer.Core.Nodes.EventHandlers;
 
@@ -17,19 +17,16 @@ public class NodeEventsEventHandler
 		GlobalContext globalContext, EventLog<NodeWithdrawalAddressSetEventDTO> eventLog,
 		CancellationToken cancellationToken)
 	{
-		NodesContext context = await globalContext.NodesContextFactory;
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
 
 		string nodeOperatorAddress = eventLog.Event.Node;
 
-		// This should not happen
-		if (!context.Nodes.Data.Index.TryGetValue(nodeOperatorAddress, out NodeIndexEntry? nodeIndexEntry))
+		if (!context.Nodes.Data.Nodes.TryGetValue(nodeOperatorAddress, out NodeMasterInfo? node))
 		{
 			globalContext.GetLogger<NodeEventsEventHandler>().LogError(
 				"Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
 			return;
 		}
-
-		context.Nodes.Data.WithdrawalAddresses[nodeOperatorAddress] = eventLog.Event.WithdrawalAddress;
 
 		_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 			eventLog.Event.WithdrawalAddress.RemoveHexPrefix(),
@@ -39,22 +36,11 @@ public class NodeEventsEventHandler
 			{
 				x.Type |= IndexEntryType.WithdrawalAddress;
 				x.Address = eventLog.Event.WithdrawalAddress.HexToByteArray();
-				x.NodeAddresses.Add(nodeIndexEntry.ContractAddress);
+				x.NodeAddresses.Add(node.ContractAddress);
 			}, cancellationToken: cancellationToken);
 
-		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
-		{
-			context.Nodes.Partial.Updated[nodeOperatorAddress] =
-				(await globalContext.Services.Storage.ReadAsync<Node>(
-					Keys.Node(nodeOperatorAddress),
-					cancellationToken))?.Data ??
-				throw new InvalidOperationException("Cannot read node operator from storage.");
-		}
-
-		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
-		{
-			WithdrawalAddress = eventLog.Event.WithdrawalAddress.HexToByteArray(),
-		};
+		node.WithdrawalAddress = eventLog.Event.WithdrawalAddress.HexToByteArray();
+		context.Nodes.NodesUpdated.Add(nodeOperatorAddress);
 
 		await globalContext.Services.AddressEnsProcessHistory.AddAddressEnsRecordAsync(
 			eventLog.Event.WithdrawalAddress.HexToByteArray(), cancellationToken: cancellationToken);
@@ -69,40 +55,22 @@ public class NodeEventsEventHandler
 		GlobalContext globalContext, EventLog<StakeRPLForAllowedEventDTO> eventLog,
 		CancellationToken cancellationToken)
 	{
-		NodesContext context = await globalContext.NodesContextFactory;
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
 
 		string nodeOperatorAddress = eventLog.Event.Node;
 
-		// This should not happen
-		if (!context.Nodes.Data.Index.TryGetValue(nodeOperatorAddress, out NodeIndexEntry? nodeIndexEntry))
+		if (!context.Nodes.Data.Nodes.TryGetValue(nodeOperatorAddress, out NodeMasterInfo? node))
 		{
 			globalContext.GetLogger<NodeEventsEventHandler>().LogError(
 				"Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
 			return;
 		}
 
-		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
-		{
-			context.Nodes.Partial.Updated[nodeOperatorAddress] =
-				(await globalContext.Services.Storage.ReadAsync<Node>(
-					Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
-				throw new InvalidOperationException("Cannot read node operator from storage.");
-		}
-
 		string stakeOnBehalfAddress = eventLog.Event.Caller;
 
 		if (eventLog.Event.Allowed)
 		{
-			context.Nodes.Data.StakeOnBehalfAddresses.TryAdd(
-				nodeOperatorAddress, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
-			context.Nodes.Data.StakeOnBehalfAddresses[nodeOperatorAddress].Add(stakeOnBehalfAddress);
-
-			context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
-			{
-				StakeOnBehalfAddresses = new HashSet<byte[]>(
-					context.Nodes.Partial.Updated[nodeOperatorAddress].StakeOnBehalfAddresses
-						.Union([stakeOnBehalfAddress.HexToByteArray(),]), new FastByteArrayComparer()),
-			};
+			node.StakeOnBehalfAddresses.Add(stakeOnBehalfAddress.HexToByteArray());
 
 			_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 				stakeOnBehalfAddress.RemoveHexPrefix(), stakeOnBehalfAddress.HexToByteArray(),
@@ -111,7 +79,7 @@ public class NodeEventsEventHandler
 				{
 					x.Type |= IndexEntryType.StakeOnBehalfAddress;
 					x.Address = stakeOnBehalfAddress.HexToByteArray();
-					x.NodeAddresses.Add(nodeIndexEntry.ContractAddress);
+					x.NodeAddresses.Add(node.ContractAddress);
 				}, cancellationToken: cancellationToken);
 
 			await globalContext.Services.AddressEnsProcessHistory.AddAddressEnsRecordAsync(
@@ -124,19 +92,8 @@ public class NodeEventsEventHandler
 		}
 		else
 		{
-			context.Nodes.Data.StakeOnBehalfAddresses[nodeOperatorAddress].Remove(stakeOnBehalfAddress);
-
-			if (context.Nodes.Data.StakeOnBehalfAddresses[nodeOperatorAddress].Count == 0)
-			{
-				context.Nodes.Data.StakeOnBehalfAddresses.Remove(nodeOperatorAddress);
-			}
-
-			context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
-			{
-				StakeOnBehalfAddresses = new HashSet<byte[]>(
-					context.Nodes.Partial.Updated[nodeOperatorAddress].StakeOnBehalfAddresses
-						.Except([stakeOnBehalfAddress.HexToByteArray(),]), new FastByteArrayComparer()),
-			};
+			node.StakeOnBehalfAddresses.RemoveWhere(x =>
+				new FastByteArrayComparer().Equals(x, stakeOnBehalfAddress.HexToByteArray()));
 
 			_ = globalContext.Services.GlobalIndexService.UpdateEntryAsync(
 				stakeOnBehalfAddress.RemoveHexPrefix(), stakeOnBehalfAddress.HexToByteArray(),
@@ -147,7 +104,7 @@ public class NodeEventsEventHandler
 					x.Address = stakeOnBehalfAddress.HexToByteArray();
 
 					FastByteArrayComparer comparer = new FastByteArrayComparer();
-					int index = x.NodeAddresses.FindIndex(bytes => comparer.Equals(bytes, nodeIndexEntry.ContractAddress));
+					int index = x.NodeAddresses.FindIndex(bytes => comparer.Equals(bytes, node.ContractAddress));
 					x.NodeAddresses.RemoveAt(index);
 				}, cancellationToken: cancellationToken);
 
@@ -159,36 +116,27 @@ public class NodeEventsEventHandler
 					"Node {NodeAddress} stake on behalf address {StakeOnBehalfAddress} removed", nodeOperatorAddress,
 					stakeOnBehalfAddress);
 		}
+
+		context.Nodes.NodesUpdated.Add(nodeOperatorAddress);
 	}
 
 	public static async Task HandleAsync(
 		GlobalContext globalContext, EventLog<NodeSmoothingPoolStateChangedEventDTOBase> eventLog,
 		CancellationToken cancellationToken)
 	{
-		NodesContext context = await globalContext.NodesContextFactory;
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
 
 		string nodeOperatorAddress = eventLog.Event.Node;
 
-		// This should not happen
-		if (!context.Nodes.Data.Index.TryGetValue(nodeOperatorAddress, out _))
+		if (!context.Nodes.Data.Nodes.TryGetValue(nodeOperatorAddress, out NodeMasterInfo? node))
 		{
 			globalContext.GetLogger<NodeEventsEventHandler>().LogError(
 				"Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
 			return;
 		}
 
-		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
-		{
-			context.Nodes.Partial.Updated[nodeOperatorAddress] =
-				(await globalContext.Services.Storage.ReadAsync<Node>(
-					Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
-				throw new InvalidOperationException("Cannot read node operator from storage.");
-		}
-
-		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
-		{
-			InSmoothingPool = eventLog.Event.State,
-		};
+		node.InSmoothingPool = eventLog.Event.State;
+		context.Nodes.NodesUpdated.Add(nodeOperatorAddress);
 
 		globalContext.GetLogger<NodeEventsEventHandler>()
 			.LogInformation(
@@ -200,24 +148,15 @@ public class NodeEventsEventHandler
 		GlobalContext globalContext, EventLog<NodeTimezoneLocationSetEventDTO> eventLog,
 		CancellationToken cancellationToken)
 	{
-		NodesContext context = await globalContext.NodesContextFactory;
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
 
 		string nodeOperatorAddress = eventLog.Event.Node;
 
-		// This should not happen
-		if (!context.Nodes.Data.Index.TryGetValue(nodeOperatorAddress, out _))
+		if (!context.Nodes.Data.Nodes.TryGetValue(nodeOperatorAddress, out NodeMasterInfo? node))
 		{
 			globalContext.GetLogger<NodeEventsEventHandler>().LogError(
 				"Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
 			return;
-		}
-
-		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
-		{
-			context.Nodes.Partial.Updated[nodeOperatorAddress] =
-				(await globalContext.Services.Storage.ReadAsync<Node>(
-					Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
-				throw new InvalidOperationException("Cannot read node operator from storage.");
 		}
 
 		RocketNodeManagerService rocketNodeManagerService = new(
@@ -228,10 +167,8 @@ public class NodeEventsEventHandler
 		string timezone = await rocketNodeManagerService.GetNodeTimezoneLocationQueryAsync(
 			eventLog.Event.Node, new BlockParameter(eventLog.Log.BlockNumber));
 
-		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
-		{
-			Timezone = timezone,
-		};
+		node.Timezone = timezone;
+		context.Nodes.NodesUpdated.Add(nodeOperatorAddress);
 
 		globalContext.GetLogger<NodeEventsEventHandler>()
 			.LogInformation("Node {NodeAddress} timezone changed to {timezone}", nodeOperatorAddress, timezone);
@@ -241,50 +178,37 @@ public class NodeEventsEventHandler
 		GlobalContext globalContext, EventLog<NodeRPLWithdrawalAddressUnsetEventDTO> eventLog,
 		CancellationToken cancellationToken)
 	{
-		NodesContext context = await globalContext.NodesContextFactory;
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
 
 		string nodeOperatorAddress = eventLog.Event.Node;
 
-		// This should not happen
-		if (!context.Nodes.Data.Index.TryGetValue(nodeOperatorAddress, out NodeIndexEntry? nodeIndexEntry))
+		if (!context.Nodes.Data.Nodes.TryGetValue(nodeOperatorAddress, out NodeMasterInfo? node))
 		{
 			globalContext.GetLogger<NodeEventsEventHandler>().LogError(
 				"Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
 			return;
 		}
 
-		context.Nodes.Data.RPLWithdrawalAddresses.Remove(nodeOperatorAddress);
-
-		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
-		{
-			context.Nodes.Partial.Updated[nodeOperatorAddress] =
-				(await globalContext.Services.Storage.ReadAsync<Node>(
-					Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
-				throw new InvalidOperationException("Cannot read node operator from storage.");
-		}
-
 		_ = globalContext.Services.GlobalIndexService.UpdateEntryAsync(
-			context.Nodes.Partial.Updated[nodeOperatorAddress].RPLWithdrawalAddress?.ToHex() ?? throw new InvalidOperationException("Withdrawal address should not be null"),
-			context.Nodes.Partial.Updated[nodeOperatorAddress].RPLWithdrawalAddress ?? throw new InvalidOperationException("Withdrawal address should not be null"),
+			node.RPLWithdrawalAddress?.ToHex() ?? throw new InvalidOperationException("Withdrawal address should not be null"),
+			node.RPLWithdrawalAddress ?? throw new InvalidOperationException("Withdrawal address should not be null"),
 			new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
 			x =>
 			{
 				x.Type &= ~IndexEntryType.RPLWithdrawalAddress;
 
 				FastByteArrayComparer comparer = new FastByteArrayComparer();
-				int index = x.NodeAddresses.FindIndex(bytes => comparer.Equals(bytes, nodeIndexEntry.ContractAddress));
+				int index = x.NodeAddresses.FindIndex(bytes => comparer.Equals(bytes, node.ContractAddress));
 				x.NodeAddresses.RemoveAt(index);
 			}, entry => entry.Type == 0, cancellationToken);
 
 		await globalContext.Services.AddressEnsProcessHistory.AddAddressEnsRecordAsync(
-			context.Nodes.Partial.Updated[nodeOperatorAddress].RPLWithdrawalAddress ??
+			node.RPLWithdrawalAddress ??
 			throw new InvalidOperationException("Withdrawal address should not be null"),
 			cancellationToken: cancellationToken);
 
-		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
-		{
-			RPLWithdrawalAddress = null,
-		};
+		node.RPLWithdrawalAddress = null;
+		context.Nodes.NodesUpdated.Add(nodeOperatorAddress);
 
 		globalContext.GetLogger<NodeEventsEventHandler>()
 			.LogInformation("Node {NodeAddress} RPL withdrawal address unset", nodeOperatorAddress);
@@ -294,19 +218,16 @@ public class NodeEventsEventHandler
 		GlobalContext globalContext, EventLog<NodeRPLWithdrawalAddressSetEventDTO> eventLog,
 		CancellationToken cancellationToken)
 	{
-		NodesContext context = await globalContext.NodesContextFactory;
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
 
 		string nodeOperatorAddress = eventLog.Event.Node;
 
-		// This should not happen
-		if (!context.Nodes.Data.Index.TryGetValue(nodeOperatorAddress, out NodeIndexEntry? nodeIndexEntry))
+		if (!context.Nodes.Data.Nodes.TryGetValue(nodeOperatorAddress, out NodeMasterInfo? node))
 		{
 			globalContext.GetLogger<NodeEventsEventHandler>().LogError(
 				"Node operator {NodeOperatorAddress} not found in index.", nodeOperatorAddress);
 			return;
 		}
-
-		context.Nodes.Data.RPLWithdrawalAddresses[nodeOperatorAddress] = eventLog.Event.WithdrawalAddress;
 
 		_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 			eventLog.Event.WithdrawalAddress.RemoveHexPrefix(), eventLog.Event.WithdrawalAddress.HexToByteArray(),
@@ -315,21 +236,11 @@ public class NodeEventsEventHandler
 			{
 				x.Type |= IndexEntryType.RPLWithdrawalAddress;
 				x.Address = eventLog.Event.WithdrawalAddress.HexToByteArray();
-				x.NodeAddresses.Add(nodeIndexEntry.ContractAddress);
+				x.NodeAddresses.Add(node.ContractAddress);
 			}, cancellationToken: cancellationToken);
 
-		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
-		{
-			context.Nodes.Partial.Updated[nodeOperatorAddress] =
-				(await globalContext.Services.Storage.ReadAsync<Node>(
-					Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
-				throw new InvalidOperationException("Cannot read node operator from storage.");
-		}
-
-		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
-		{
-			RPLWithdrawalAddress = eventLog.Event.WithdrawalAddress.HexToByteArray(),
-		};
+		node.RPLWithdrawalAddress = eventLog.Event.WithdrawalAddress.HexToByteArray();
+		context.Nodes.NodesUpdated.Add(nodeOperatorAddress);
 
 		await globalContext.Services.AddressEnsProcessHistory.AddAddressEnsRecordAsync(
 			eventLog.Event.WithdrawalAddress.HexToByteArray(), cancellationToken: cancellationToken);
@@ -347,16 +258,26 @@ public class NodeEventsEventHandler
 
 		globalContext.GetLogger<NodeEventsEventHandler>().LogInformation("Node registered {Address}", @event.Node);
 
-		NodesContext context = await globalContext.NodesContextFactory;
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
 
 		globalContext.DashboardContext.NodeOperators++;
 
-		context.Nodes.Data.Index.Add(
-			@event.Node, new NodeIndexEntry
+		RocketNodeManagerService rocketNodeManagerService = new(
+			globalContext.Services.Web3,
+			globalContext.Contracts["rocketNodeManager"].Versions
+				.Last(x => x.ActivationHeight < (long)eventLog.Log.BlockNumber.Value).Address);
+
+		string timezone = await rocketNodeManagerService.GetNodeTimezoneLocationQueryAsync(
+			@event.Node, new BlockParameter(eventLog.Log.BlockNumber));
+
+		context.Nodes.Data.Nodes.Add(
+			@event.Node, new NodeMasterInfo
 			{
 				ContractAddress = @event.Node.HexToByteArray(),
 				RegistrationTimestamp = (long)@event.Time,
+				Timezone = timezone,
 			});
+		context.Nodes.NodesUpdated.Add(@event.Node);
 
 		await globalContext.Services.AddressEnsProcessHistory.AddAddressEnsRecordAsync(
 			@event.Node.HexToByteArray(), cancellationToken: cancellationToken);
@@ -369,31 +290,6 @@ public class NodeEventsEventHandler
 				x.Type |= IndexEntryType.NodeOperator;
 				x.Address = @event.Node.HexToByteArray();
 			}, cancellationToken: cancellationToken);
-
-		RocketNodeManagerService rocketNodeManagerService = new(
-			globalContext.Services.Web3,
-			globalContext.Contracts["rocketNodeManager"].Versions
-				.Last(x => x.ActivationHeight < (long)eventLog.Log.BlockNumber.Value).Address);
-
-		string timezone = await rocketNodeManagerService.GetNodeTimezoneLocationQueryAsync(
-			@event.Node, new BlockParameter(eventLog.Log.BlockNumber));
-
-		// TODO: Add more details
-		context.Nodes.Partial.Updated.Add(
-			@event.Node, new Node
-			{
-				ContractAddress = @event.Node.HexToByteArray(),
-				RegistrationTimestamp = (long)@event.Time,
-				Timezone = timezone,
-				MinipoolValidators = [],
-				MegapoolValidators = [],
-				RPLLegacyStaked = default,
-				RPLMegapoolStaked = default,
-				WithdrawalAddress = null,
-				RPLWithdrawalAddress = null,
-				StakeOnBehalfAddresses = new HashSet<byte[]>(new FastByteArrayComparer()),
-				InSmoothingPool = false,
-			});
 
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)@event.Time).DateTime);
 		context.Nodes.Data.DailyRegistrations[key] =

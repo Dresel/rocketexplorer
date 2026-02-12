@@ -179,7 +179,7 @@ public static class EnsExtensions
 		this GlobalContext globalContext, string? obsoleteEnsName, byte[] address, string? ensName,
 		CancellationToken cancellationToken = default)
 	{
-		NodesContext nodesContext = await globalContext.NodesContextFactory;
+		NodesMasterContext nodesContext = await globalContext.NodesMasterContextFactory;
 
 		TokensContextRPL tokensContextRPL = await globalContext.TokensContextRPLFactory;
 		TokensContextRPLOld tokensContextRPLOld = await globalContext.TokensContextRPLOldFactory;
@@ -329,9 +329,9 @@ public static class EnsExtensions
 		};
 	}
 
-	private static bool NodeExists(NodesContext nodesContext, string address)
+	private static bool NodeExists(NodesMasterContext nodesContext, string address)
 	{
-		if (!nodesContext.Nodes.Data.Index.TryGetValue(address, out NodeIndexEntry? nodeIndexEntry))
+		if (!nodesContext.Nodes.Data.Nodes.ContainsKey(address))
 		{
 			return false;
 		}
@@ -339,22 +339,25 @@ public static class EnsExtensions
 		return true;
 	}
 
-	private static List<string> RPLWithdrawalExists(NodesContext nodesContext, string address) =>
+	private static List<string> RPLWithdrawalExists(NodesMasterContext nodesContext, string address) =>
 
 		// TODO: HashSet if performance issue
-		nodesContext.Nodes.Data.RPLWithdrawalAddresses.Where(x =>
-			string.Equals(x.Value, address, StringComparison.OrdinalIgnoreCase)).Select(x => x.Key).ToList();
+		nodesContext.Nodes.Data.Nodes.Where(x =>
+			x.Value.RPLWithdrawalAddress is not null
+			&& string.Equals(x.Value.RPLWithdrawalAddress.ToHex(true), address, StringComparison.OrdinalIgnoreCase)).Select(x => x.Key).ToList();
 
-	private static List<string> StakeOnBehalfExists(NodesContext nodesContext, string address) =>
-		nodesContext.Nodes.Data.StakeOnBehalfAddresses.Where(x => x.Value.Contains(address)).Select(x => x.Key)
+	private static List<string> StakeOnBehalfExists(NodesMasterContext nodesContext, string address) =>
+		nodesContext.Nodes.Data.Nodes.Where(x => x.Value.StakeOnBehalfAddresses
+			.Any(a => string.Equals(a.ToHex(true), address, StringComparison.OrdinalIgnoreCase))).Select(x => x.Key)
 			.ToList();
 
 	private static bool TokenHolderExists(TokenInfo tokenInfo, string address) =>
 		tokenInfo.Holders.ContainsKey(address);
 
-	private static List<string> WithdrawalExists(NodesContext nodesContext, string address) =>
+	private static List<string> WithdrawalExists(NodesMasterContext nodesContext, string address) =>
 
 		// TODO: HashSet if performance issue
-		nodesContext.Nodes.Data.WithdrawalAddresses.Where(x =>
-			string.Equals(x.Value, address, StringComparison.OrdinalIgnoreCase)).Select(x => x.Key).ToList();
+		nodesContext.Nodes.Data.Nodes.Where(x =>
+			x.Value.WithdrawalAddress is not null
+			&& string.Equals(x.Value.WithdrawalAddress.ToHex(true), address, StringComparison.OrdinalIgnoreCase)).Select(x => x.Key).ToList();
 }

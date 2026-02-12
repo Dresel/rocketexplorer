@@ -6,7 +6,6 @@ using Nethereum.Util;
 using RocketExplorer.Ethereum.RocketMinipoolDelegate;
 using RocketExplorer.Ethereum.RocketMinipoolManager.ContractDefinition;
 using RocketExplorer.Shared;
-using RocketExplorer.Shared.Nodes;
 using RocketExplorer.Shared.Validators;
 
 namespace RocketExplorer.Core.Nodes.EventHandlers;
@@ -22,10 +21,9 @@ public class MinipoolCreatedEventHandler
 		string nodeOperatorAddress =
 			await minipoolDelegate.GetNodeAddressQueryAsync(new BlockParameter(eventLog.Log.BlockNumber));
 
-		NodesContext context = await globalContext.NodesContextFactory;
+		NodesMasterContext context = await globalContext.NodesMasterContextFactory;
 
-		// This should not happen
-		if (!context.Nodes.Data.Index.TryGetValue(nodeOperatorAddress, out NodeIndexEntry? nodeIndexEntry))
+		if (!context.Nodes.Data.Nodes.TryGetValue(nodeOperatorAddress, out NodeMasterInfo? node))
 		{
 			globalContext.GetLogger<MinipoolCreatedEventHandler>().LogError(
 				"Node operator {NodeOperatorAddress} for {Minipool} not found in index.", nodeOperatorAddress,
@@ -33,15 +31,25 @@ public class MinipoolCreatedEventHandler
 			return;
 		}
 
-		MinipoolValidatorIndexEntry entry = new()
+		ValidatorMasterInfo validator = new()
 		{
-			NodeAddress = nodeIndexEntry.ContractAddress,
 			MinipoolAddress = @event.Minipool.HexToByteArray(),
 			PubKey = null,
 			ValidatorIndex = null,
+			Status = ValidatorStatus.Created,
+			Bond = (float)UnitConversion.Convert.FromWei(
+				await minipoolDelegate.GetNodeDepositBalanceQueryAsync(
+					new BlockParameter(eventLog.Log.BlockNumber))),
+			Type = ValidatorType.Legacy,
+			History =
+			[
+				new ValidatorHistory
+				{
+					Status = ValidatorStatus.Created,
+					Timestamp = (long)@event.Time,
+				},
+			],
 		};
-
-		context.ValidatorInfo.Data.MinipoolValidatorIndex.Add(@event.Minipool, entry);
 
 		_ = globalContext.Services.GlobalIndexService.AddOrUpdateEntryAsync(
 			@event.Minipool.RemoveHexPrefix(), @event.Minipool.HexToByteArray(),
@@ -52,42 +60,9 @@ public class MinipoolCreatedEventHandler
 				x.Address = @event.Minipool.HexToByteArray();
 			}, cancellationToken: cancellationToken);
 
-		context.ValidatorInfo.Partial.UpdatedMinipoolValidators.Add(
-			@event.Minipool, new Validator
-			{
-				NodeAddress = entry.NodeAddress,
-				MinipoolAddress = entry.MinipoolAddress,
-				PubKey = entry.PubKey,
-				ValidatorIndex = entry.ValidatorIndex,
-				Status = ValidatorStatus.Created,
-				Bond = (float)UnitConversion.Convert.FromWei(
-					await minipoolDelegate.GetNodeDepositBalanceQueryAsync(
-						new BlockParameter(eventLog.Log.BlockNumber))),
-				Type = ValidatorType.Legacy,
-				History =
-				[
-					new ValidatorHistory
-					{
-						Status = ValidatorStatus.Created,
-						Timestamp = (long)@event.Time,
-					},
-				],
-			});
-
-		if (!context.Nodes.Partial.Updated.ContainsKey(nodeOperatorAddress))
-		{
-			context.Nodes.Partial.Updated[nodeOperatorAddress] =
-				(await globalContext.Services.Storage.ReadAsync<Node>(
-					Keys.Node(nodeOperatorAddress), cancellationToken))?.Data ??
-				throw new InvalidOperationException("Cannot read node operator from storage.");
-		}
-
-		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
-		{
-			MinipoolValidators =
-			[
-				..context.Nodes.Partial.Updated[nodeOperatorAddress].MinipoolValidators, entry,
-			],
-		};
+		node.MinipoolValidators[@event.Minipool] = validator;
+		context.Nodes.Data.MinipoolNodeAddresses[@event.Minipool] = nodeOperatorAddress;
+		context.Nodes.NodesUpdated.Add(nodeOperatorAddress);
+		context.Nodes.MinipoolValidatorsUpdated.Add((nodeOperatorAddress, @event.Minipool));
 	}
 }

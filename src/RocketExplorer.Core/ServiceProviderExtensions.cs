@@ -42,8 +42,8 @@ public static class ServiceProviderExtensions
 		Storage storage = serviceProvider.GetRequiredService<Storage>();
 
 		ContractsContext contractsContext = await ContractsContext.ReadAsync(storage, cancellationToken);
-		Task<NodesContext> nodesContextFactory = NodesContext.ReadAsync(
-			storage, contractsContext, serviceProvider.GetRequiredService<ILogger<NodesContext>>(), cancellationToken);
+		Task<NodesMasterContext> nodesMasterContextFactory = NodesMasterContext.ReadAsync(
+			storage, contractsContext, serviceProvider.GetRequiredService<ILogger<NodesMasterContext>>(), cancellationToken);
 
 		Func<string, Task<long?>> getDeploymentBlock = async address =>
 		{
@@ -112,7 +112,7 @@ public static class ServiceProviderExtensions
 				cancellationToken),
 
 			ContractsContext = contractsContext,
-			NodesContextFactory = nodesContextFactory,
+			NodesMasterContextFactory = nodesMasterContextFactory,
 
 			TokensContextRPLFactory = tokensContextRPLFactory,
 			TokensContextRPLOldFactory = tokensContextOldFactory,
@@ -122,7 +122,7 @@ public static class ServiceProviderExtensions
 
 			EnsContextFactory = EnsContext.ReadAsync(
 				storage,
-				nodesContextFactory,
+				nodesMasterContextFactory,
 				tokensContextRPLFactory,
 				tokensContextOldFactory,
 				tokensContextRETHFactory,

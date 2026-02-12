@@ -4,17 +4,19 @@ namespace RocketExplorer.Core.Nodes;
 
 public class ValidatorMasterInfo
 {
-	public byte[]? MegapoolAddress { get; set; }
+	public required byte[] NodeAddress { get; init; }
 
-	public byte[]? MinipoolAddress { get; set; }
+	public byte[]? MinipoolAddress { get; init; }
+
+	public byte[]? MegapoolAddress { get; init; }
 
 	public byte[]? PubKey { get; set; }
 
 	public long? ValidatorIndex { get; set; }
 
-	public bool? ExpressTicketUsed { get; set; }
+	public bool? ExpressTicketUsed { get; init; }
 
-	public int? MegapoolIndex { get; set; }
+	public int? MegapoolIndex { get; init; }
 
 	public ValidatorType Type { get; set; }
 

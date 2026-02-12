@@ -33,6 +33,7 @@ public class MinipoolCreatedEventHandler
 
 		ValidatorMasterInfo validator = new()
 		{
+			NodeAddress = nodeOperatorAddress.HexToByteArray(),
 			MinipoolAddress = @event.Minipool.HexToByteArray(),
 			PubKey = null,
 			ValidatorIndex = null,
@@ -60,7 +61,8 @@ public class MinipoolCreatedEventHandler
 				x.Address = @event.Minipool.HexToByteArray();
 			}, cancellationToken: cancellationToken);
 
-		node.MinipoolValidators[@event.Minipool] = validator;
+		node.MinipoolValidators.Add(@event.Minipool, validator);
+
 		context.Nodes.Data.MinipoolNodeAddresses[@event.Minipool] = nodeOperatorAddress;
 		context.Nodes.NodesUpdated.Add(nodeOperatorAddress);
 		context.Nodes.MinipoolValidatorsUpdated.Add((nodeOperatorAddress, @event.Minipool));

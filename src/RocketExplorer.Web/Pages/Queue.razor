@@ -223,7 +223,7 @@
 		}).ToArray();
 
 		int currentIndex = queueItemViewModels.LastOrDefault()?.Index ?? 0;
-		IEnumerable<(MegapoolValidatorQueueEntry Item, bool Express)> megapoolQueue = Zip(Snapshot?.Data.MegapoolStandardQueue.Select(entry => (Item: entry, Express: false)) ?? [], Snapshot?.Data.MegapoolExpressQueue.Select(entry => (Item: entry, Express: true)) ?? [], Snapshot?.Data.MegapoolQueueIndex ?? 0, 2);
+		IEnumerable<(MegapoolValidatorQueueEntry Item, bool Express)> megapoolQueue = Zip(Snapshot?.Data.MegapoolStandardQueue.Select(entry => (Item: entry, Express: false)) ?? [], Snapshot?.Data.MegapoolExpressQueue.Select(entry => (Item: entry, Express: true)) ?? [], Snapshot?.Data.MegapoolQueueIndex ?? 0, 4);
 
 		queue = queueItemViewModels.Concat(
 			megapoolQueue.Select((entry, index) => new QueueItemViewModel

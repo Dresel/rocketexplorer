@@ -276,8 +276,8 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 			return false;
 		}
 
-		globalContext.ContractsContext.ProtocolVersion = await globalContext.Services.RocketStorage.GetStringQueryAsync(
-			"protocol.version".Sha3(), new BlockParameter((ulong)executionHeight));
+		globalContext.ContractsContext.ProtocolVersion = await globalContext.Policy.ExecuteAsync(() => globalContext.Services.RocketStorage.GetStringQueryAsync(
+			"protocol.version".Sha3(), new BlockParameter((ulong)executionHeight)));
 
 		globalContext.GetLogger<ContractsSync>().LogInformation("Executed in block {Block}", executionHeight);
 
@@ -347,8 +347,8 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 
 		try
 		{
-			version = await GetVersionFunction(globalContext.Services.Web3, address)
-				.CallAsync<byte>(BlockParameter.CreateLatest());
+			version = await globalContext.Policy.ExecuteAsync(() => GetVersionFunction(globalContext.Services.Web3, address)
+				.CallAsync<byte>(BlockParameter.CreateLatest()));
 		}
 		catch
 		{

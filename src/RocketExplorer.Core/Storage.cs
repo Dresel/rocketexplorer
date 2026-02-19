@@ -133,12 +133,13 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 	{
 		byte[] data = MessagePackSerializer.Serialize(
 			snapshot.Data, MessagePackSerializerOptions.Standard.WithResolver(this.messagePackResolver));
-		using MemoryStream memoryStream = new(data);
 
 		Stopwatch stopwatch = Stopwatch.StartNew();
 
 		await this.retryPolicy.ExecuteAsync(() =>
-			this.s3Client.PutObjectAsync(
+		{
+			using MemoryStream memoryStream = new(data);
+			return this.s3Client.PutObjectAsync(
 				new PutObjectRequest
 				{
 					BucketName = this.bucketName,
@@ -153,7 +154,8 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 						["ProcessedBlockNumber"] = snapshot.ProcessedBlockNumber.ToString(CultureInfo.InvariantCulture),
 					},
 				},
-				cancellationToken));
+				cancellationToken);
+		});
 
 		this.logger.LogDebug($"PutObject took {stopwatch.ElapsedMilliseconds}ms for {data.Length} bytes");
 	}

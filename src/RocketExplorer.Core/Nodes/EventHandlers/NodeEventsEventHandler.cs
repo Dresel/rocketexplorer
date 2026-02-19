@@ -225,8 +225,8 @@ public class NodeEventsEventHandler
 			globalContext.Contracts["rocketNodeManager"].Versions
 				.Last(x => x.ActivationHeight < (long)eventLog.Log.BlockNumber.Value).Address);
 
-		string timezone = await rocketNodeManagerService.GetNodeTimezoneLocationQueryAsync(
-			eventLog.Event.Node, new BlockParameter(eventLog.Log.BlockNumber));
+		string timezone = await globalContext.Policy.ExecuteAsync(() => rocketNodeManagerService.GetNodeTimezoneLocationQueryAsync(
+			eventLog.Event.Node, new BlockParameter(eventLog.Log.BlockNumber)));
 
 		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
 		{
@@ -375,8 +375,8 @@ public class NodeEventsEventHandler
 			globalContext.Contracts["rocketNodeManager"].Versions
 				.Last(x => x.ActivationHeight < (long)eventLog.Log.BlockNumber.Value).Address);
 
-		string timezone = await rocketNodeManagerService.GetNodeTimezoneLocationQueryAsync(
-			@event.Node, new BlockParameter(eventLog.Log.BlockNumber));
+		string timezone = await globalContext.Policy.ExecuteAsync(() => rocketNodeManagerService.GetNodeTimezoneLocationQueryAsync(
+			@event.Node, new BlockParameter(eventLog.Log.BlockNumber)));
 
 		// TODO: Add more details
 		context.Nodes.Partial.Updated.Add(

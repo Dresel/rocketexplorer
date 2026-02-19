@@ -37,6 +37,7 @@ public record class TokensContextRockRETH
 			"local-testnet" => "0x066b118c1A8012E6E5DFf4274c91A4B85F5f3CC2",
 			"mainnet" => "0x936faCdf10c8c36294e7b9d28345255539d81bc7",
 			"local-mainnet" => "0x936faCdf10c8c36294e7b9d28345255539d81bc7",
+			"local-mainnet4" => "0x936faCdf10c8c36294e7b9d28345255539d81bc7",
 			_ => null,
 		};
 

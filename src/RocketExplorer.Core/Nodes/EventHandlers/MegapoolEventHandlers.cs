@@ -83,8 +83,8 @@ public class MegapoolEventHandlers
 
 		RocketMegapoolDelegateService megapoolDelegate = new(globalContext.Services.Web3, megapoolAddress);
 
-		GetValidatorInfoOutputDTO validatorInfo = await megapoolDelegate.GetValidatorInfoQueryAsync(
-			(uint)validatorId, new BlockParameter(eventLog.Log.BlockNumber));
+		GetValidatorInfoOutputDTO validatorInfo = await globalContext.Policy.ExecuteAsync(() => megapoolDelegate.GetValidatorInfoQueryAsync(
+			(uint)validatorId, new BlockParameter(eventLog.Log.BlockNumber)));
 
 		NodesContext context = await globalContext.NodesContextFactory;
 
@@ -263,8 +263,8 @@ public class MegapoolEventHandlers
 
 		RocketMegapoolDelegateService megapoolDelegate = new(globalContext.Services.Web3, megapoolAddress);
 
-		byte[] pubKey = await megapoolDelegate.GetValidatorPubkeyQueryAsync(
-			(uint)eventValidatorId, new BlockParameter(eventLog.Log.BlockNumber));
+		byte[] pubKey = await globalContext.Policy.ExecuteAsync(() => megapoolDelegate.GetValidatorPubkeyQueryAsync(
+			(uint)eventValidatorId, new BlockParameter(eventLog.Log.BlockNumber)));
 
 		Debug.Assert(pubKey.Length > 0, "PubKey should not be empty");
 
@@ -307,8 +307,8 @@ public class MegapoolEventHandlers
 			MegapoolAddress = megapoolAddress.HexToByteArray(),
 		};
 
-		GetValidatorInfoOutputDTO validatorInfo = await megapoolDelegate.GetValidatorInfoQueryAsync(
-			(uint)eventValidatorId, new BlockParameter(eventLog.Log.BlockNumber));
+		GetValidatorInfoOutputDTO validatorInfo = await globalContext.Policy.ExecuteAsync(() => megapoolDelegate.GetValidatorInfoQueryAsync(
+			(uint)eventValidatorId, new BlockParameter(eventLog.Log.BlockNumber)));
 
 		Validator validator = new()
 		{
@@ -427,7 +427,7 @@ public class MegapoolEventHandlers
 		RocketMegapoolDelegateService megapoolDelegate, CancellationToken cancellationToken = default)
 	{
 		string nodeOperatorAddress =
-			await megapoolDelegate.GetNodeAddressQueryAsync(new BlockParameter(blockNumber));
+			await globalContext.Policy.ExecuteAsync(() => megapoolDelegate.GetNodeAddressQueryAsync(new BlockParameter(blockNumber)));
 
 		NodesContext context = await globalContext.NodesContextFactory;
 
@@ -444,7 +444,7 @@ public class MegapoolEventHandlers
 		{
 			// Can happen if the same node operator address is used for multiple rocket pool deployments
 			if (!string.Equals(
-					await globalContext.Services.RocketNodeManager.GetMegapoolAddressQueryAsync(nodeOperatorAddress),
+					await globalContext.Policy.ExecuteAsync(() => globalContext.Services.RocketNodeManager.GetMegapoolAddressQueryAsync(nodeOperatorAddress)),
 					megapoolAddress,
 					StringComparison.OrdinalIgnoreCase))
 			{

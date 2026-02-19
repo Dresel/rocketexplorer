@@ -113,10 +113,10 @@ GlobalContext globalContext = await host.Services.CreateGlobalContextAsync();
 host.Services.GetRequiredService<GlobalContextAccessor>().GlobalContext = globalContext;
 
 // Initial sync
-bool skipIndexEns = false;
-////bool skipIndexEns = true;
-////globalContext.Services.GlobalIndexService.SkipLoading = true;
-////globalContext.Services.GlobalEnsIndexService.SkipLoading = true;
+////bool skipIndexEns = false;
+bool skipIndexEns = true;
+globalContext.Services.GlobalIndexService.SkipLoading = true;
+globalContext.Services.GlobalEnsIndexService.SkipLoading = true;
 
 // Initial index build
 ////await IndexBuilder.BuildIndexesAsync(globalContext);

@@ -12,5 +12,7 @@ public enum Environment
 
 	LocalMainnet,
 
+	LocalMainnet3,
+
 	Mainnet,
 }

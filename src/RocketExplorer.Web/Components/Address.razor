@@ -68,6 +68,7 @@
 	{
 		{ AddressPreset.Default, Default },
 		{ AddressPreset.XLarge, XLarge },
+		{ AddressPreset.Small, Small },
 	};
 
 	private static Dictionary<Breakpoint, (int PrefixLength, int SuffixLength)> Default => new()
@@ -86,6 +87,16 @@
 		{ Breakpoint.Sm, (12, 10) },
 		{ Breakpoint.Md, (42, 42) },
 		{ Breakpoint.Lg, (42, 42) },
+		{ Breakpoint.Xl, (42, 42) },
+		{ Breakpoint.Xxl, (42, 42) },
+	};
+
+	private static Dictionary<Breakpoint, (int PrefixLength, int SuffixLength)> Small => new()
+	{
+		{ Breakpoint.Xs, (10, 8) },
+		{ Breakpoint.Sm, (2, 2) },
+		{ Breakpoint.Md, (4, 4) },
+		{ Breakpoint.Lg, (10, 8) },
 		{ Breakpoint.Xl, (42, 42) },
 		{ Breakpoint.Xxl, (42, 42) },
 	};

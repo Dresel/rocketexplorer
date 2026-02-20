@@ -5,4 +5,6 @@ public enum AddressPreset
 	Default,
 
 	XLarge,
+
+	Small,
 }

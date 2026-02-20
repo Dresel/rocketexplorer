@@ -8,6 +8,7 @@ public record class MinipoolValidatorQueueEntry
 	[Key(0)]
 	public required byte[] NodeAddress { get; init; }
 
+	// TODO: Remove
 	[Key(1)]
 	public string? NodeAddressEns { get; init; }
 

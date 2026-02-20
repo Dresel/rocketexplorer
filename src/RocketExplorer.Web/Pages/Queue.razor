@@ -31,10 +31,10 @@
 				<MudTableSortLabel T="QueueItemViewModel" SortLabel="@nameof(QueueItemViewModel.NodeOperatorAddress)">Node Address</MudTableSortLabel>
 			</MudTh>
 			<MudTh>
-				<MudTableSortLabel T="QueueItemViewModel" SortLabel="@nameof(QueueItemViewModel.MinipoolAddress)">Minipool / Megapool</MudTableSortLabel>
+				<MudTableSortLabel T="QueueItemViewModel" SortLabel="@nameof(QueueItemViewModel.MegapoolAddress)">Address</MudTableSortLabel>
 			</MudTh>
 			<MudTh>
-				<MudTableSortLabel T="QueueItemViewModel" SortLabel="@nameof(QueueItemViewModel.MegapoolIndex)">Megapool Index</MudTableSortLabel>
+				<MudTableSortLabel T="QueueItemViewModel" SortLabel="@nameof(QueueItemViewModel.MegapoolIndex)">Index</MudTableSortLabel>
 			</MudTh>
 			<MudTh>
 				<MudTableSortLabel T="QueueItemViewModel" SortLabel="@nameof(QueueItemViewModel.TimeInQueue)">Time in Queue</MudTableSortLabel>
@@ -46,24 +46,13 @@
 			</MudTd>
 			<MudTd DataLabel="Node Address">
 				<MudText>
-					@if (!string.IsNullOrWhiteSpace(context.NodeOperatorAddressEnsName))
-					{
-						<EnsName Name="@context.NodeOperatorAddressEnsName" HighlightedText="@searchString"></EnsName>
-					}
-					<Address ContractAddress="@context.NodeOperatorAddress" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></Address>
+					<AddressAndEnsNameCell Preset="AddressPreset.Small" EnsName="@context.NodeOperatorAddressEnsName" Address="@context.NodeOperatorAddress" HighlightedText="@searchString" HrefPlaceholder="node/{0}"></AddressAndEnsNameCell>
 				</MudText>
 			</MudTd>
-			<MudTd DataLabel="Mini / Mega">
-				@if (!string.IsNullOrWhiteSpace(context.MinipoolAddress))
-				{
-					<Address ContractAddress="@context.MinipoolAddress" HighlightedText="@searchString" HrefPlaceholder="validator/{0}"></Address>
-				}
-				else
-				{
-					<Address Typo="Typo.body2" ContractAddress="@context.MegapoolAddress" HighlightedText="@searchString" AppendEtherscanCodeAnchor="true"></Address>
-				}
+			<MudTd DataLabel="Address">
+				<Address Preset="AddressPreset.Small" Typo="Typo.body2" ContractAddress="@context.MegapoolAddress" HighlightedText="@searchString" AppendEtherscanCodeAnchor="true"></Address>
 			</MudTd>
-			<MudTd DataLabel="Mega Index">
+			<MudTd DataLabel="Index">
 				@if (context.MegapoolAddress != null)
 				{
 					<MudLink Typo="Typo.body2" Href="@($"validator/{context.MegapoolAddress}/{context.MegapoolIndex}")">
@@ -90,13 +79,6 @@
 			<MudTablePager />
 		</PagerContent>
 	</MudTable>
-	<div class="d-flex justify-center">
-		<MudToggleGroup Size="Size.Small" T="QueueType" SelectionMode="SelectionMode.SingleSelection" Color="Color.Secondary" Value="Type" ValueChanged="SetType" CheckMark FixedContent="true">
-			<MudToggleItem Value="QueueType.Unified" Text="Unified" />
-			<MudToggleItem Value="QueueType.Legacy" Text="Legacy" />
-			<MudToggleItem Value="QueueType.Megapool" Text="Megapool" />
-		</MudToggleGroup>
-	</div>
 
 </MudStack>
 
@@ -115,19 +97,19 @@
 	[
 		new ColumnSeries<DateTimePoint>
 		{
-			Name = "Enqueued minipools",
+			Name = "Enqueued validators",
 			Padding = 3,
 			MaxBarWidth = 20,
 		},
 		new ColumnSeries<DateTimePoint>
 		{
-			Name = "Dequeued minipools",
+			Name = "Dequeued validators",
 			Padding = 3,
 			MaxBarWidth = 20,
 		},
 		new ColumnSeries<DateTimePoint>
 		{
-			Name = "Voluntarily exited minipools",
+			Name = "Voluntarily exited validators",
 			Padding = 3,
 			MaxBarWidth = 20,
 		},
@@ -172,9 +154,9 @@
 			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.NodeOperatorAddress).ToList() : items.OrderByDescending(x => x.NodeOperatorAddress).ToList();
 		}
 
-		if (state.SortLabel is nameof(QueueItemViewModel.MinipoolAddress))
+		if (state.SortLabel is nameof(QueueItemViewModel.MegapoolAddress))
 		{
-			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.MinipoolAddress).ToList() : items.OrderByDescending(x => x.MinipoolAddress).ToList();
+			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.MegapoolAddress).ToList() : items.OrderByDescending(x => x.MegapoolAddress).ToList();
 		}
 
 		if (state.SortLabel is nameof(QueueItemViewModel.TimeInQueue))
@@ -182,17 +164,11 @@
 			items = state.SortDirection == SortDirection.Ascending ? items.OrderBy(x => x.TimeInQueue).ToList() : items.OrderByDescending(x => x.TimeInQueue).ToList();
 		}
 
-		items = Type switch
-		{
-			QueueType.Legacy => items.Where(x => !string.IsNullOrWhiteSpace(x.MinipoolAddress)).ToArray(),
-			QueueType.Megapool => items.Where(x => !string.IsNullOrWhiteSpace(x.MegapoolAddress)).ToArray(),
-			_ => items.ToArray(),
-		};
-
 		if (!string.IsNullOrWhiteSpace(searchString) && searchString.Length > 1)
 		{
 			items = items.Where(x => x.NodeOperatorAddress.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-				(x.NodeOperatorAddressEnsName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false)).ToArray();
+				(x.NodeOperatorAddressEnsName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+				(x.MegapoolAddress?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false)).ToArray();
 		}
 
 		int count = items.Count();
@@ -210,33 +186,20 @@
 		queueTotalData = [Snapshot?.Data.TotalQueueCount ?? [],];
 		queueDeltaData = [Snapshot?.Data.DailyEnqueued ?? [], Snapshot?.Data.DailyDequeued ?? [], Snapshot?.Data.DailyVoluntaryExits ?? [],];
 
-		IEnumerable<MinipoolValidatorQueueEntry> legacyQueue = (Snapshot?.Data.MinipoolHalfQueue ?? []).Concat(Snapshot?.Data.MinipoolFullQueue ?? []).Concat(Snapshot?.Data.MinipoolVariableQueue ?? []);
-
-		QueueItemViewModel[] queueItemViewModels = legacyQueue.Select((entry, index) => new QueueItemViewModel
-		{
-			Index = index + 1,
-			NodeOperatorAddress = entry.NodeAddress.ToHex(true),
-			NodeOperatorAddressEnsName = entry.NodeAddressEns,
-			MinipoolAddress = entry.MinipoolAddress.ToHex(true),
-			PubKey = entry.PubKey?.ToHex(),
-			TimeInQueue = DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(entry.EnqueueTimestamp),
-		}).ToArray();
-
-		int currentIndex = queueItemViewModels.LastOrDefault()?.Index ?? 0;
+		int currentIndex = 0;
 		IEnumerable<(MegapoolValidatorQueueEntry Item, bool Express)> megapoolQueue = Zip(Snapshot?.Data.MegapoolStandardQueue.Select(entry => (Item: entry, Express: false)) ?? [], Snapshot?.Data.MegapoolExpressQueue.Select(entry => (Item: entry, Express: true)) ?? [], Snapshot?.Data.MegapoolQueueIndex ?? 0, 4);
 
-		queue = queueItemViewModels.Concat(
-			megapoolQueue.Select((entry, index) => new QueueItemViewModel
+		queue = megapoolQueue.Select((entry, index) => new QueueItemViewModel
 			{
 				Index = currentIndex + index + 1,
 				NodeOperatorAddress = entry.Item.NodeAddress.ToHex(true),
-				NodeOperatorAddressEnsName = entry.Item.NodeAddressEns,
+				NodeOperatorAddressEnsName = EnsName(entry.Item.NodeAddress),
 				MegapoolAddress = entry.Item.MegapoolAddress.ToHex(true),
 				MegapoolIndex = entry.Item.MegapoolIndex,
 				PubKey = entry.Item.PubKey.ToHex(),
 				Express = entry.Express,
 				TimeInQueue = DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(entry.Item.EnqueueTimestamp),
-			})).ToArray();
+			}).ToArray();
 
 		return Task.CompletedTask;
 	}
@@ -249,8 +212,6 @@
 
 		public int? MegapoolIndex { get; set; }
 
-		public string? MinipoolAddress { get; init; }
-
 		public string? PubKey { get; init; }
 
 		public bool? Express { get; set; }
@@ -260,25 +221,6 @@
 		public required string NodeOperatorAddress { get; set; }
 
 		public required string? NodeOperatorAddressEnsName { get; set; }
-	}
-
-	[Parameter]
-	public QueueType Type { get; set; }
-
-	private void SetType(QueueType value)
-	{
-		Type = value;
-
-		table.ReloadServerData();
-	}
-
-	public enum QueueType
-	{
-		Unified,
-
-		Legacy,
-
-		Megapool,
 	}
 
 	public static IEnumerable<T> Zip<T>(

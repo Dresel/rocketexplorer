@@ -15,16 +15,24 @@ public static class StoragePolicies
 		.Or<HttpRequestException>()
 		.Or<SocketException>()
 		.Or<TimeoutException>()
-		.Or<AmazonServiceException>(ex => ex.StatusCode switch
+		.Or<TaskCanceledException>(exception => !exception.CancellationToken.IsCancellationRequested)
+		.Or<AmazonServiceException>(exception => exception.StatusCode switch
 		{
 			>= HttpStatusCode.InternalServerError or HttpStatusCode.TooManyRequests => true,
-			_ when ex.ErrorCode == "SlowDown" => true,
-			_ => false,
+
+			_ when exception.InnerException is IOException => true,
+			_ when exception.InnerException is HttpRequestException => true,
+			_ when exception.InnerException is SocketException => true,
+			_ when exception.InnerException is TimeoutException => true,
+			_ when exception.InnerException is TaskCanceledException { CancellationToken.IsCancellationRequested: false } => true,
+
+			_ when exception.ErrorCode == "SlowDown" => true,
+	_ => false,
 		})
 		.WaitAndRetryAsync(
 			Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(5), 5),
 			(exception, timeSpan, retryCount, _) =>
 			{
-				logger.LogDebug($"Retry {retryCount} after {timeSpan.TotalSeconds} seconds due to {exception.Message}");
+				logger.LogInformation($"Retry {retryCount} after {timeSpan.TotalSeconds} seconds due to {exception.Message}");
 			});
 }

@@ -20,8 +20,9 @@ public static class EnsExtensions
 
 		try
 		{
-			forwardResolverAddress = await globalContext.Services.Web3.Eth.GetEnsService().ENSRegistryService
-				.ResolverQueryAsync(ensNameHash, new BlockParameter(blockNumber));
+			forwardResolverAddress = await globalContext.Policy.ExecuteAsync(() => globalContext.Services.Web3.Eth
+				.GetEnsService().ENSRegistryService
+				.ResolverQueryAsync(ensNameHash, new BlockParameter(blockNumber)));
 		}
 		catch
 		{
@@ -51,7 +52,8 @@ public static class EnsExtensions
 
 		try
 		{
-			forwardAddress = await forwardResolver.AddrQueryAsync(ensNameHash, new BlockParameter(blockNumber));
+			forwardAddress = await globalContext.Policy.ExecuteAsync(() =>
+				forwardResolver.AddrQueryAsync(ensNameHash, new BlockParameter(blockNumber)));
 		}
 		catch
 		{
@@ -122,8 +124,9 @@ public static class EnsExtensions
 	{
 		EnsUtil ensUtil = new();
 
-		string? reverseResolverAddress = await globalContext.Services.Web3.Eth.GetEnsService().ENSRegistryService
-			.ResolverQueryAsync(reverseAddressNameHash, new BlockParameter(blockNumber));
+		string? reverseResolverAddress = await globalContext.Policy.ExecuteAsync(() => globalContext.Services.Web3.Eth
+			.GetEnsService().ENSRegistryService
+			.ResolverQueryAsync(reverseAddressNameHash, new BlockParameter(blockNumber)));
 
 		if (reverseResolverAddress.IsNullOrZeroAddress())
 		{
@@ -142,7 +145,8 @@ public static class EnsExtensions
 
 		try
 		{
-			ensName = await reverseResolver.NameQueryAsync(reverseAddressNameHash, new BlockParameter(blockNumber));
+			ensName = await globalContext.Policy.ExecuteAsync(() =>
+				reverseResolver.NameQueryAsync(reverseAddressNameHash, new BlockParameter(blockNumber)));
 		}
 		catch
 		{

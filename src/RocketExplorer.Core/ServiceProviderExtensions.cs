@@ -28,14 +28,13 @@ public static class ServiceProviderExtensions
 			"Using Rocket Pool environment {Environment} with rpc endpoint {RPCUrl}", options.Environment,
 			options.RPCUrl);
 
-		BlockWithTransactions latestBlock =
-			await web3.Eth.Blocks.GetBlockWithTransactionsByNumber.SendRequestAsync(BlockParameter.CreateLatest());
-		latestBlock = await web3.Eth.Blocks
-			.GetBlockWithTransactionsByNumber
-			.SendRequestAsync(new BlockParameter((ulong)(latestBlock.Number.Value - 12)));
-
 		AsyncRetryPolicy policy =
 			NethereumPolicies.Retry(serviceProvider.GetRequiredService<ILogger<GlobalContext>>());
+
+		BlockWithTransactions latestBlock = await policy.ExecuteAsync(() =>
+			web3.Eth.Blocks.GetBlockWithTransactionsByNumber.SendRequestAsync(BlockParameter.CreateLatest()));
+		latestBlock = await policy.ExecuteAsync(() => web3.Eth.Blocks.GetBlockWithTransactionsByNumber
+			.SendRequestAsync(new BlockParameter((ulong)(latestBlock.Number.Value - 12))));
 
 		RocketStorageService rocketStorageService = new(web3, options.RocketStorageContractAddress);
 

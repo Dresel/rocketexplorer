@@ -18,12 +18,6 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 		GlobalContext.ContractsContext.ProcessingCompletionSource.TrySetResult();
 	}
 
-	protected override async Task OnHandleBlocksErrorAsync(Exception e, CancellationToken cancellationToken)
-	{
-		await base.OnHandleBlocksErrorAsync(e, cancellationToken);
-		GlobalContext.ContractsContext.ProcessingCompletionSource.TrySetException(e);
-	}
-
 	protected override async Task BeforeHandleBlocksAsync(CancellationToken cancellationToken)
 	{
 		if (await GetCurrentBlockHeightAsync(cancellationToken) == 0)
@@ -66,6 +60,12 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 		{
 			await HandleBlocksAsync(fromBlock, toBlock, cancellationToken);
 		}
+	}
+
+	protected override async Task OnHandleBlocksErrorAsync(Exception e, CancellationToken cancellationToken)
+	{
+		await base.OnHandleBlocksErrorAsync(e, cancellationToken);
+		GlobalContext.ContractsContext.ProcessingCompletionSource.TrySetException(e);
 	}
 
 	protected override Task SetCurrentBlockHeightAsync(
@@ -131,7 +131,8 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 		}
 	}
 
-	private async Task ProcessBootstrapContractsAsync(GlobalContext globalContext, CancellationToken cancellationToken = default)
+	private async Task ProcessBootstrapContractsAsync(
+		GlobalContext globalContext, CancellationToken cancellationToken = default)
 	{
 		long rocketPoolDeployedBlock =
 			(long)await globalContext.Policy.ExecuteAsync(() =>
@@ -276,8 +277,9 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 			return false;
 		}
 
-		globalContext.ContractsContext.ProtocolVersion = await globalContext.Services.RocketStorage.GetStringQueryAsync(
-			"protocol.version".Sha3(), new BlockParameter((ulong)executionHeight));
+		globalContext.ContractsContext.ProtocolVersion = await globalContext.Policy.ExecuteAsync(() =>
+			globalContext.Services.RocketStorage.GetStringQueryAsync(
+				"protocol.version".Sha3(), new BlockParameter((ulong)executionHeight)));
 
 		globalContext.GetLogger<ContractsSync>().LogInformation("Executed in block {Block}", executionHeight);
 
@@ -347,8 +349,9 @@ public class ContractsSync(IOptions<SyncOptions> syncOptions, GlobalContext glob
 
 		try
 		{
-			version = await GetVersionFunction(globalContext.Services.Web3, address)
-				.CallAsync<byte>(BlockParameter.CreateLatest());
+			version = await globalContext.Policy.ExecuteAsync(() =>
+				GetVersionFunction(globalContext.Services.Web3, address)
+					.CallAsync<byte>(BlockParameter.CreateLatest()));
 		}
 		catch
 		{

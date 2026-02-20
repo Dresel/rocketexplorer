@@ -146,8 +146,9 @@ public class NodeEventsEventHandler
 					x.Type &= ~IndexEntryType.StakeOnBehalfAddress;
 					x.Address = stakeOnBehalfAddress.HexToByteArray();
 
-					FastByteArrayComparer comparer = new FastByteArrayComparer();
-					int index = x.NodeAddresses.FindIndex(bytes => comparer.Equals(bytes, nodeIndexEntry.ContractAddress));
+					FastByteArrayComparer comparer = new();
+					int index = x.NodeAddresses.FindIndex(bytes => comparer.Equals(
+						bytes, nodeIndexEntry.ContractAddress));
 					x.NodeAddresses.RemoveAt(index);
 				}, cancellationToken: cancellationToken);
 
@@ -225,8 +226,9 @@ public class NodeEventsEventHandler
 			globalContext.Contracts["rocketNodeManager"].Versions
 				.Last(x => x.ActivationHeight < (long)eventLog.Log.BlockNumber.Value).Address);
 
-		string timezone = await rocketNodeManagerService.GetNodeTimezoneLocationQueryAsync(
-			eventLog.Event.Node, new BlockParameter(eventLog.Log.BlockNumber));
+		string timezone = await globalContext.Policy.ExecuteAsync(() =>
+			rocketNodeManagerService.GetNodeTimezoneLocationQueryAsync(
+				eventLog.Event.Node, new BlockParameter(eventLog.Log.BlockNumber)));
 
 		context.Nodes.Partial.Updated[nodeOperatorAddress] = context.Nodes.Partial.Updated[nodeOperatorAddress] with
 		{
@@ -264,14 +266,16 @@ public class NodeEventsEventHandler
 		}
 
 		_ = globalContext.Services.GlobalIndexService.UpdateEntryAsync(
-			context.Nodes.Partial.Updated[nodeOperatorAddress].RPLWithdrawalAddress?.ToHex() ?? throw new InvalidOperationException("Withdrawal address should not be null"),
-			context.Nodes.Partial.Updated[nodeOperatorAddress].RPLWithdrawalAddress ?? throw new InvalidOperationException("Withdrawal address should not be null"),
+			context.Nodes.Partial.Updated[nodeOperatorAddress].RPLWithdrawalAddress?.ToHex() ??
+			throw new InvalidOperationException("Withdrawal address should not be null"),
+			context.Nodes.Partial.Updated[nodeOperatorAddress].RPLWithdrawalAddress ??
+			throw new InvalidOperationException("Withdrawal address should not be null"),
 			new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex),
 			x =>
 			{
 				x.Type &= ~IndexEntryType.RPLWithdrawalAddress;
 
-				FastByteArrayComparer comparer = new FastByteArrayComparer();
+				FastByteArrayComparer comparer = new();
 				int index = x.NodeAddresses.FindIndex(bytes => comparer.Equals(bytes, nodeIndexEntry.ContractAddress));
 				x.NodeAddresses.RemoveAt(index);
 			}, entry => entry.Type == 0, cancellationToken);
@@ -375,8 +379,9 @@ public class NodeEventsEventHandler
 			globalContext.Contracts["rocketNodeManager"].Versions
 				.Last(x => x.ActivationHeight < (long)eventLog.Log.BlockNumber.Value).Address);
 
-		string timezone = await rocketNodeManagerService.GetNodeTimezoneLocationQueryAsync(
-			@event.Node, new BlockParameter(eventLog.Log.BlockNumber));
+		string timezone = await globalContext.Policy.ExecuteAsync(() =>
+			rocketNodeManagerService.GetNodeTimezoneLocationQueryAsync(
+				@event.Node, new BlockParameter(eventLog.Log.BlockNumber)));
 
 		// TODO: Add more details
 		context.Nodes.Partial.Updated.Add(

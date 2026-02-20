@@ -20,7 +20,7 @@ public class MinipoolCreatedEventHandler
 
 		RocketMinipoolDelegateService minipoolDelegate = new(globalContext.Services.Web3, @event.Minipool);
 		string nodeOperatorAddress =
-			await minipoolDelegate.GetNodeAddressQueryAsync(new BlockParameter(eventLog.Log.BlockNumber));
+			await globalContext.Policy.ExecuteAsync(() => minipoolDelegate.GetNodeAddressQueryAsync(new BlockParameter(eventLog.Log.BlockNumber)));
 
 		NodesContext context = await globalContext.NodesContextFactory;
 
@@ -61,8 +61,8 @@ public class MinipoolCreatedEventHandler
 				ValidatorIndex = entry.ValidatorIndex,
 				Status = ValidatorStatus.Created,
 				Bond = (float)UnitConversion.Convert.FromWei(
-					await minipoolDelegate.GetNodeDepositBalanceQueryAsync(
-						new BlockParameter(eventLog.Log.BlockNumber))),
+					await globalContext.Policy.ExecuteAsync(() => minipoolDelegate.GetNodeDepositBalanceQueryAsync(
+						new BlockParameter(eventLog.Log.BlockNumber)))),
 				Type = ValidatorType.Legacy,
 				History =
 				[

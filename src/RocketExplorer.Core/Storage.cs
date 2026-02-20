@@ -98,13 +98,15 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 		{
 			Stopwatch stopwatch = Stopwatch.StartNew();
 
-			using GetObjectResponse response = await this.retryPolicy.ExecuteAsync(() => this.s3Client.GetObjectAsync(
-				new GetObjectRequest
-				{
-					BucketName = this.bucketName,
-					Key = $"{this.options.Environment.ToLower()}/{key}",
-				},
-				cancellationToken));
+			using GetObjectResponse response = await this.retryPolicy.ExecuteAsync(
+				innerCancellationToken => this.s3Client.GetObjectAsync(
+					new GetObjectRequest
+					{
+						BucketName = this.bucketName,
+						Key = $"{this.options.Environment.ToLower()}/{key}",
+					},
+					innerCancellationToken),
+				cancellationToken);
 
 			using MemoryStream memoryStream = new();
 			await response.ResponseStream.CopyToAsync(memoryStream, cancellationToken);
@@ -133,27 +135,32 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 	{
 		byte[] data = MessagePackSerializer.Serialize(
 			snapshot.Data, MessagePackSerializerOptions.Standard.WithResolver(this.messagePackResolver));
-		using MemoryStream memoryStream = new(data);
 
 		Stopwatch stopwatch = Stopwatch.StartNew();
 
-		await this.retryPolicy.ExecuteAsync(() =>
-			this.s3Client.PutObjectAsync(
-				new PutObjectRequest
-				{
-					BucketName = this.bucketName,
-					Key = $"{this.options.Environment.ToLower()}/{key}",
-					InputStream = memoryStream,
-					Headers =
+		await this.retryPolicy.ExecuteAsync(
+			async innerCancellationToken =>
+			{
+				await using MemoryStream memoryStream = new(data);
+
+				await this.s3Client.PutObjectAsync(
+					new PutObjectRequest
 					{
-						["Cache-Control"] = $"public, max-age={maxAge}, must-revalidate",
+						BucketName = this.bucketName,
+						Key = $"{this.options.Environment.ToLower()}/{key}",
+						InputStream = memoryStream,
+						Headers =
+						{
+							["Cache-Control"] = $"public, max-age={maxAge}, must-revalidate",
+						},
+						Metadata =
+						{
+							["ProcessedBlockNumber"] =
+								snapshot.ProcessedBlockNumber.ToString(CultureInfo.InvariantCulture),
+						},
 					},
-					Metadata =
-					{
-						["ProcessedBlockNumber"] = snapshot.ProcessedBlockNumber.ToString(CultureInfo.InvariantCulture),
-					},
-				},
-				cancellationToken));
+					innerCancellationToken);
+			}, cancellationToken);
 
 		this.logger.LogDebug($"PutObject took {stopwatch.ElapsedMilliseconds}ms for {data.Length} bytes");
 	}

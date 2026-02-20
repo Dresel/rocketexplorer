@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 using Nethereum.JsonRpc.Client;
 using Polly;
@@ -13,10 +14,13 @@ public static class NethereumPolicies
 		.Handle<RpcClientTimeoutException>()
 		.Or<RpcClientUnknownException>(x =>
 			(x.InnerException as HttpRequestException)?.StatusCode == HttpStatusCode.TooManyRequests)
+		.Or<RpcClientUnknownException>(x =>
+			x.InnerException?.InnerException is SocketException)
 		.WaitAndRetryAsync(
 			Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(30), 5),
 			(exception, timeSpan, retryCount, _) =>
 			{
-				logger.LogDebug($"Retry {retryCount} after {timeSpan.TotalSeconds} seconds due to {exception.Message}");
+				logger.LogInformation(
+					$"Retry {retryCount} after {timeSpan.TotalSeconds} seconds due to {exception.Message}");
 			});
 }

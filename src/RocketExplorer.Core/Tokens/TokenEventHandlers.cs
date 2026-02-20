@@ -136,8 +136,9 @@ public class TokenEventHandlers
 		}
 		else
 		{
-			BlockWithTransactions block = await globalContext.Services.Web3.Eth.Blocks.GetBlockWithTransactionsByNumber
-				.SendRequestAsync(eventLog.Log.BlockNumber);
+			BlockWithTransactions block = await globalContext.Policy.ExecuteAsync(() =>
+				globalContext.Services.Web3.Eth.Blocks.GetBlockWithTransactionsByNumber.SendRequestAsync(
+					eventLog.Log.BlockNumber));
 			DateOnly key =
 				DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)block.Timestamp.Value).DateTime);
 

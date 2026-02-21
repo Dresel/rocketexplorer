@@ -194,6 +194,8 @@ public class MinipoolEventHandlers
 				MinipoolAddress = minipoolAddress,
 				Status = ValidatorStatus.Exited,
 			}, cancellationToken);
+
+		globalContext.DashboardContext.MinipoolValidatorsStaking--;
 	}
 
 	public static async Task HandleAsync(
@@ -257,11 +259,6 @@ public class MinipoolEventHandlers
 			}
 
 			globalContext.DashboardContext.MinipoolValidatorsStaking++;
-		}
-
-		if (validatorStatus == ValidatorStatus.Exited)
-		{
-			globalContext.DashboardContext.MinipoolValidatorsStaking--;
 		}
 	}
 

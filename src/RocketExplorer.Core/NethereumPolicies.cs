@@ -17,7 +17,7 @@ public static class NethereumPolicies
 		.Or<RpcClientUnknownException>(x =>
 			x.InnerException?.InnerException is SocketException)
 		.WaitAndRetryAsync(
-			Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(30), 5),
+			Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(30), 15),
 			(exception, timeSpan, retryCount, _) =>
 			{
 				logger.LogInformation(

@@ -30,7 +30,7 @@ public static class StoragePolicies
 	_ => false,
 		})
 		.WaitAndRetryAsync(
-			Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(5), 5),
+			Backoff.DecorrelatedJitterBackoffV2(TimeSpan.FromSeconds(5), 15),
 			(exception, timeSpan, retryCount, _) =>
 			{
 				logger.LogInformation($"Retry {retryCount} after {timeSpan.TotalSeconds} seconds due to {exception.Message}");

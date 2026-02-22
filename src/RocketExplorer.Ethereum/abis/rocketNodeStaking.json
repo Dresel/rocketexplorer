@@ -57,7 +57,7 @@
 				"type": "uint256"
 			}
 		],
-		"name": "RPLLegacyWithdrawn",
+		"name": "RPLLegacyUnstaked",
 		"type": "event"
 	},
 	{
@@ -474,25 +474,6 @@
 				"type": "address"
 			}
 		],
-		"name": "getNodeMaximumRPLStakeForMinipools",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_nodeAddress",
-				"type": "address"
-			}
-		],
 		"name": "getNodeMegapoolETHBonded",
 		"outputs": [
 			{
@@ -532,6 +513,25 @@
 			}
 		],
 		"name": "getNodeMegapoolStakedRPL",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_nodeAddress",
+				"type": "address"
+			}
+		],
+		"name": "getNodeMinimumLegacyRPLStake",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -870,6 +870,37 @@
 				"type": "uint256"
 			}
 		],
+		"name": "unstakeLegacyRPL",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_nodeAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_amount",
+				"type": "uint256"
+			}
+		],
+		"name": "unstakeLegacyRPLFor",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_amount",
+				"type": "uint256"
+			}
+		],
 		"name": "unstakeRPL",
 		"outputs": [],
 		"stateMutability": "nonpayable",
@@ -904,37 +935,6 @@
 			}
 		],
 		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_amount",
-				"type": "uint256"
-			}
-		],
-		"name": "withdrawLegacyRPL",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_nodeAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_amount",
-				"type": "uint256"
-			}
-		],
-		"name": "withdrawLegacyRPLFor",
-		"outputs": [],
-		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{

@@ -130,6 +130,262 @@ namespace RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade.ContractDefinition
 		"type": "event"
 	},
 	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "upgradeProposalID",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "upgradeType",
+				"type": "bytes32"
+			},
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "name",
+				"type": "bytes32"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
+		"name": "UpgradePending",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "upgradeProposalID",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
+		"name": "UpgradeVetoed",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_type",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_name",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_contractAbi",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "_contractAddress",
+				"type": "address"
+			}
+		],
+		"name": "bootstrapUpgrade",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_upgradeProposalID",
+				"type": "uint256"
+			}
+		],
+		"name": "execute",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_upgradeProposalID",
+				"type": "uint256"
+			}
+		],
+		"name": "getEnd",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_upgradeProposalID",
+				"type": "uint256"
+			}
+		],
+		"name": "getExecuted",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_upgradeProposalID",
+				"type": "uint256"
+			}
+		],
+		"name": "getName",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_upgradeProposalID",
+				"type": "uint256"
+			}
+		],
+		"name": "getState",
+		"outputs": [
+			{
+				"internalType": "enum RocketDAONodeTrustedUpgradeInterface.UpgradeProposalState",
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getTotal",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_upgradeProposalID",
+				"type": "uint256"
+			}
+		],
+		"name": "getType",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_upgradeProposalID",
+				"type": "uint256"
+			}
+		],
+		"name": "getUpgradeABI",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_upgradeProposalID",
+				"type": "uint256"
+			}
+		],
+		"name": "getUpgradeAddress",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_upgradeProposalID",
+				"type": "uint256"
+			}
+		],
+		"name": "getVetoed",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "string",
@@ -169,6 +425,19 @@ namespace RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade.ContractDefinition
 		],
 		"stateMutability": "view",
 		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_upgradeProposalID",
+				"type": "uint256"
+			}
+		],
+		"name": "veto",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
 	}
 ]
 """;
@@ -176,6 +445,110 @@ namespace RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade.ContractDefinition
         public RocketDAONodeTrustedUpgradeDeploymentBase(string byteCode) : base(byteCode) { }
         [Parameter("address", "_rocketStorageAddress", 1)]
         public virtual string RocketStorageAddress { get; set; }
+    }
+
+    public partial class BootstrapUpgradeFunction : BootstrapUpgradeFunctionBase { }
+
+    [Function("bootstrapUpgrade")]
+    public class BootstrapUpgradeFunctionBase : FunctionMessage
+    {
+        [Parameter("string", "_type", 1)]
+        public virtual string Type { get; set; }
+        [Parameter("string", "_name", 2)]
+        public virtual string Name { get; set; }
+        [Parameter("string", "_contractAbi", 3)]
+        public virtual string ContractAbi { get; set; }
+        [Parameter("address", "_contractAddress", 4)]
+        public virtual string ContractAddress { get; set; }
+    }
+
+    public partial class ExecuteFunction : ExecuteFunctionBase { }
+
+    [Function("execute")]
+    public class ExecuteFunctionBase : FunctionMessage
+    {
+        [Parameter("uint256", "_upgradeProposalID", 1)]
+        public virtual BigInteger UpgradeProposalID { get; set; }
+    }
+
+    public partial class GetEndFunction : GetEndFunctionBase { }
+
+    [Function("getEnd", "uint256")]
+    public class GetEndFunctionBase : FunctionMessage
+    {
+        [Parameter("uint256", "_upgradeProposalID", 1)]
+        public virtual BigInteger UpgradeProposalID { get; set; }
+    }
+
+    public partial class GetExecutedFunction : GetExecutedFunctionBase { }
+
+    [Function("getExecuted", "bool")]
+    public class GetExecutedFunctionBase : FunctionMessage
+    {
+        [Parameter("uint256", "_upgradeProposalID", 1)]
+        public virtual BigInteger UpgradeProposalID { get; set; }
+    }
+
+    public partial class GetNameFunction : GetNameFunctionBase { }
+
+    [Function("getName", "string")]
+    public class GetNameFunctionBase : FunctionMessage
+    {
+        [Parameter("uint256", "_upgradeProposalID", 1)]
+        public virtual BigInteger UpgradeProposalID { get; set; }
+    }
+
+    public partial class GetStateFunction : GetStateFunctionBase { }
+
+    [Function("getState", "uint8")]
+    public class GetStateFunctionBase : FunctionMessage
+    {
+        [Parameter("uint256", "_upgradeProposalID", 1)]
+        public virtual BigInteger UpgradeProposalID { get; set; }
+    }
+
+    public partial class GetTotalFunction : GetTotalFunctionBase { }
+
+    [Function("getTotal", "uint256")]
+    public class GetTotalFunctionBase : FunctionMessage
+    {
+
+    }
+
+    public partial class GetTypeFunction : GetTypeFunctionBase { }
+
+    [Function("getType", "bytes32")]
+    public class GetTypeFunctionBase : FunctionMessage
+    {
+        [Parameter("uint256", "_upgradeProposalID", 1)]
+        public virtual BigInteger UpgradeProposalID { get; set; }
+    }
+
+    public partial class GetUpgradeABIFunction : GetUpgradeABIFunctionBase { }
+
+    [Function("getUpgradeABI", "string")]
+    public class GetUpgradeABIFunctionBase : FunctionMessage
+    {
+        [Parameter("uint256", "_upgradeProposalID", 1)]
+        public virtual BigInteger UpgradeProposalID { get; set; }
+    }
+
+    public partial class GetUpgradeAddressFunction : GetUpgradeAddressFunctionBase { }
+
+    [Function("getUpgradeAddress", "address")]
+    public class GetUpgradeAddressFunctionBase : FunctionMessage
+    {
+        [Parameter("uint256", "_upgradeProposalID", 1)]
+        public virtual BigInteger UpgradeProposalID { get; set; }
+    }
+
+    public partial class GetVetoedFunction : GetVetoedFunctionBase { }
+
+    [Function("getVetoed", "bool")]
+    public class GetVetoedFunctionBase : FunctionMessage
+    {
+        [Parameter("uint256", "_upgradeProposalID", 1)]
+        public virtual BigInteger UpgradeProposalID { get; set; }
     }
 
     public partial class UpgradeFunction : UpgradeFunctionBase { }
@@ -199,6 +572,15 @@ namespace RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade.ContractDefinition
     public class VersionFunctionBase : FunctionMessage
     {
 
+    }
+
+    public partial class VetoFunction : VetoFunctionBase { }
+
+    [Function("veto")]
+    public class VetoFunctionBase : FunctionMessage
+    {
+        [Parameter("uint256", "_upgradeProposalID", 1)]
+        public virtual BigInteger UpgradeProposalID { get; set; }
     }
 
     public partial class ABIAddedEventDTO : ABIAddedEventDTOBase { }
@@ -251,6 +633,117 @@ namespace RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade.ContractDefinition
         public virtual BigInteger Time { get; set; }
     }
 
+    public partial class UpgradePendingEventDTO : UpgradePendingEventDTOBase { }
+
+    [Event("UpgradePending")]
+    public class UpgradePendingEventDTOBase : IEventDTO
+    {
+        [Parameter("uint256", "upgradeProposalID", 1, false )]
+        public virtual BigInteger UpgradeProposalID { get; set; }
+        [Parameter("bytes32", "upgradeType", 2, true )]
+        public virtual byte[] UpgradeType { get; set; }
+        [Parameter("bytes32", "name", 3, true )]
+        public virtual byte[] Name { get; set; }
+        [Parameter("uint256", "time", 4, false )]
+        public virtual BigInteger Time { get; set; }
+    }
+
+    public partial class UpgradeVetoedEventDTO : UpgradeVetoedEventDTOBase { }
+
+    [Event("UpgradeVetoed")]
+    public class UpgradeVetoedEventDTOBase : IEventDTO
+    {
+        [Parameter("uint256", "upgradeProposalID", 1, false )]
+        public virtual BigInteger UpgradeProposalID { get; set; }
+        [Parameter("uint256", "time", 2, false )]
+        public virtual BigInteger Time { get; set; }
+    }
+
+
+
+
+
+    public partial class GetEndOutputDTO : GetEndOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetEndOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint256", "", 1)]
+        public virtual BigInteger ReturnValue1 { get; set; }
+    }
+
+    public partial class GetExecutedOutputDTO : GetExecutedOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetExecutedOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bool", "", 1)]
+        public virtual bool ReturnValue1 { get; set; }
+    }
+
+    public partial class GetNameOutputDTO : GetNameOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetNameOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("string", "", 1)]
+        public virtual string ReturnValue1 { get; set; }
+    }
+
+    public partial class GetStateOutputDTO : GetStateOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetStateOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint8", "", 1)]
+        public virtual byte ReturnValue1 { get; set; }
+    }
+
+    public partial class GetTotalOutputDTO : GetTotalOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetTotalOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint256", "", 1)]
+        public virtual BigInteger ReturnValue1 { get; set; }
+    }
+
+    public partial class GetTypeOutputDTO : GetTypeOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetTypeOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bytes32", "", 1)]
+        public virtual byte[] ReturnValue1 { get; set; }
+    }
+
+    public partial class GetUpgradeABIOutputDTO : GetUpgradeABIOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetUpgradeABIOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("string", "", 1)]
+        public virtual string ReturnValue1 { get; set; }
+    }
+
+    public partial class GetUpgradeAddressOutputDTO : GetUpgradeAddressOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetUpgradeAddressOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("address", "", 1)]
+        public virtual string ReturnValue1 { get; set; }
+    }
+
+    public partial class GetVetoedOutputDTO : GetVetoedOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetVetoedOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bool", "", 1)]
+        public virtual bool ReturnValue1 { get; set; }
+    }
+
 
 
     public partial class VersionOutputDTO : VersionOutputDTOBase { }
@@ -261,4 +754,6 @@ namespace RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade.ContractDefinition
         [Parameter("uint8", "", 1)]
         public virtual byte ReturnValue1 { get; set; }
     }
+
+
 }

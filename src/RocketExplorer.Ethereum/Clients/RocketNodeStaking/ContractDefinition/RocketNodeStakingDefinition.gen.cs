@@ -82,7 +82,7 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
 				"type": "uint256"
 			}
 		],
-		"name": "RPLLegacyWithdrawn",
+		"name": "RPLLegacyUnstaked",
 		"type": "event"
 	},
 	{
@@ -499,25 +499,6 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
 				"type": "address"
 			}
 		],
-		"name": "getNodeMaximumRPLStakeForMinipools",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_nodeAddress",
-				"type": "address"
-			}
-		],
 		"name": "getNodeMegapoolETHBonded",
 		"outputs": [
 			{
@@ -557,6 +538,25 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
 			}
 		],
 		"name": "getNodeMegapoolStakedRPL",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_nodeAddress",
+				"type": "address"
+			}
+		],
+		"name": "getNodeMinimumLegacyRPLStake",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -895,6 +895,37 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
 				"type": "uint256"
 			}
 		],
+		"name": "unstakeLegacyRPL",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_nodeAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_amount",
+				"type": "uint256"
+			}
+		],
+		"name": "unstakeLegacyRPLFor",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_amount",
+				"type": "uint256"
+			}
+		],
 		"name": "unstakeRPL",
 		"outputs": [],
 		"stateMutability": "nonpayable",
@@ -929,37 +960,6 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
 			}
 		],
 		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_amount",
-				"type": "uint256"
-			}
-		],
-		"name": "withdrawLegacyRPL",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_nodeAddress",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_amount",
-				"type": "uint256"
-			}
-		],
-		"name": "withdrawLegacyRPLFor",
-		"outputs": [],
-		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
@@ -1055,15 +1055,6 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
         public virtual string NodeAddress { get; set; }
     }
 
-    public partial class GetNodeMaximumRPLStakeForMinipoolsFunction : GetNodeMaximumRPLStakeForMinipoolsFunctionBase { }
-
-    [Function("getNodeMaximumRPLStakeForMinipools", "uint256")]
-    public class GetNodeMaximumRPLStakeForMinipoolsFunctionBase : FunctionMessage
-    {
-        [Parameter("address", "_nodeAddress", 1)]
-        public virtual string NodeAddress { get; set; }
-    }
-
     public partial class GetNodeMegapoolETHBondedFunction : GetNodeMegapoolETHBondedFunctionBase { }
 
     [Function("getNodeMegapoolETHBonded", "uint256")]
@@ -1086,6 +1077,15 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
 
     [Function("getNodeMegapoolStakedRPL", "uint256")]
     public class GetNodeMegapoolStakedRPLFunctionBase : FunctionMessage
+    {
+        [Parameter("address", "_nodeAddress", 1)]
+        public virtual string NodeAddress { get; set; }
+    }
+
+    public partial class GetNodeMinimumLegacyRPLStakeFunction : GetNodeMinimumLegacyRPLStakeFunctionBase { }
+
+    [Function("getNodeMinimumLegacyRPLStake", "uint256")]
+    public class GetNodeMinimumLegacyRPLStakeFunctionBase : FunctionMessage
     {
         [Parameter("address", "_nodeAddress", 1)]
         public virtual string NodeAddress { get; set; }
@@ -1270,6 +1270,26 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
         public virtual BigInteger Amount { get; set; }
     }
 
+    public partial class UnstakeLegacyRPLFunction : UnstakeLegacyRPLFunctionBase { }
+
+    [Function("unstakeLegacyRPL")]
+    public class UnstakeLegacyRPLFunctionBase : FunctionMessage
+    {
+        [Parameter("uint256", "_amount", 1)]
+        public virtual BigInteger Amount { get; set; }
+    }
+
+    public partial class UnstakeLegacyRPLForFunction : UnstakeLegacyRPLForFunctionBase { }
+
+    [Function("unstakeLegacyRPLFor")]
+    public class UnstakeLegacyRPLForFunctionBase : FunctionMessage
+    {
+        [Parameter("address", "_nodeAddress", 1)]
+        public virtual string NodeAddress { get; set; }
+        [Parameter("uint256", "_amount", 2)]
+        public virtual BigInteger Amount { get; set; }
+    }
+
     public partial class UnstakeRPLFunction : UnstakeRPLFunctionBase { }
 
     [Function("unstakeRPL")]
@@ -1296,26 +1316,6 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
     public class VersionFunctionBase : FunctionMessage
     {
 
-    }
-
-    public partial class WithdrawLegacyRPLFunction : WithdrawLegacyRPLFunctionBase { }
-
-    [Function("withdrawLegacyRPL")]
-    public class WithdrawLegacyRPLFunctionBase : FunctionMessage
-    {
-        [Parameter("uint256", "_amount", 1)]
-        public virtual BigInteger Amount { get; set; }
-    }
-
-    public partial class WithdrawLegacyRPLForFunction : WithdrawLegacyRPLForFunctionBase { }
-
-    [Function("withdrawLegacyRPLFor")]
-    public class WithdrawLegacyRPLForFunctionBase : FunctionMessage
-    {
-        [Parameter("address", "_nodeAddress", 1)]
-        public virtual string NodeAddress { get; set; }
-        [Parameter("uint256", "_amount", 2)]
-        public virtual BigInteger Amount { get; set; }
     }
 
     public partial class WithdrawRPLFunction : WithdrawRPLFunctionBase { }
@@ -1348,10 +1348,10 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
         public virtual BigInteger Time { get; set; }
     }
 
-    public partial class RPLLegacyWithdrawnEventDTO : RPLLegacyWithdrawnEventDTOBase { }
+    public partial class RPLLegacyUnstakedEventDTO : RPLLegacyUnstakedEventDTOBase { }
 
-    [Event("RPLLegacyWithdrawn")]
-    public class RPLLegacyWithdrawnEventDTOBase : IEventDTO
+    [Event("RPLLegacyUnstaked")]
+    public class RPLLegacyUnstakedEventDTOBase : IEventDTO
     {
         [Parameter("address", "to", 1, true )]
         public virtual string To { get; set; }
@@ -1402,10 +1402,10 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
         public virtual BigInteger Time { get; set; }
     }
 
-    public partial class RPLStakedEventDTO : RPLStaked1EventDTOBase { }
+    public partial class RPLStakedEventDTO : RPLStakedEventDTOBase { }
 
     [Event("RPLStaked")]
-    public class RPLStaked1EventDTOBase : IEventDTO
+    public class RPLStakedEventDTOBase : IEventDTO
     {
         [Parameter("address", "node", 1, true )]
         public virtual string Node { get; set; }
@@ -1417,10 +1417,10 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
         public virtual BigInteger Time { get; set; }
     }
 
-    public partial class RPLLegacyStakedEventDto : RPLStakedEventDTOBase { }
+    public partial class RPLLegacyStakedEventDTO : RPLLegacyStakedEventDTOBase { }
 
     [Event("RPLStaked")]
-    public class RPLStakedEventDTOBase : IEventDTO
+    public class RPLLegacyStakedEventDTOBase : IEventDTO
     {
         [Parameter("address", "from", 1, true )]
         public virtual string From { get; set; }
@@ -1555,15 +1555,6 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
         public virtual BigInteger ReturnValue1 { get; set; }
     }
 
-    public partial class GetNodeMaximumRPLStakeForMinipoolsOutputDTO : GetNodeMaximumRPLStakeForMinipoolsOutputDTOBase { }
-
-    [FunctionOutput]
-    public class GetNodeMaximumRPLStakeForMinipoolsOutputDTOBase : IFunctionOutputDTO 
-    {
-        [Parameter("uint256", "", 1)]
-        public virtual BigInteger ReturnValue1 { get; set; }
-    }
-
     public partial class GetNodeMegapoolETHBondedOutputDTO : GetNodeMegapoolETHBondedOutputDTOBase { }
 
     [FunctionOutput]
@@ -1586,6 +1577,15 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
 
     [FunctionOutput]
     public class GetNodeMegapoolStakedRPLOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint256", "", 1)]
+        public virtual BigInteger ReturnValue1 { get; set; }
+    }
+
+    public partial class GetNodeMinimumLegacyRPLStakeOutputDTO : GetNodeMinimumLegacyRPLStakeOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetNodeMinimumLegacyRPLStakeOutputDTOBase : IFunctionOutputDTO 
     {
         [Parameter("uint256", "", 1)]
         public virtual BigInteger ReturnValue1 { get; set; }
@@ -1694,6 +1694,10 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
 
 
 
+
+
+
+
     public partial class VersionOutputDTO : VersionOutputDTOBase { }
 
     [FunctionOutput]
@@ -1702,10 +1706,6 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking.ContractDefinition
         [Parameter("uint8", "", 1)]
         public virtual byte ReturnValue1 { get; set; }
     }
-
-
-
-
 
 
 

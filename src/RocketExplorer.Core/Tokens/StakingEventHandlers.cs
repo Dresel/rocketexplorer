@@ -6,7 +6,7 @@ namespace RocketExplorer.Core.Tokens;
 
 public class StakingEventHandlers
 {
-	public static async Task HandleRPLLegacyStaked(GlobalContext globalContext, EventLog<RPLLegacyStakedEventDto> eventLog, CancellationToken cancellationToken = default)
+	public static async Task HandleRPLLegacyStaked(GlobalContext globalContext, EventLog<RPLLegacyStakedEventDTO> eventLog, CancellationToken cancellationToken = default)
 	{
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
 
@@ -19,7 +19,7 @@ public class StakingEventHandlers
 			eventLog.Event.Amount;
 	}
 
-	public static async Task HandleRPLLegacyUnstaked(GlobalContext globalContext, EventLog<RPLLegacyWithdrawnEventDTO> eventLog, CancellationToken cancellationToken = default)
+	public static async Task HandleRPLLegacyUnstaked(GlobalContext globalContext, EventLog<RPLLegacyUnstakedEventDTO> eventLog, CancellationToken cancellationToken = default)
 	{
 		DateOnly key = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)eventLog.Event.Time).DateTime);
 

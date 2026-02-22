@@ -9,7 +9,7 @@ namespace RocketExplorer.Core.Nodes.EventHandlers;
 public class StakingEventHandlers
 {
 	public static async Task HandleRPLLegacyStakedAsync(
-		GlobalContext globalContext, EventLog<RPLLegacyStakedEventDto> eventLog,
+		GlobalContext globalContext, EventLog<RPLLegacyStakedEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
 		string nodeOperatorAddress = eventLog.Event.From;
@@ -30,7 +30,7 @@ public class StakingEventHandlers
 	}
 
 	public static async Task HandleRPLLegacyUnstakedAsync(
-		GlobalContext globalContext, EventLog<RPLLegacyWithdrawnEventDTO> eventLog,
+		GlobalContext globalContext, EventLog<RPLLegacyUnstakedEventDTO> eventLog,
 		CancellationToken cancellationToken = default)
 	{
 		string nodeOperatorAddress = eventLog.Event.To;

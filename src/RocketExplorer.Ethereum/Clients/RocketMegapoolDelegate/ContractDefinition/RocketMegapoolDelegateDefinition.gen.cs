@@ -30,11 +30,6 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 				"internalType": "contract RocketStorageInterface",
 				"name": "_rocketStorageAddress",
 				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_beaconGenesisTime",
-				"type": "uint256"
 			}
 		],
 		"stateMutability": "nonpayable",
@@ -330,6 +325,12 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 			{
 				"indexed": false,
 				"internalType": "uint256",
+				"name": "protocolDaoAmount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
 				"name": "time",
 				"type": "uint256"
 			}
@@ -379,6 +380,11 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 			},
 			{
 				"internalType": "uint256",
+				"name": "protocolDAORewards",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
 				"name": "rethRewards",
 				"type": "uint256"
 			}
@@ -404,6 +410,11 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 			{
 				"internalType": "uint256",
 				"name": "voterRewards",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "protocolDAORewards",
 				"type": "uint256"
 			},
 			{
@@ -529,7 +540,7 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 	},
 	{
 		"inputs": [],
-		"name": "getExpirationBlock",
+		"name": "getExpirationTime",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -542,7 +553,7 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 	},
 	{
 		"inputs": [],
-		"name": "getLastDistributionBlock",
+		"name": "getLastDistributionTime",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -568,6 +579,19 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 	},
 	{
 		"inputs": [],
+		"name": "getNewValidatorBondRequirement",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
 		"name": "getNodeAddress",
 		"outputs": [
 			{
@@ -582,6 +606,19 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 	{
 		"inputs": [],
 		"name": "getNodeBond",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getNodeQueuedBond",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -620,12 +657,12 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 	},
 	{
 		"inputs": [],
-		"name": "getSoonestWithdrawableEpoch",
+		"name": "getUserCapital",
 		"outputs": [
 			{
-				"internalType": "uint64",
+				"internalType": "uint256",
 				"name": "",
-				"type": "uint64"
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -633,7 +670,7 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 	},
 	{
 		"inputs": [],
-		"name": "getUserCapital",
+		"name": "getUserQueuedCapital",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -731,22 +768,12 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 					},
 					{
 						"internalType": "uint64",
-						"name": "validatorIndex",
-						"type": "uint64"
-					},
-					{
-						"internalType": "uint64",
 						"name": "exitBalance",
 						"type": "uint64"
 					},
 					{
 						"internalType": "uint64",
-						"name": "withdrawableEpoch",
-						"type": "uint64"
-					},
-					{
-						"internalType": "uint64",
-						"name": "lockedSlot",
+						"name": "lockedTime",
 						"type": "uint64"
 					}
 				],
@@ -832,22 +859,12 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 					},
 					{
 						"internalType": "uint64",
-						"name": "validatorIndex",
-						"type": "uint64"
-					},
-					{
-						"internalType": "uint64",
 						"name": "exitBalance",
 						"type": "uint64"
 					},
 					{
 						"internalType": "uint64",
-						"name": "withdrawableEpoch",
-						"type": "uint64"
-					},
-					{
-						"internalType": "uint64",
-						"name": "lockedSlot",
+						"name": "lockedTime",
 						"type": "uint64"
 					}
 				],
@@ -940,6 +957,11 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 				"internalType": "uint64",
 				"name": "_withdrawableEpoch",
 				"type": "uint64"
+			},
+			{
+				"internalType": "uint64",
+				"name": "_recentEpoch",
+				"type": "uint64"
 			}
 		],
 		"name": "notifyExit",
@@ -966,7 +988,12 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 			},
 			{
 				"internalType": "uint64",
-				"name": "_withdrawalSlot",
+				"name": "_withdrawalEpoch",
+				"type": "uint64"
+			},
+			{
+				"internalType": "uint64",
+				"name": "_recentEpoch",
 				"type": "uint64"
 			}
 		],
@@ -984,7 +1011,7 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 			},
 			{
 				"internalType": "uint64",
-				"name": "_slot",
+				"name": "_slotTimestamp",
 				"type": "uint64"
 			}
 		],
@@ -1019,11 +1046,6 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 				"internalType": "uint32",
 				"name": "_validatorId",
 				"type": "uint32"
-			},
-			{
-				"internalType": "uint64",
-				"name": "_validatorIndex",
-				"type": "uint64"
 			}
 		],
 		"name": "stake",
@@ -1050,8 +1072,6 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         public RocketMegapoolDelegateDeploymentBase(string byteCode) : base(byteCode) { }
         [Parameter("address", "_rocketStorageAddress", 1)]
         public virtual string RocketStorageAddress { get; set; }
-        [Parameter("uint256", "_beaconGenesisTime", 2)]
-        public virtual BigInteger BeaconGenesisTime { get; set; }
     }
 
     public partial class ApplyPenaltyFunction : ApplyPenaltyFunctionBase { }
@@ -1172,18 +1192,18 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 
     }
 
-    public partial class GetExpirationBlockFunction : GetExpirationBlockFunctionBase { }
+    public partial class GetExpirationTimeFunction : GetExpirationTimeFunctionBase { }
 
-    [Function("getExpirationBlock", "uint256")]
-    public class GetExpirationBlockFunctionBase : FunctionMessage
+    [Function("getExpirationTime", "uint256")]
+    public class GetExpirationTimeFunctionBase : FunctionMessage
     {
 
     }
 
-    public partial class GetLastDistributionBlockFunction : GetLastDistributionBlockFunctionBase { }
+    public partial class GetLastDistributionTimeFunction : GetLastDistributionTimeFunctionBase { }
 
-    [Function("getLastDistributionBlock", "uint256")]
-    public class GetLastDistributionBlockFunctionBase : FunctionMessage
+    [Function("getLastDistributionTime", "uint256")]
+    public class GetLastDistributionTimeFunctionBase : FunctionMessage
     {
 
     }
@@ -1192,6 +1212,14 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 
     [Function("getLockedValidatorCount", "uint32")]
     public class GetLockedValidatorCountFunctionBase : FunctionMessage
+    {
+
+    }
+
+    public partial class GetNewValidatorBondRequirementFunction : GetNewValidatorBondRequirementFunctionBase { }
+
+    [Function("getNewValidatorBondRequirement", "uint256")]
+    public class GetNewValidatorBondRequirementFunctionBase : FunctionMessage
     {
 
     }
@@ -1212,6 +1240,14 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 
     }
 
+    public partial class GetNodeQueuedBondFunction : GetNodeQueuedBondFunctionBase { }
+
+    [Function("getNodeQueuedBond", "uint256")]
+    public class GetNodeQueuedBondFunctionBase : FunctionMessage
+    {
+
+    }
+
     public partial class GetPendingRewardsFunction : GetPendingRewardsFunctionBase { }
 
     [Function("getPendingRewards", "uint256")]
@@ -1228,18 +1264,18 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 
     }
 
-    public partial class GetSoonestWithdrawableEpochFunction : GetSoonestWithdrawableEpochFunctionBase { }
-
-    [Function("getSoonestWithdrawableEpoch", "uint64")]
-    public class GetSoonestWithdrawableEpochFunctionBase : FunctionMessage
-    {
-
-    }
-
     public partial class GetUserCapitalFunction : GetUserCapitalFunctionBase { }
 
     [Function("getUserCapital", "uint256")]
     public class GetUserCapitalFunctionBase : FunctionMessage
+    {
+
+    }
+
+    public partial class GetUserQueuedCapitalFunction : GetUserQueuedCapitalFunctionBase { }
+
+    [Function("getUserQueuedCapital", "uint256")]
+    public class GetUserQueuedCapitalFunctionBase : FunctionMessage
     {
 
     }
@@ -1313,6 +1349,8 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         public virtual uint ValidatorId { get; set; }
         [Parameter("uint64", "_withdrawableEpoch", 2)]
         public virtual ulong WithdrawableEpoch { get; set; }
+        [Parameter("uint64", "_recentEpoch", 3)]
+        public virtual ulong RecentEpoch { get; set; }
     }
 
     public partial class NotifyFinalBalanceFunction : NotifyFinalBalanceFunctionBase { }
@@ -1326,8 +1364,10 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         public virtual ulong AmountInGwei { get; set; }
         [Parameter("address", "_caller", 3)]
         public virtual string Caller { get; set; }
-        [Parameter("uint64", "_withdrawalSlot", 4)]
-        public virtual ulong WithdrawalSlot { get; set; }
+        [Parameter("uint64", "_withdrawalEpoch", 4)]
+        public virtual ulong WithdrawalEpoch { get; set; }
+        [Parameter("uint64", "_recentEpoch", 5)]
+        public virtual ulong RecentEpoch { get; set; }
     }
 
     public partial class NotifyNotExitFunction : NotifyNotExitFunctionBase { }
@@ -1337,8 +1377,8 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
     {
         [Parameter("uint32", "_validatorId", 1)]
         public virtual uint ValidatorId { get; set; }
-        [Parameter("uint64", "_slot", 2)]
-        public virtual ulong Slot { get; set; }
+        [Parameter("uint64", "_slotTimestamp", 2)]
+        public virtual ulong SlotTimestamp { get; set; }
     }
 
     public partial class ReduceBondFunction : ReduceBondFunctionBase { }
@@ -1365,8 +1405,6 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
     {
         [Parameter("uint32", "_validatorId", 1)]
         public virtual uint ValidatorId { get; set; }
-        [Parameter("uint64", "_validatorIndex", 2)]
-        public virtual ulong ValidatorIndex { get; set; }
     }
 
     public partial class VersionFunction : VersionFunctionBase { }
@@ -1542,7 +1580,9 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         public virtual BigInteger VoterAmount { get; set; }
         [Parameter("uint256", "rethAmount", 3, false )]
         public virtual BigInteger RethAmount { get; set; }
-        [Parameter("uint256", "time", 4, false )]
+        [Parameter("uint256", "protocolDaoAmount", 4, false )]
+        public virtual BigInteger ProtocolDaoAmount { get; set; }
+        [Parameter("uint256", "time", 5, false )]
         public virtual BigInteger Time { get; set; }
     }
 
@@ -1559,7 +1599,9 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         public virtual BigInteger NodeRewards { get; set; }
         [Parameter("uint256", "voterRewards", 2)]
         public virtual BigInteger VoterRewards { get; set; }
-        [Parameter("uint256", "rethRewards", 3)]
+        [Parameter("uint256", "protocolDAORewards", 3)]
+        public virtual BigInteger ProtocolDAORewards { get; set; }
+        [Parameter("uint256", "rethRewards", 4)]
         public virtual BigInteger RethRewards { get; set; }
     }
 
@@ -1572,7 +1614,9 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         public virtual BigInteger NodeRewards { get; set; }
         [Parameter("uint256", "voterRewards", 2)]
         public virtual BigInteger VoterRewards { get; set; }
-        [Parameter("uint256", "rethRewards", 3)]
+        [Parameter("uint256", "protocolDAORewards", 3)]
+        public virtual BigInteger ProtocolDAORewards { get; set; }
+        [Parameter("uint256", "rethRewards", 4)]
         public virtual BigInteger RethRewards { get; set; }
     }
 
@@ -1624,19 +1668,19 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         public virtual uint ReturnValue1 { get; set; }
     }
 
-    public partial class GetExpirationBlockOutputDTO : GetExpirationBlockOutputDTOBase { }
+    public partial class GetExpirationTimeOutputDTO : GetExpirationTimeOutputDTOBase { }
 
     [FunctionOutput]
-    public class GetExpirationBlockOutputDTOBase : IFunctionOutputDTO 
+    public class GetExpirationTimeOutputDTOBase : IFunctionOutputDTO 
     {
         [Parameter("uint256", "", 1)]
         public virtual BigInteger ReturnValue1 { get; set; }
     }
 
-    public partial class GetLastDistributionBlockOutputDTO : GetLastDistributionBlockOutputDTOBase { }
+    public partial class GetLastDistributionTimeOutputDTO : GetLastDistributionTimeOutputDTOBase { }
 
     [FunctionOutput]
-    public class GetLastDistributionBlockOutputDTOBase : IFunctionOutputDTO 
+    public class GetLastDistributionTimeOutputDTOBase : IFunctionOutputDTO 
     {
         [Parameter("uint256", "", 1)]
         public virtual BigInteger ReturnValue1 { get; set; }
@@ -1649,6 +1693,15 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
     {
         [Parameter("uint32", "", 1)]
         public virtual uint ReturnValue1 { get; set; }
+    }
+
+    public partial class GetNewValidatorBondRequirementOutputDTO : GetNewValidatorBondRequirementOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetNewValidatorBondRequirementOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint256", "", 1)]
+        public virtual BigInteger ReturnValue1 { get; set; }
     }
 
     public partial class GetNodeAddressOutputDTO : GetNodeAddressOutputDTOBase { }
@@ -1664,6 +1717,15 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
 
     [FunctionOutput]
     public class GetNodeBondOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint256", "", 1)]
+        public virtual BigInteger ReturnValue1 { get; set; }
+    }
+
+    public partial class GetNodeQueuedBondOutputDTO : GetNodeQueuedBondOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetNodeQueuedBondOutputDTOBase : IFunctionOutputDTO 
     {
         [Parameter("uint256", "", 1)]
         public virtual BigInteger ReturnValue1 { get; set; }
@@ -1687,19 +1749,19 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate.ContractDefinition
         public virtual BigInteger ReturnValue1 { get; set; }
     }
 
-    public partial class GetSoonestWithdrawableEpochOutputDTO : GetSoonestWithdrawableEpochOutputDTOBase { }
-
-    [FunctionOutput]
-    public class GetSoonestWithdrawableEpochOutputDTOBase : IFunctionOutputDTO 
-    {
-        [Parameter("uint64", "", 1)]
-        public virtual ulong ReturnValue1 { get; set; }
-    }
-
     public partial class GetUserCapitalOutputDTO : GetUserCapitalOutputDTOBase { }
 
     [FunctionOutput]
     public class GetUserCapitalOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("uint256", "", 1)]
+        public virtual BigInteger ReturnValue1 { get; set; }
+    }
+
+    public partial class GetUserQueuedCapitalOutputDTO : GetUserQueuedCapitalOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetUserQueuedCapitalOutputDTOBase : IFunctionOutputDTO 
     {
         [Parameter("uint256", "", 1)]
         public virtual BigInteger ReturnValue1 { get; set; }

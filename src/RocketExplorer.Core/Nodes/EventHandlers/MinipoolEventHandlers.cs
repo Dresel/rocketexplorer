@@ -254,7 +254,7 @@ public class MinipoolEventHandlers
 			}
 			catch
 			{
-				globalContext.GetLogger<NodesSync>().LogDebug(
+				globalContext.GetLogger<MinipoolEventHandlers>().LogDebug(
 					"Couldn't query validator index for {Address}", minipoolAddress);
 			}
 

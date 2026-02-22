@@ -159,20 +159,6 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking
             return ContractHandler.QueryAsync<GetNodeLockedRPLFunction, BigInteger>(getNodeLockedRPLFunction, blockParameter);
         }
 
-        public Task<BigInteger> GetNodeMaximumRPLStakeForMinipoolsQueryAsync(GetNodeMaximumRPLStakeForMinipoolsFunction getNodeMaximumRPLStakeForMinipoolsFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<GetNodeMaximumRPLStakeForMinipoolsFunction, BigInteger>(getNodeMaximumRPLStakeForMinipoolsFunction, blockParameter);
-        }
-
-        
-        public virtual Task<BigInteger> GetNodeMaximumRPLStakeForMinipoolsQueryAsync(string nodeAddress, BlockParameter blockParameter = null)
-        {
-            var getNodeMaximumRPLStakeForMinipoolsFunction = new GetNodeMaximumRPLStakeForMinipoolsFunction();
-                getNodeMaximumRPLStakeForMinipoolsFunction.NodeAddress = nodeAddress;
-            
-            return ContractHandler.QueryAsync<GetNodeMaximumRPLStakeForMinipoolsFunction, BigInteger>(getNodeMaximumRPLStakeForMinipoolsFunction, blockParameter);
-        }
-
         public Task<BigInteger> GetNodeMegapoolETHBondedQueryAsync(GetNodeMegapoolETHBondedFunction getNodeMegapoolETHBondedFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<GetNodeMegapoolETHBondedFunction, BigInteger>(getNodeMegapoolETHBondedFunction, blockParameter);
@@ -213,6 +199,20 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking
                 getNodeMegapoolStakedRPLFunction.NodeAddress = nodeAddress;
             
             return ContractHandler.QueryAsync<GetNodeMegapoolStakedRPLFunction, BigInteger>(getNodeMegapoolStakedRPLFunction, blockParameter);
+        }
+
+        public Task<BigInteger> GetNodeMinimumLegacyRPLStakeQueryAsync(GetNodeMinimumLegacyRPLStakeFunction getNodeMinimumLegacyRPLStakeFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetNodeMinimumLegacyRPLStakeFunction, BigInteger>(getNodeMinimumLegacyRPLStakeFunction, blockParameter);
+        }
+
+        
+        public virtual Task<BigInteger> GetNodeMinimumLegacyRPLStakeQueryAsync(string nodeAddress, BlockParameter blockParameter = null)
+        {
+            var getNodeMinimumLegacyRPLStakeFunction = new GetNodeMinimumLegacyRPLStakeFunction();
+                getNodeMinimumLegacyRPLStakeFunction.NodeAddress = nodeAddress;
+            
+            return ContractHandler.QueryAsync<GetNodeMinimumLegacyRPLStakeFunction, BigInteger>(getNodeMinimumLegacyRPLStakeFunction, blockParameter);
         }
 
         public Task<BigInteger> GetNodeMinipoolETHBondedQueryAsync(GetNodeMinipoolETHBondedFunction getNodeMinipoolETHBondedFunction, BlockParameter blockParameter = null)
@@ -586,6 +586,60 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking
              return ContractHandler.SendRequestAndWaitForReceiptAsync(unlockRPLFunction, cancellationToken);
         }
 
+        public virtual Task<string> UnstakeLegacyRPLRequestAsync(UnstakeLegacyRPLFunction unstakeLegacyRPLFunction)
+        {
+             return ContractHandler.SendRequestAsync(unstakeLegacyRPLFunction);
+        }
+
+        public virtual Task<TransactionReceipt> UnstakeLegacyRPLRequestAndWaitForReceiptAsync(UnstakeLegacyRPLFunction unstakeLegacyRPLFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(unstakeLegacyRPLFunction, cancellationToken);
+        }
+
+        public virtual Task<string> UnstakeLegacyRPLRequestAsync(BigInteger amount)
+        {
+            var unstakeLegacyRPLFunction = new UnstakeLegacyRPLFunction();
+                unstakeLegacyRPLFunction.Amount = amount;
+            
+             return ContractHandler.SendRequestAsync(unstakeLegacyRPLFunction);
+        }
+
+        public virtual Task<TransactionReceipt> UnstakeLegacyRPLRequestAndWaitForReceiptAsync(BigInteger amount, CancellationTokenSource cancellationToken = null)
+        {
+            var unstakeLegacyRPLFunction = new UnstakeLegacyRPLFunction();
+                unstakeLegacyRPLFunction.Amount = amount;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(unstakeLegacyRPLFunction, cancellationToken);
+        }
+
+        public virtual Task<string> UnstakeLegacyRPLForRequestAsync(UnstakeLegacyRPLForFunction unstakeLegacyRPLForFunction)
+        {
+             return ContractHandler.SendRequestAsync(unstakeLegacyRPLForFunction);
+        }
+
+        public virtual Task<TransactionReceipt> UnstakeLegacyRPLForRequestAndWaitForReceiptAsync(UnstakeLegacyRPLForFunction unstakeLegacyRPLForFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(unstakeLegacyRPLForFunction, cancellationToken);
+        }
+
+        public virtual Task<string> UnstakeLegacyRPLForRequestAsync(string nodeAddress, BigInteger amount)
+        {
+            var unstakeLegacyRPLForFunction = new UnstakeLegacyRPLForFunction();
+                unstakeLegacyRPLForFunction.NodeAddress = nodeAddress;
+                unstakeLegacyRPLForFunction.Amount = amount;
+            
+             return ContractHandler.SendRequestAsync(unstakeLegacyRPLForFunction);
+        }
+
+        public virtual Task<TransactionReceipt> UnstakeLegacyRPLForRequestAndWaitForReceiptAsync(string nodeAddress, BigInteger amount, CancellationTokenSource cancellationToken = null)
+        {
+            var unstakeLegacyRPLForFunction = new UnstakeLegacyRPLForFunction();
+                unstakeLegacyRPLForFunction.NodeAddress = nodeAddress;
+                unstakeLegacyRPLForFunction.Amount = amount;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(unstakeLegacyRPLForFunction, cancellationToken);
+        }
+
         public virtual Task<string> UnstakeRPLRequestAsync(UnstakeRPLFunction unstakeRPLFunction)
         {
              return ContractHandler.SendRequestAsync(unstakeRPLFunction);
@@ -651,60 +705,6 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking
             return ContractHandler.QueryAsync<VersionFunction, byte>(null, blockParameter);
         }
 
-        public virtual Task<string> WithdrawLegacyRPLRequestAsync(WithdrawLegacyRPLFunction withdrawLegacyRPLFunction)
-        {
-             return ContractHandler.SendRequestAsync(withdrawLegacyRPLFunction);
-        }
-
-        public virtual Task<TransactionReceipt> WithdrawLegacyRPLRequestAndWaitForReceiptAsync(WithdrawLegacyRPLFunction withdrawLegacyRPLFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(withdrawLegacyRPLFunction, cancellationToken);
-        }
-
-        public virtual Task<string> WithdrawLegacyRPLRequestAsync(BigInteger amount)
-        {
-            var withdrawLegacyRPLFunction = new WithdrawLegacyRPLFunction();
-                withdrawLegacyRPLFunction.Amount = amount;
-            
-             return ContractHandler.SendRequestAsync(withdrawLegacyRPLFunction);
-        }
-
-        public virtual Task<TransactionReceipt> WithdrawLegacyRPLRequestAndWaitForReceiptAsync(BigInteger amount, CancellationTokenSource cancellationToken = null)
-        {
-            var withdrawLegacyRPLFunction = new WithdrawLegacyRPLFunction();
-                withdrawLegacyRPLFunction.Amount = amount;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(withdrawLegacyRPLFunction, cancellationToken);
-        }
-
-        public virtual Task<string> WithdrawLegacyRPLForRequestAsync(WithdrawLegacyRPLForFunction withdrawLegacyRPLForFunction)
-        {
-             return ContractHandler.SendRequestAsync(withdrawLegacyRPLForFunction);
-        }
-
-        public virtual Task<TransactionReceipt> WithdrawLegacyRPLForRequestAndWaitForReceiptAsync(WithdrawLegacyRPLForFunction withdrawLegacyRPLForFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(withdrawLegacyRPLForFunction, cancellationToken);
-        }
-
-        public virtual Task<string> WithdrawLegacyRPLForRequestAsync(string nodeAddress, BigInteger amount)
-        {
-            var withdrawLegacyRPLForFunction = new WithdrawLegacyRPLForFunction();
-                withdrawLegacyRPLForFunction.NodeAddress = nodeAddress;
-                withdrawLegacyRPLForFunction.Amount = amount;
-            
-             return ContractHandler.SendRequestAsync(withdrawLegacyRPLForFunction);
-        }
-
-        public virtual Task<TransactionReceipt> WithdrawLegacyRPLForRequestAndWaitForReceiptAsync(string nodeAddress, BigInteger amount, CancellationTokenSource cancellationToken = null)
-        {
-            var withdrawLegacyRPLForFunction = new WithdrawLegacyRPLForFunction();
-                withdrawLegacyRPLForFunction.NodeAddress = nodeAddress;
-                withdrawLegacyRPLForFunction.Amount = amount;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(withdrawLegacyRPLForFunction, cancellationToken);
-        }
-
         public virtual Task<string> WithdrawRPLRequestAsync(WithdrawRPLFunction withdrawRPLFunction)
         {
              return ContractHandler.SendRequestAsync(withdrawRPLFunction);
@@ -762,10 +762,10 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking
                 typeof(GetNodeLastUnstakeTimeFunction),
                 typeof(GetNodeLegacyStakedRPLFunction),
                 typeof(GetNodeLockedRPLFunction),
-                typeof(GetNodeMaximumRPLStakeForMinipoolsFunction),
                 typeof(GetNodeMegapoolETHBondedFunction),
                 typeof(GetNodeMegapoolETHBorrowedFunction),
                 typeof(GetNodeMegapoolStakedRPLFunction),
+                typeof(GetNodeMinimumLegacyRPLStakeFunction),
                 typeof(GetNodeMinipoolETHBondedFunction),
                 typeof(GetNodeMinipoolETHBorrowedFunction),
                 typeof(GetNodeRPLStakedTimeFunction),
@@ -784,11 +784,11 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking
                 typeof(StakeRPLForFunction),
                 typeof(TransferRPLFunction),
                 typeof(UnlockRPLFunction),
+                typeof(UnstakeLegacyRPLFunction),
+                typeof(UnstakeLegacyRPLForFunction),
                 typeof(UnstakeRPLFunction),
                 typeof(UnstakeRPLForFunction),
                 typeof(VersionFunction),
-                typeof(WithdrawLegacyRPLFunction),
-                typeof(WithdrawLegacyRPLForFunction),
                 typeof(WithdrawRPLFunction),
                 typeof(WithdrawRPLForFunction)
             };
@@ -799,12 +799,12 @@ namespace RocketExplorer.Ethereum.RocketNodeStaking
             return new List<Type>
             {
                 typeof(RPLBurnedEventDTO),
-                typeof(RPLLegacyWithdrawnEventDTO),
+                typeof(RPLLegacyUnstakedEventDTO),
                 typeof(RPLLockedEventDTO),
                 typeof(RPLLockingAllowedEventDTO),
                 typeof(RPLSlashedEventDTO),
                 typeof(RPLStakedEventDTO),
-                typeof(RPLLegacyStakedEventDto),
+                typeof(RPLLegacyStakedEventDTO),
                 typeof(RPLTransferredEventDTO),
                 typeof(RPLUnlockedEventDTO),
                 typeof(RPLUnstakedEventDTO),

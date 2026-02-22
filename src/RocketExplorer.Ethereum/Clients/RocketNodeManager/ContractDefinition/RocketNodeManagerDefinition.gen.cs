@@ -303,6 +303,25 @@ namespace RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition
 				"type": "address"
 			}
 		],
+		"name": "getExpressTicketsProvisioned",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_nodeAddress",
+				"type": "address"
+			}
+		],
 		"name": "getFeeDistributorInitialised",
 		"outputs": [
 			{
@@ -897,6 +916,15 @@ namespace RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition
         public virtual string NodeAddress { get; set; }
     }
 
+    public partial class GetExpressTicketsProvisionedFunction : GetExpressTicketsProvisionedFunctionBase { }
+
+    [Function("getExpressTicketsProvisioned", "bool")]
+    public class GetExpressTicketsProvisionedFunctionBase : FunctionMessage
+    {
+        [Parameter("address", "_nodeAddress", 1)]
+        public virtual string NodeAddress { get; set; }
+    }
+
     public partial class GetFeeDistributorInitialisedFunction : GetFeeDistributorInitialisedFunctionBase { }
 
     [Function("getFeeDistributorInitialised", "bool")]
@@ -1302,6 +1330,15 @@ namespace RocketExplorer.Ethereum.RocketNodeManager.ContractDefinition
     {
         [Parameter("uint256", "", 1)]
         public virtual BigInteger ReturnValue1 { get; set; }
+    }
+
+    public partial class GetExpressTicketsProvisionedOutputDTO : GetExpressTicketsProvisionedOutputDTOBase { }
+
+    [FunctionOutput]
+    public class GetExpressTicketsProvisionedOutputDTOBase : IFunctionOutputDTO 
+    {
+        [Parameter("bool", "", 1)]
+        public virtual bool ReturnValue1 { get; set; }
     }
 
     public partial class GetFeeDistributorInitialisedOutputDTO : GetFeeDistributorInitialisedOutputDTOBase { }

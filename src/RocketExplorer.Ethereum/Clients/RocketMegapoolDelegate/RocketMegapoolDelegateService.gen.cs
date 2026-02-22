@@ -304,26 +304,26 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate
             return ContractHandler.QueryAsync<GetExitingValidatorCountFunction, uint>(null, blockParameter);
         }
 
-        public Task<BigInteger> GetExpirationBlockQueryAsync(GetExpirationBlockFunction getExpirationBlockFunction, BlockParameter blockParameter = null)
+        public Task<BigInteger> GetExpirationTimeQueryAsync(GetExpirationTimeFunction getExpirationTimeFunction, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryAsync<GetExpirationBlockFunction, BigInteger>(getExpirationBlockFunction, blockParameter);
+            return ContractHandler.QueryAsync<GetExpirationTimeFunction, BigInteger>(getExpirationTimeFunction, blockParameter);
         }
 
         
-        public virtual Task<BigInteger> GetExpirationBlockQueryAsync(BlockParameter blockParameter = null)
+        public virtual Task<BigInteger> GetExpirationTimeQueryAsync(BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryAsync<GetExpirationBlockFunction, BigInteger>(null, blockParameter);
+            return ContractHandler.QueryAsync<GetExpirationTimeFunction, BigInteger>(null, blockParameter);
         }
 
-        public Task<BigInteger> GetLastDistributionBlockQueryAsync(GetLastDistributionBlockFunction getLastDistributionBlockFunction, BlockParameter blockParameter = null)
+        public Task<BigInteger> GetLastDistributionTimeQueryAsync(GetLastDistributionTimeFunction getLastDistributionTimeFunction, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryAsync<GetLastDistributionBlockFunction, BigInteger>(getLastDistributionBlockFunction, blockParameter);
+            return ContractHandler.QueryAsync<GetLastDistributionTimeFunction, BigInteger>(getLastDistributionTimeFunction, blockParameter);
         }
 
         
-        public virtual Task<BigInteger> GetLastDistributionBlockQueryAsync(BlockParameter blockParameter = null)
+        public virtual Task<BigInteger> GetLastDistributionTimeQueryAsync(BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryAsync<GetLastDistributionBlockFunction, BigInteger>(null, blockParameter);
+            return ContractHandler.QueryAsync<GetLastDistributionTimeFunction, BigInteger>(null, blockParameter);
         }
 
         public Task<uint> GetLockedValidatorCountQueryAsync(GetLockedValidatorCountFunction getLockedValidatorCountFunction, BlockParameter blockParameter = null)
@@ -335,6 +335,17 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate
         public virtual Task<uint> GetLockedValidatorCountQueryAsync(BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<GetLockedValidatorCountFunction, uint>(null, blockParameter);
+        }
+
+        public Task<BigInteger> GetNewValidatorBondRequirementQueryAsync(GetNewValidatorBondRequirementFunction getNewValidatorBondRequirementFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetNewValidatorBondRequirementFunction, BigInteger>(getNewValidatorBondRequirementFunction, blockParameter);
+        }
+
+        
+        public virtual Task<BigInteger> GetNewValidatorBondRequirementQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetNewValidatorBondRequirementFunction, BigInteger>(null, blockParameter);
         }
 
         public Task<string> GetNodeAddressQueryAsync(GetNodeAddressFunction getNodeAddressFunction, BlockParameter blockParameter = null)
@@ -359,6 +370,17 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate
             return ContractHandler.QueryAsync<GetNodeBondFunction, BigInteger>(null, blockParameter);
         }
 
+        public Task<BigInteger> GetNodeQueuedBondQueryAsync(GetNodeQueuedBondFunction getNodeQueuedBondFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetNodeQueuedBondFunction, BigInteger>(getNodeQueuedBondFunction, blockParameter);
+        }
+
+        
+        public virtual Task<BigInteger> GetNodeQueuedBondQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetNodeQueuedBondFunction, BigInteger>(null, blockParameter);
+        }
+
         public Task<BigInteger> GetPendingRewardsQueryAsync(GetPendingRewardsFunction getPendingRewardsFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<GetPendingRewardsFunction, BigInteger>(getPendingRewardsFunction, blockParameter);
@@ -381,17 +403,6 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate
             return ContractHandler.QueryAsync<GetRefundValueFunction, BigInteger>(null, blockParameter);
         }
 
-        public Task<ulong> GetSoonestWithdrawableEpochQueryAsync(GetSoonestWithdrawableEpochFunction getSoonestWithdrawableEpochFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<GetSoonestWithdrawableEpochFunction, ulong>(getSoonestWithdrawableEpochFunction, blockParameter);
-        }
-
-        
-        public virtual Task<ulong> GetSoonestWithdrawableEpochQueryAsync(BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<GetSoonestWithdrawableEpochFunction, ulong>(null, blockParameter);
-        }
-
         public Task<BigInteger> GetUserCapitalQueryAsync(GetUserCapitalFunction getUserCapitalFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<GetUserCapitalFunction, BigInteger>(getUserCapitalFunction, blockParameter);
@@ -401,6 +412,17 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate
         public virtual Task<BigInteger> GetUserCapitalQueryAsync(BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<GetUserCapitalFunction, BigInteger>(null, blockParameter);
+        }
+
+        public Task<BigInteger> GetUserQueuedCapitalQueryAsync(GetUserQueuedCapitalFunction getUserQueuedCapitalFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetUserQueuedCapitalFunction, BigInteger>(getUserQueuedCapitalFunction, blockParameter);
+        }
+
+        
+        public virtual Task<BigInteger> GetUserQueuedCapitalQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetUserQueuedCapitalFunction, BigInteger>(null, blockParameter);
         }
 
         public Task<uint> GetValidatorCountQueryAsync(GetValidatorCountFunction getValidatorCountFunction, BlockParameter blockParameter = null)
@@ -509,20 +531,22 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate
              return ContractHandler.SendRequestAndWaitForReceiptAsync(notifyExitFunction, cancellationToken);
         }
 
-        public virtual Task<string> NotifyExitRequestAsync(uint validatorId, ulong withdrawableEpoch)
+        public virtual Task<string> NotifyExitRequestAsync(uint validatorId, ulong withdrawableEpoch, ulong recentEpoch)
         {
             var notifyExitFunction = new NotifyExitFunction();
                 notifyExitFunction.ValidatorId = validatorId;
                 notifyExitFunction.WithdrawableEpoch = withdrawableEpoch;
+                notifyExitFunction.RecentEpoch = recentEpoch;
             
              return ContractHandler.SendRequestAsync(notifyExitFunction);
         }
 
-        public virtual Task<TransactionReceipt> NotifyExitRequestAndWaitForReceiptAsync(uint validatorId, ulong withdrawableEpoch, CancellationTokenSource cancellationToken = null)
+        public virtual Task<TransactionReceipt> NotifyExitRequestAndWaitForReceiptAsync(uint validatorId, ulong withdrawableEpoch, ulong recentEpoch, CancellationTokenSource cancellationToken = null)
         {
             var notifyExitFunction = new NotifyExitFunction();
                 notifyExitFunction.ValidatorId = validatorId;
                 notifyExitFunction.WithdrawableEpoch = withdrawableEpoch;
+                notifyExitFunction.RecentEpoch = recentEpoch;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(notifyExitFunction, cancellationToken);
         }
@@ -537,24 +561,26 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate
              return ContractHandler.SendRequestAndWaitForReceiptAsync(notifyFinalBalanceFunction, cancellationToken);
         }
 
-        public virtual Task<string> NotifyFinalBalanceRequestAsync(uint validatorId, ulong amountInGwei, string caller, ulong withdrawalSlot)
+        public virtual Task<string> NotifyFinalBalanceRequestAsync(uint validatorId, ulong amountInGwei, string caller, ulong withdrawalEpoch, ulong recentEpoch)
         {
             var notifyFinalBalanceFunction = new NotifyFinalBalanceFunction();
                 notifyFinalBalanceFunction.ValidatorId = validatorId;
                 notifyFinalBalanceFunction.AmountInGwei = amountInGwei;
                 notifyFinalBalanceFunction.Caller = caller;
-                notifyFinalBalanceFunction.WithdrawalSlot = withdrawalSlot;
+                notifyFinalBalanceFunction.WithdrawalEpoch = withdrawalEpoch;
+                notifyFinalBalanceFunction.RecentEpoch = recentEpoch;
             
              return ContractHandler.SendRequestAsync(notifyFinalBalanceFunction);
         }
 
-        public virtual Task<TransactionReceipt> NotifyFinalBalanceRequestAndWaitForReceiptAsync(uint validatorId, ulong amountInGwei, string caller, ulong withdrawalSlot, CancellationTokenSource cancellationToken = null)
+        public virtual Task<TransactionReceipt> NotifyFinalBalanceRequestAndWaitForReceiptAsync(uint validatorId, ulong amountInGwei, string caller, ulong withdrawalEpoch, ulong recentEpoch, CancellationTokenSource cancellationToken = null)
         {
             var notifyFinalBalanceFunction = new NotifyFinalBalanceFunction();
                 notifyFinalBalanceFunction.ValidatorId = validatorId;
                 notifyFinalBalanceFunction.AmountInGwei = amountInGwei;
                 notifyFinalBalanceFunction.Caller = caller;
-                notifyFinalBalanceFunction.WithdrawalSlot = withdrawalSlot;
+                notifyFinalBalanceFunction.WithdrawalEpoch = withdrawalEpoch;
+                notifyFinalBalanceFunction.RecentEpoch = recentEpoch;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(notifyFinalBalanceFunction, cancellationToken);
         }
@@ -569,20 +595,20 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate
              return ContractHandler.SendRequestAndWaitForReceiptAsync(notifyNotExitFunction, cancellationToken);
         }
 
-        public virtual Task<string> NotifyNotExitRequestAsync(uint validatorId, ulong slot)
+        public virtual Task<string> NotifyNotExitRequestAsync(uint validatorId, ulong slotTimestamp)
         {
             var notifyNotExitFunction = new NotifyNotExitFunction();
                 notifyNotExitFunction.ValidatorId = validatorId;
-                notifyNotExitFunction.Slot = slot;
+                notifyNotExitFunction.SlotTimestamp = slotTimestamp;
             
              return ContractHandler.SendRequestAsync(notifyNotExitFunction);
         }
 
-        public virtual Task<TransactionReceipt> NotifyNotExitRequestAndWaitForReceiptAsync(uint validatorId, ulong slot, CancellationTokenSource cancellationToken = null)
+        public virtual Task<TransactionReceipt> NotifyNotExitRequestAndWaitForReceiptAsync(uint validatorId, ulong slotTimestamp, CancellationTokenSource cancellationToken = null)
         {
             var notifyNotExitFunction = new NotifyNotExitFunction();
                 notifyNotExitFunction.ValidatorId = validatorId;
-                notifyNotExitFunction.Slot = slot;
+                notifyNotExitFunction.SlotTimestamp = slotTimestamp;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(notifyNotExitFunction, cancellationToken);
         }
@@ -643,20 +669,18 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate
              return ContractHandler.SendRequestAndWaitForReceiptAsync(stakeFunction, cancellationToken);
         }
 
-        public virtual Task<string> StakeRequestAsync(uint validatorId, ulong validatorIndex)
+        public virtual Task<string> StakeRequestAsync(uint validatorId)
         {
             var stakeFunction = new StakeFunction();
                 stakeFunction.ValidatorId = validatorId;
-                stakeFunction.ValidatorIndex = validatorIndex;
             
              return ContractHandler.SendRequestAsync(stakeFunction);
         }
 
-        public virtual Task<TransactionReceipt> StakeRequestAndWaitForReceiptAsync(uint validatorId, ulong validatorIndex, CancellationTokenSource cancellationToken = null)
+        public virtual Task<TransactionReceipt> StakeRequestAndWaitForReceiptAsync(uint validatorId, CancellationTokenSource cancellationToken = null)
         {
             var stakeFunction = new StakeFunction();
                 stakeFunction.ValidatorId = validatorId;
-                stakeFunction.ValidatorIndex = validatorIndex;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(stakeFunction, cancellationToken);
         }
@@ -690,15 +714,17 @@ namespace RocketExplorer.Ethereum.RocketMegapoolDelegate
                 typeof(GetAssignedValueFunction),
                 typeof(GetDebtFunction),
                 typeof(GetExitingValidatorCountFunction),
-                typeof(GetExpirationBlockFunction),
-                typeof(GetLastDistributionBlockFunction),
+                typeof(GetExpirationTimeFunction),
+                typeof(GetLastDistributionTimeFunction),
                 typeof(GetLockedValidatorCountFunction),
+                typeof(GetNewValidatorBondRequirementFunction),
                 typeof(GetNodeAddressFunction),
                 typeof(GetNodeBondFunction),
+                typeof(GetNodeQueuedBondFunction),
                 typeof(GetPendingRewardsFunction),
                 typeof(GetRefundValueFunction),
-                typeof(GetSoonestWithdrawableEpochFunction),
                 typeof(GetUserCapitalFunction),
+                typeof(GetUserQueuedCapitalFunction),
                 typeof(GetValidatorCountFunction),
                 typeof(GetValidatorInfoFunction),
                 typeof(GetValidatorInfoAndPubkeyFunction),

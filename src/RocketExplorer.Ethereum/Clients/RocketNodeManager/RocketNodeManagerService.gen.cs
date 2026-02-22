@@ -173,6 +173,20 @@ namespace RocketExplorer.Ethereum.RocketNodeManager
             return ContractHandler.QueryAsync<GetExpressTicketCountFunction, BigInteger>(getExpressTicketCountFunction, blockParameter);
         }
 
+        public Task<bool> GetExpressTicketsProvisionedQueryAsync(GetExpressTicketsProvisionedFunction getExpressTicketsProvisionedFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetExpressTicketsProvisionedFunction, bool>(getExpressTicketsProvisionedFunction, blockParameter);
+        }
+
+        
+        public virtual Task<bool> GetExpressTicketsProvisionedQueryAsync(string nodeAddress, BlockParameter blockParameter = null)
+        {
+            var getExpressTicketsProvisionedFunction = new GetExpressTicketsProvisionedFunction();
+                getExpressTicketsProvisionedFunction.NodeAddress = nodeAddress;
+            
+            return ContractHandler.QueryAsync<GetExpressTicketsProvisionedFunction, bool>(getExpressTicketsProvisionedFunction, blockParameter);
+        }
+
         public Task<bool> GetFeeDistributorInitialisedQueryAsync(GetFeeDistributorInitialisedFunction getFeeDistributorInitialisedFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<GetFeeDistributorInitialisedFunction, bool>(getFeeDistributorInitialisedFunction, blockParameter);
@@ -739,6 +753,7 @@ namespace RocketExplorer.Ethereum.RocketNodeManager
                 typeof(DeployMegapoolFunction),
                 typeof(GetAverageNodeFeeFunction),
                 typeof(GetExpressTicketCountFunction),
+                typeof(GetExpressTicketsProvisionedFunction),
                 typeof(GetFeeDistributorInitialisedFunction),
                 typeof(GetMegapoolAddressFunction),
                 typeof(GetNodeAddressesFunction),

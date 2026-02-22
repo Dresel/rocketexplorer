@@ -47,6 +47,187 @@ namespace RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade
         {
         }
 
+        public virtual Task<string> BootstrapUpgradeRequestAsync(BootstrapUpgradeFunction bootstrapUpgradeFunction)
+        {
+             return ContractHandler.SendRequestAsync(bootstrapUpgradeFunction);
+        }
+
+        public virtual Task<TransactionReceipt> BootstrapUpgradeRequestAndWaitForReceiptAsync(BootstrapUpgradeFunction bootstrapUpgradeFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(bootstrapUpgradeFunction, cancellationToken);
+        }
+
+        public virtual Task<string> BootstrapUpgradeRequestAsync(string type, string name, string contractAbi, string contractAddress)
+        {
+            var bootstrapUpgradeFunction = new BootstrapUpgradeFunction();
+                bootstrapUpgradeFunction.Type = type;
+                bootstrapUpgradeFunction.Name = name;
+                bootstrapUpgradeFunction.ContractAbi = contractAbi;
+                bootstrapUpgradeFunction.ContractAddress = contractAddress;
+            
+             return ContractHandler.SendRequestAsync(bootstrapUpgradeFunction);
+        }
+
+        public virtual Task<TransactionReceipt> BootstrapUpgradeRequestAndWaitForReceiptAsync(string type, string name, string contractAbi, string contractAddress, CancellationTokenSource cancellationToken = null)
+        {
+            var bootstrapUpgradeFunction = new BootstrapUpgradeFunction();
+                bootstrapUpgradeFunction.Type = type;
+                bootstrapUpgradeFunction.Name = name;
+                bootstrapUpgradeFunction.ContractAbi = contractAbi;
+                bootstrapUpgradeFunction.ContractAddress = contractAddress;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(bootstrapUpgradeFunction, cancellationToken);
+        }
+
+        public virtual Task<string> ExecuteRequestAsync(ExecuteFunction executeFunction)
+        {
+             return ContractHandler.SendRequestAsync(executeFunction);
+        }
+
+        public virtual Task<TransactionReceipt> ExecuteRequestAndWaitForReceiptAsync(ExecuteFunction executeFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(executeFunction, cancellationToken);
+        }
+
+        public virtual Task<string> ExecuteRequestAsync(BigInteger upgradeProposalID)
+        {
+            var executeFunction = new ExecuteFunction();
+                executeFunction.UpgradeProposalID = upgradeProposalID;
+            
+             return ContractHandler.SendRequestAsync(executeFunction);
+        }
+
+        public virtual Task<TransactionReceipt> ExecuteRequestAndWaitForReceiptAsync(BigInteger upgradeProposalID, CancellationTokenSource cancellationToken = null)
+        {
+            var executeFunction = new ExecuteFunction();
+                executeFunction.UpgradeProposalID = upgradeProposalID;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(executeFunction, cancellationToken);
+        }
+
+        public Task<BigInteger> GetEndQueryAsync(GetEndFunction getEndFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetEndFunction, BigInteger>(getEndFunction, blockParameter);
+        }
+
+        
+        public virtual Task<BigInteger> GetEndQueryAsync(BigInteger upgradeProposalID, BlockParameter blockParameter = null)
+        {
+            var getEndFunction = new GetEndFunction();
+                getEndFunction.UpgradeProposalID = upgradeProposalID;
+            
+            return ContractHandler.QueryAsync<GetEndFunction, BigInteger>(getEndFunction, blockParameter);
+        }
+
+        public Task<bool> GetExecutedQueryAsync(GetExecutedFunction getExecutedFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetExecutedFunction, bool>(getExecutedFunction, blockParameter);
+        }
+
+        
+        public virtual Task<bool> GetExecutedQueryAsync(BigInteger upgradeProposalID, BlockParameter blockParameter = null)
+        {
+            var getExecutedFunction = new GetExecutedFunction();
+                getExecutedFunction.UpgradeProposalID = upgradeProposalID;
+            
+            return ContractHandler.QueryAsync<GetExecutedFunction, bool>(getExecutedFunction, blockParameter);
+        }
+
+        public Task<string> GetNameQueryAsync(GetNameFunction getNameFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetNameFunction, string>(getNameFunction, blockParameter);
+        }
+
+        
+        public virtual Task<string> GetNameQueryAsync(BigInteger upgradeProposalID, BlockParameter blockParameter = null)
+        {
+            var getNameFunction = new GetNameFunction();
+                getNameFunction.UpgradeProposalID = upgradeProposalID;
+            
+            return ContractHandler.QueryAsync<GetNameFunction, string>(getNameFunction, blockParameter);
+        }
+
+        public Task<byte> GetStateQueryAsync(GetStateFunction getStateFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetStateFunction, byte>(getStateFunction, blockParameter);
+        }
+
+        
+        public virtual Task<byte> GetStateQueryAsync(BigInteger upgradeProposalID, BlockParameter blockParameter = null)
+        {
+            var getStateFunction = new GetStateFunction();
+                getStateFunction.UpgradeProposalID = upgradeProposalID;
+            
+            return ContractHandler.QueryAsync<GetStateFunction, byte>(getStateFunction, blockParameter);
+        }
+
+        public Task<BigInteger> GetTotalQueryAsync(GetTotalFunction getTotalFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetTotalFunction, BigInteger>(getTotalFunction, blockParameter);
+        }
+
+        
+        public virtual Task<BigInteger> GetTotalQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetTotalFunction, BigInteger>(null, blockParameter);
+        }
+
+        public Task<byte[]> GetTypeQueryAsync(GetTypeFunction getTypeFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetTypeFunction, byte[]>(getTypeFunction, blockParameter);
+        }
+
+        
+        public virtual Task<byte[]> GetTypeQueryAsync(BigInteger upgradeProposalID, BlockParameter blockParameter = null)
+        {
+            var getTypeFunction = new GetTypeFunction();
+                getTypeFunction.UpgradeProposalID = upgradeProposalID;
+            
+            return ContractHandler.QueryAsync<GetTypeFunction, byte[]>(getTypeFunction, blockParameter);
+        }
+
+        public Task<string> GetUpgradeABIQueryAsync(GetUpgradeABIFunction getUpgradeABIFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetUpgradeABIFunction, string>(getUpgradeABIFunction, blockParameter);
+        }
+
+        
+        public virtual Task<string> GetUpgradeABIQueryAsync(BigInteger upgradeProposalID, BlockParameter blockParameter = null)
+        {
+            var getUpgradeABIFunction = new GetUpgradeABIFunction();
+                getUpgradeABIFunction.UpgradeProposalID = upgradeProposalID;
+            
+            return ContractHandler.QueryAsync<GetUpgradeABIFunction, string>(getUpgradeABIFunction, blockParameter);
+        }
+
+        public Task<string> GetUpgradeAddressQueryAsync(GetUpgradeAddressFunction getUpgradeAddressFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetUpgradeAddressFunction, string>(getUpgradeAddressFunction, blockParameter);
+        }
+
+        
+        public virtual Task<string> GetUpgradeAddressQueryAsync(BigInteger upgradeProposalID, BlockParameter blockParameter = null)
+        {
+            var getUpgradeAddressFunction = new GetUpgradeAddressFunction();
+                getUpgradeAddressFunction.UpgradeProposalID = upgradeProposalID;
+            
+            return ContractHandler.QueryAsync<GetUpgradeAddressFunction, string>(getUpgradeAddressFunction, blockParameter);
+        }
+
+        public Task<bool> GetVetoedQueryAsync(GetVetoedFunction getVetoedFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetVetoedFunction, bool>(getVetoedFunction, blockParameter);
+        }
+
+        
+        public virtual Task<bool> GetVetoedQueryAsync(BigInteger upgradeProposalID, BlockParameter blockParameter = null)
+        {
+            var getVetoedFunction = new GetVetoedFunction();
+                getVetoedFunction.UpgradeProposalID = upgradeProposalID;
+            
+            return ContractHandler.QueryAsync<GetVetoedFunction, bool>(getVetoedFunction, blockParameter);
+        }
+
         public virtual Task<string> UpgradeRequestAsync(UpgradeFunction upgradeFunction)
         {
              return ContractHandler.SendRequestAsync(upgradeFunction);
@@ -90,12 +271,50 @@ namespace RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade
             return ContractHandler.QueryAsync<VersionFunction, byte>(null, blockParameter);
         }
 
+        public virtual Task<string> VetoRequestAsync(VetoFunction vetoFunction)
+        {
+             return ContractHandler.SendRequestAsync(vetoFunction);
+        }
+
+        public virtual Task<TransactionReceipt> VetoRequestAndWaitForReceiptAsync(VetoFunction vetoFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(vetoFunction, cancellationToken);
+        }
+
+        public virtual Task<string> VetoRequestAsync(BigInteger upgradeProposalID)
+        {
+            var vetoFunction = new VetoFunction();
+                vetoFunction.UpgradeProposalID = upgradeProposalID;
+            
+             return ContractHandler.SendRequestAsync(vetoFunction);
+        }
+
+        public virtual Task<TransactionReceipt> VetoRequestAndWaitForReceiptAsync(BigInteger upgradeProposalID, CancellationTokenSource cancellationToken = null)
+        {
+            var vetoFunction = new VetoFunction();
+                vetoFunction.UpgradeProposalID = upgradeProposalID;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(vetoFunction, cancellationToken);
+        }
+
         public override List<Type> GetAllFunctionTypes()
         {
             return new List<Type>
             {
+                typeof(BootstrapUpgradeFunction),
+                typeof(ExecuteFunction),
+                typeof(GetEndFunction),
+                typeof(GetExecutedFunction),
+                typeof(GetNameFunction),
+                typeof(GetStateFunction),
+                typeof(GetTotalFunction),
+                typeof(GetTypeFunction),
+                typeof(GetUpgradeABIFunction),
+                typeof(GetUpgradeAddressFunction),
+                typeof(GetVetoedFunction),
                 typeof(UpgradeFunction),
-                typeof(VersionFunction)
+                typeof(VersionFunction),
+                typeof(VetoFunction)
             };
         }
 
@@ -106,7 +325,9 @@ namespace RocketExplorer.Ethereum.RocketDAONodeTrustedUpgrade
                 typeof(ABIAddedEventDTO),
                 typeof(ABIUpgradedEventDTO),
                 typeof(ContractAddedEventDTO),
-                typeof(ContractUpgradedEventDTO)
+                typeof(ContractUpgradedEventDTO),
+                typeof(UpgradePendingEventDTO),
+                typeof(UpgradeVetoedEventDTO)
             };
         }
 

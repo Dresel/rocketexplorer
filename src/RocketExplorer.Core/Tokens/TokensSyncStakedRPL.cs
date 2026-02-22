@@ -31,14 +31,14 @@ public class TokensSyncStakedRPL(IOptions<SyncOptions> options, GlobalContext gl
 
 		IEnumerable<IEventLog> preSaturn1StakingEvents = await GlobalContext.Services.Web3.FilterAsync(
 			fromBlock, toBlock, [
-				typeof(RPLLegacyStakedEventDto),
+				typeof(RPLLegacyStakedEventDTO),
 				typeof(RPLOrRPLLegacyWithdrawnEventDTO),
 			],
 			context.PreSaturn1RocketNodeStakingAddresses, GlobalContext.Policy);
 
 		foreach (IEventLog eventLog in preSaturn1StakingEvents)
 		{
-			await eventLog.WhenIsAsync<RPLLegacyStakedEventDto, GlobalContext>(
+			await eventLog.WhenIsAsync<RPLLegacyStakedEventDTO, GlobalContext>(
 				StakingEventHandlers.HandleRPLLegacyStaked, GlobalContext, cancellationToken);
 
 			await eventLog.WhenIsAsync<RPLOrRPLLegacyWithdrawnEventDTO, GlobalContext>(
@@ -47,7 +47,7 @@ public class TokensSyncStakedRPL(IOptions<SyncOptions> options, GlobalContext gl
 
 		IEnumerable<IEventLog> postSaturn1StakingEvents = await GlobalContext.Services.Web3.FilterAsync(
 			fromBlock, toBlock, [
-				typeof(RPLLegacyWithdrawnEventDTO),
+				typeof(RPLLegacyUnstakedEventDTO),
 				typeof(RPLStakedEventDTO),
 				typeof(RPLUnstakedEventDTO),
 			],
@@ -55,7 +55,7 @@ public class TokensSyncStakedRPL(IOptions<SyncOptions> options, GlobalContext gl
 
 		foreach (IEventLog eventLog in postSaturn1StakingEvents)
 		{
-			await eventLog.WhenIsAsync<RPLLegacyWithdrawnEventDTO, GlobalContext>(
+			await eventLog.WhenIsAsync<RPLLegacyUnstakedEventDTO, GlobalContext>(
 				StakingEventHandlers.HandleRPLLegacyUnstaked, GlobalContext, cancellationToken);
 
 			await eventLog.WhenIsAsync<RPLStakedEventDTO, GlobalContext>(

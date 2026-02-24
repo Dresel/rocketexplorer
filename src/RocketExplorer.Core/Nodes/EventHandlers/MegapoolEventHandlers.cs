@@ -81,11 +81,6 @@ public class MegapoolEventHandlers
 			return;
 		}
 
-		RocketMegapoolDelegateService megapoolDelegate = new(globalContext.Services.Web3, megapoolAddress);
-
-		GetValidatorInfoOutputDTO validatorInfo = await globalContext.Policy.ExecuteAsync(() => megapoolDelegate.GetValidatorInfoQueryAsync(
-			(uint)validatorId, new BlockParameter(eventLog.Log.BlockNumber)));
-
 		NodesContext context = await globalContext.NodesContextFactory;
 
 		try

@@ -3,8 +3,11 @@ using MessagePack;
 namespace RocketExplorer.Shared;
 
 [MessagePackObject]
-public record class EnsIndexEntry
+public record class EnsIndexEntry : IIdentifiable<string>
 {
+	[IgnoreMember]
+	public string Identifier => AddressEnsName;
+
 	[Key(0)]
 	public required IndexEntryType Type { get; init; }
 

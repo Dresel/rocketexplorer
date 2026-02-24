@@ -124,8 +124,8 @@ public class TokenEventHandlers
 				if (!tokenInfo.Holders.ContainsKey(fromAddress))
 				{
 					globalContext.GetLogger<TokenEventHandlers>().LogError(
-						"Holder Address is missing: {Address} ({Block} / {Transaction})",
-						fromAddress, eventLog.Log.BlockNumber, eventLog.Log.TransactionHash);
+						"Holder Address is missing: {Address} ({EventIndex})",
+						fromAddress, new EventIndex(eventLog.Log.BlockNumber, eventLog.Log.LogIndex));
 				}
 
 				tokenInfo.Holders[fromAddress] = tokenInfo.Holders[fromAddress] with

@@ -7,9 +7,7 @@ namespace RocketExplorer.Core;
 
 public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 	int nGramLength,
-	Func<TEntry, TIdentifier> identifierFunc,
-	Func<TStoredEntry, TIdentifier> storedIdentifierFunc,
-	Func<TEntry, TStoredEntry> mapToStoredEntry,
+	Func<TIdentifier, TEntry, TStoredEntry> mapToStoredEntry,
 	Func<TStoredEntry, TEntry> mapToEntry,
 	IEqualityComparer<TIdentifier> equalityComparer,
 	Storage storage,
@@ -17,18 +15,17 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 	ILogger logger)
 	where TEntry : new()
 	where TIdentifier : notnull
+	where TStoredEntry : IIdentifiable<TIdentifier>
 {
 	private readonly AsyncKeyedLocker<string> asyncKeyedLocker = new();
 	private readonly IEqualityComparer<TIdentifier> equalityComparer = equalityComparer;
-	private readonly Func<TEntry, TIdentifier> identifierFunc = identifierFunc;
 	private readonly ILogger logger = logger;
 	private readonly Func<TStoredEntry, TEntry> mapToEntry = mapToEntry;
-	private readonly Func<TEntry, TStoredEntry> mapToStoredEntry = mapToStoredEntry;
+	private readonly Func<TIdentifier, TEntry, TStoredEntry> mapToStoredEntry = mapToStoredEntry;
 	private readonly int nGramLength = nGramLength;
 	private readonly ConcurrentDictionary<TIdentifier, ConcurrentQueue<EventIndex>> queues = new(equalityComparer);
 	private readonly Storage storage = storage;
 	private readonly Func<string, string> storagePathTemplate = storagePathTemplate;
-	private readonly Func<TStoredEntry, TIdentifier> storedIdentifierFunc = storedIdentifierFunc;
 	private int activeOperationsCount;
 
 	public bool SkipLoading { get; set; } = false;
@@ -277,7 +274,7 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 							ProcessedBlockNumber = processedBlockNumber,
 							Data = new GlobalIndexShardSnapshot<TStoredEntry>
 							{
-								Index = entry.Value.Values.Select(x => this.mapToStoredEntry(x)).ToArray(),
+								Index = entry.Value.Select(kvp => this.mapToStoredEntry(kvp.Key, kvp.Value)).ToArray(),
 							},
 						}, cancellationToken: innerCancellationToken);
 				}
@@ -299,7 +296,7 @@ public class IndexService<TIdentifier, TEntry, TStoredEntry>(
 			if (globalIndexShard != null)
 			{
 				bucket = globalIndexShard.Data.Index.ToDictionary(
-					x => this.storedIdentifierFunc(x), x => this.mapToEntry(x), this.equalityComparer);
+					x => x.Identifier, x => this.mapToEntry(x), this.equalityComparer);
 			}
 			else
 			{

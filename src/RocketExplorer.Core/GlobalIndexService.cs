@@ -5,8 +5,9 @@ namespace RocketExplorer.Core;
 
 public class GlobalIndexService(Storage storage, ILogger<GlobalIndexService> logger)
 	: IndexService<byte[], IndexEntry, Shared.IndexEntry>(
-		4, entry => entry.Address, entry => entry.Address, entry => new Shared.IndexEntry
+		4, (identifier, entry) => new Shared.IndexEntry
 		{
+			Identifier = identifier,
 			Type = entry.Type,
 			Address = entry.Address,
 			AddressEnsName = entry.AddressEnsName,

@@ -5,7 +5,7 @@ namespace RocketExplorer.Core;
 
 public class GlobalEnsIndexService(Storage storage, ILogger<GlobalEnsIndexService> logger)
 	: IndexService<string, EnsIndexEntry, Shared.EnsIndexEntry>(
-		3, entry => entry.AddressEnsName, entry => entry.AddressEnsName, entry => new Shared.EnsIndexEntry
+		3, (_, entry) => new Shared.EnsIndexEntry
 		{
 			Type = entry.Type,
 			Address = entry.Address,

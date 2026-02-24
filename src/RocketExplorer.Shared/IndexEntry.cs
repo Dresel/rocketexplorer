@@ -3,30 +3,33 @@ using MessagePack;
 namespace RocketExplorer.Shared;
 
 [MessagePackObject]
-public record class IndexEntry
+public record class IndexEntry : IIdentifiable<byte[]>
 {
 	[Key(0)]
-	public required IndexEntryType Type { get; init; }
+	public required byte[] Identifier { get; init; }
 
 	[Key(1)]
-	public required byte[] Address { get; init; }
+	public required IndexEntryType Type { get; init; }
 
 	[Key(2)]
-	public required string? AddressEnsName { get; init; }
+	public required byte[] Address { get; init; }
 
 	[Key(3)]
-	public required byte[]? MegapoolAddress { get; init; }
+	public required string? AddressEnsName { get; init; }
 
 	[Key(4)]
-	public required byte[]? ValidatorPubKey { get; init; }
+	public required byte[]? MegapoolAddress { get; init; }
 
 	[Key(5)]
-	public required long? ValidatorIndex { get; init; }
+	public required byte[]? ValidatorPubKey { get; init; }
 
 	[Key(6)]
-	public required int? MegapoolIndex { get; init; }
+	public required long? ValidatorIndex { get; init; }
 
 	[Key(7)]
+	public required int? MegapoolIndex { get; init; }
+
+	[Key(8)]
 	public required List<byte[]> NodeAddresses { get; init; }
 
 	public virtual bool Equals(IndexEntry? other)
@@ -41,7 +44,8 @@ public record class IndexEntry
 			return true;
 		}
 
-		return Type == other.Type &&
+		return Identifier.SequenceEqual(other.Identifier) &&
+			Type == other.Type &&
 			Address.SequenceEqual(other.Address) &&
 			((MegapoolAddress is null && other.MegapoolAddress is null) ||
 				MegapoolAddress?.SequenceEqual(other.MegapoolAddress) == true) &&
@@ -55,6 +59,7 @@ public record class IndexEntry
 	public override int GetHashCode()
 	{
 		HashCode hashCode = default;
+		hashCode.AddBytes(Identifier);
 		hashCode.Add(Type);
 		hashCode.AddBytes(Address);
 		hashCode.AddBytes(MegapoolAddress);

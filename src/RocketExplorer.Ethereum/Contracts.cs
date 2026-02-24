@@ -81,6 +81,7 @@ public class Contracts
 		"rocketUpgradeOneDotThreeDotOne",
 		"rocketUpgradeOneDotThreeHotfix",
 		"rocketUpgradeOneDotFour",
+		"RocketUpgradeOneDotFourDissolveHotfix",
 		"rocketHotfixNodeFee",
 	];
 }

@@ -56,7 +56,7 @@ public class Configuration
 	public Network Network { get; }
 
 	// TODO: Load from configuration?
-	public string ObjectStoreBaseUrl => $"https://rocketexplorer.nbg1.your-objectstorage.com/{ObjectStoreBucketName}";
+	public string ObjectStoreBaseUrl => $"https://rocketexplorer2.nbg1.your-objectstorage.com/{ObjectStoreBucketName}";
 
 	public string ObjectStoreBucketName =>
 		Environment switch

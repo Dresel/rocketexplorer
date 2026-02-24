@@ -14,7 +14,7 @@ namespace RocketExplorer.Core;
 
 public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILogger<Storage> logger)
 {
-	private readonly string bucketName = "rocketexplorer";
+	private readonly string bucketName = options.Value.BucketName;
 
 	private readonly ILogger<Storage> logger = logger;
 
@@ -26,32 +26,32 @@ public class Storage(IOptions<SyncOptions> options, AmazonS3Client s3Client, ILo
 
 	private readonly AmazonS3Client s3Client = s3Client;
 
-	////public async Task WriteCorsConfigurationAsync(CancellationToken cancellationToken = default)
-	////{
-	////	await this.s3Client.PutCORSConfigurationAsync(
-	////		new PutCORSConfigurationRequest
-	////		{
-	////			BucketName = this.bucketName,
-	////			Configuration = new CORSConfiguration
-	////			{
-	////				Rules =
-	////				[
-	////					new CORSRule
-	////					{
-	////						AllowedHeaders = ["*",],
-	////						AllowedMethods = ["HEAD", "GET",],
-	////						AllowedOrigins =
-	////						[
-	////							"https://localhost:5001", "https://*.localhost:5001", "https://rocketexplorer.net",
-	////							"https://*.rocketexplorer.net",
-	////						],
-	////						MaxAgeSeconds = 86400,
-	////						ExposeHeaders = ["ETag",],
-	////					},
-	////				],
-	////			},
-	////		}, cancellationToken);
-	////}
+	public async Task WriteCorsConfigurationAsync(CancellationToken cancellationToken = default)
+	{
+		await this.s3Client.PutCORSConfigurationAsync(
+			new PutCORSConfigurationRequest
+			{
+				BucketName = this.bucketName,
+				Configuration = new CORSConfiguration
+				{
+					Rules =
+					[
+						new CORSRule
+						{
+							AllowedHeaders = ["*",],
+							AllowedMethods = ["HEAD", "GET",],
+							AllowedOrigins =
+							[
+								"https://localhost:5001", "https://*.localhost:5001", "https://rocketexplorer.net",
+								"https://*.rocketexplorer.net",
+							],
+							MaxAgeSeconds = 86400,
+							ExposeHeaders = ["ETag",],
+						},
+					],
+				},
+			}, cancellationToken);
+	}
 
 	public async Task DeleteAsync(string key, CancellationToken cancellationToken = default)
 	{

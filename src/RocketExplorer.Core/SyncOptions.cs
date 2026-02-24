@@ -4,6 +4,8 @@ public class SyncOptions
 {
 	public required string BeaconChainUrl { get; set; } = string.Empty;
 
+	public string BucketName { get; init; } = "rocketexplorer";
+
 	public required string Environment { get; init; }
 
 	public required string RocketStorageContractAddress { get; init; }

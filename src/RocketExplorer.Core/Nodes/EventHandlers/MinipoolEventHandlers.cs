@@ -186,7 +186,7 @@ public class MinipoolEventHandlers
 	{
 		string minipoolAddress = eventLog.Log.Address;
 
-		await EventMinipoolValidatorUpdateAsync(
+		string? nodeOperatorAddress = await EventMinipoolValidatorUpdateAsync(
 			globalContext, new MinipoolUpdatedEvent
 			{
 				Log = eventLog.Log,
@@ -194,6 +194,11 @@ public class MinipoolEventHandlers
 				MinipoolAddress = minipoolAddress,
 				Status = ValidatorStatus.Exited,
 			}, cancellationToken);
+
+		if (string.IsNullOrWhiteSpace(nodeOperatorAddress))
+		{
+			return;
+		}
 
 		globalContext.DashboardContext.MinipoolValidatorsStaking--;
 	}
